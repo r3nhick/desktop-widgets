@@ -1,0 +1,41 @@
+.widget-music-title {
+  font-weight: 800;
+}
+
+.widget-music-artist {
+  font-weight: 400;
+}
+
+.widget-music-track {
+  min-height: 4px;
+}
+
+.widget-music-fill {
+  min-height: 4px;
+}
+
+.widget-music-time {
+  font-weight: 400;
+}
+
+.widget-music-button {
+  border-radius: 9px;
+  background-color: transparent;
+}
+
+.widget-music-button:hover {
+  background-color: rgba(128, 128, 128, 0.20);
+}
+
+.widget-music-button:active {
+  background-color: rgba(128, 128, 128, 0.30);
+}
+
+.widget-music-slider {
+  border-radius: 10px;
+  background-color: transparent;
+}
+
+.widget-music-slider:hover {
+  background-color: rgba(128, 128, 128, 0.08);
+}

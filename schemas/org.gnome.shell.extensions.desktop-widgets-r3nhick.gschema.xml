@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.desktop-widgets-r3nhick" path="/org/gnome/shell/extensions/desktop-widgets-r3nhick/">
+    <key name="layout-json" type="s">
+      <default>''</default>
+      <summary>Serialized widget layout</summary>
+      <description>Stores widget types, sizes, and desktop positions as JSON.</description>
+    </key>
+    <key name="edit-mode" type="b">
+      <default>false</default>
+      <summary>Edit mode</summary>
+      <description>Enable widget edit mode to move and remove widgets on the desktop.</description>
+    </key>
+    <key name="custom-photo" type="s">
+      <default>''</default>
+      <summary>Custom photo path</summary>
+      <description>Absolute path to a photo to display in the Photos widget instead of the automatic selection. Leave empty to use the automatic rotating photos.</description>
+    </key>
+    <key name="photo-size" type="s">
+      <default>'cover'</default>
+      <summary>Photo size</summary>
+      <description>How the photo fits the widget: cover (fill and crop), contain (entire photo visible), fill (stretch), or small (centered). Allowed values: cover, contain, fill, small.</description>
+    </key>
+    <key name="battery-icon-size" type="s">
+      <default>'medium'</default>
+      <summary>Battery icon size</summary>
+      <description>Size of the device icon inside each battery ring: small, medium, or large.</description>
+    </key>
+    <key name="battery-slot-count" type="i">
+      <default>4</default>
+      <summary>Battery slot count</summary>
+      <description>Maximum number of devices shown in the Battery widget.</description>
+    </key>
+    <key name="battery-show-percent" type="b">
+      <default>true</default>
+      <summary>Show battery percentage</summary>
+      <description>Show the charge percentage below each battery ring.</description>
+    </key>
+    <key name="arrange-widgets" type="b">
+      <default>false</default>
+      <summary>Arrange widgets</summary>
+      <description>Set to true to align all widgets into a shared grid of columns and rows. The extension performs the arrangement and resets the key to false.</description>
+    </key>
+    <key name="music-ignore-browsers" type="b">
+      <default>true</default>
+      <summary>Ignore Web Browsers</summary>
+      <description>Prevent browsers like Chrome or Firefox from taking over the music widget.</description>
+    </key>
+    <key name="music-empty-gif" type="s">
+      <default>'pushy.gif'</default>
+      <summary>Empty state GIF</summary>
+      <description>Animated GIF shown by the music widget when no track is playing. Allowed values: pushy.gif, pushy2.gif.</description>
+    </key>
+    <key name="edit-mode-binding" type="as">
+      <default>[]</default>
+      <summary>Edit mode shortcut</summary>
+      <description>Global keyboard shortcut to toggle edit mode on the desktop. Leave empty to disable.</description>
+    </key>
+    <key name="style-border-radius" type="i">
+      <default>16</default>
+      <summary>Border Radius</summary>
+      <description>Corner radius for the widgets.</description>
+    </key>
+    <key name="style-border-width" type="i">
+      <default>1</default>
+      <summary>Border Width</summary>
+      <description>Border width in pixels.</description>
+    </key>
+    <key name="style-background" type="s">
+      <default>''</default>
+      <summary>Background Color</summary>
+      <description>Custom CSS background color. Leave empty for default.</description>
+    </key>
+    <key name="style-border-color" type="s">
+      <default>''</default>
+      <summary>Border Color</summary>
+      <description>Custom CSS border color. Leave empty for default.</description>
+    </key>
+    <key name="style-shadow" type="s">
+      <default>''</default>
+      <summary>Box Shadow</summary>
+      <description>Custom CSS box shadow. Leave empty for default.</description>
+    </key>
+    <key name="style-shadow-size" type="i">
+      <default>24</default>
+      <summary>Shadow Size</summary>
+      <description>Blur radius of the custom box shadow in pixels.</description>
+    </key>
+    <key name="style-widget-opacity" type="d">
+      <default>1.0</default>
+      <summary>Widget opacity</summary>
+      <description>Global opacity of all desktop widgets, from 0.1 (nearly invisible) to 1.0 (fully opaque).</description>
+    </key>
+  </schema>
+</schemalist>

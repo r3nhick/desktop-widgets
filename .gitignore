@@ -1,0 +1,5 @@
+*.mo
+gschemas.compiled
+locale/
+node_modules/
+*.zip

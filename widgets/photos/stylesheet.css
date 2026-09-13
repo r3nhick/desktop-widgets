@@ -1,0 +1,15 @@
+.widget-photo {
+    background-color: #242424;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-radius: 16px;
+}
+
+.widget-photo-empty {
+    padding: 12px;
+}
+
+.widget-photo-empty:active {
+    background-color: rgba(255, 255, 255, 0.06);
+}

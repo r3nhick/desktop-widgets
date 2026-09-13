@@ -1,0 +1,73 @@
+.widget-weather-header {
+  spacing: 8px;
+}
+
+.widget-weather-city {
+  font-weight: 800;
+}
+
+.widget-weather-summary {
+  font-weight: 600;
+}
+
+.widget-weather-condition {
+  font-weight: 700;
+}
+
+.widget-weather-condition-icon {
+  icon-size: 22px;
+}
+
+.widget-weather-range {
+  font-size: 12px;
+}
+
+.widget-weather-hourly {
+  spacing: 8px;
+  margin-top: 4px;
+}
+
+.widget-weather-hour {
+  spacing: 1px;
+}
+
+.widget-weather-hour-time {
+  font-weight: 600;
+}
+
+.widget-weather-hour-icon {
+  icon-size: 16px;
+}
+
+.widget-weather-hour-temp {
+  font-weight: 700;
+}
+
+.widget-weather-week {
+  spacing: 6px;
+  margin-top: 6px;
+}
+
+.widget-weather-day-row {
+  spacing: 6px;
+}
+
+.widget-weather-day-name {
+  font-weight: 500;
+}
+
+.widget-weather-day-icon {
+  icon-size: 20px;
+}
+
+.widget-weather-day-temps {
+  font-size: 12px;
+}
+
+.widget-weather-day-high {
+  font-weight: 600;
+}
+
+.widget-weather-icon {
+  icon-size: 20px;
+}

@@ -1,0 +1,475 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: desktop-widgets@r3nhick\n"
+"Language: ru\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>19) ? 1 : 2);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language-Team: r3nhick\n"
+
+#: prefs.js:483
+msgid "Add"
+msgstr "Добавить"
+
+#: prefs.js:467
+msgid "Add a new widget to your desktop."
+msgstr "Добавить новый виджет на рабочий стол."
+
+#: prefs.js:466
+msgid "Add Widget"
+msgstr "Добавить виджет"
+
+#: prefs.js:992
+msgid "Adjust the visual size of the device indicators displayed inside the battery charge rings."
+msgstr "Настроить размер индикаторов устройств внутри колец заряда."
+
+#: prefs.js:515
+msgid "Align all widgets into a grid of columns and rows"
+msgstr "Выровнять все виджеты в сетку колонок и строк"
+
+#: prefs.js:1057
+msgid "Animation shown when no track is playing"
+msgstr "Анимация, когда ничего не играет"
+
+#: prefs.js:166
+msgid "Appearance"
+msgstr "Внешний вид"
+
+#: prefs.js:514
+msgid "Arrange widgets"
+msgstr "Выровнять виджеты"
+
+#: prefs.js:1121
+msgid "Background Color"
+msgstr "Цвет фона"
+
+#: prefs.js:998
+msgid "Battery icon size"
+msgstr "Размер иконки батареи"
+
+#: prefs.js:1009
+msgid "Battery slot count"
+msgstr "Количество слотов"
+
+#: prefs.js:154
+#: prefs.js:991
+msgid "Battery Widget"
+msgstr "Виджет батареи"
+
+#: prefs.js:1147
+msgid "Blur radius of the shadow"
+msgstr "Радиус размытия тени"
+
+#: prefs.js:1131
+msgid "Border Color"
+msgstr "Цвет рамки"
+
+#: prefs.js:1083
+msgid "Border Radius"
+msgstr "Радиус скругления"
+
+#: prefs.js:1102
+msgid "Border Width"
+msgstr "Толщина рамки"
+
+#: prefs.js:1141
+msgid "Box Shadow"
+msgstr "Тень"
+
+#: prefs.js:663
+#: prefs.js:690
+#: prefs.js:783
+#: prefs.js:851
+msgid "Cancel"
+msgstr "Отмена"
+
+#: extension.js:1144
+#: widgets/photos/widget.js:251
+msgid "Change photo"
+msgstr "Сменить фото"
+
+#: prefs.js:1122
+msgid "Choose background color"
+msgstr "Выбрать цвет фона"
+
+#: prefs.js:1132
+msgid "Choose border color"
+msgstr "Выбрать цвет рамки"
+
+#: prefs.js:1142
+msgid "Choose shadow color. Leave unset for default."
+msgstr "Выбрать цвет тени. Оставьте пустым для темы по умолчанию."
+
+#: prefs.js:874
+msgid "Close"
+msgstr "Закрыть"
+
+#: prefs.js:404
+msgid "Configure desktop widgets. Changes apply immediately."
+msgstr "Настройте виджеты. Изменения применяются сразу."
+
+#: prefs.js:968
+msgid "Configure how your pictures are scaled and cropped inside the Photos widget bounds."
+msgstr "Настройте масштабирование и обрезку фотографий."
+
+#: prefs.js:1084
+msgid "Corner roundness of widgets"
+msgstr "Скругление углов виджетов"
+
+#: prefs.js:865
+msgid "Could not delete the layout"
+msgstr "Не удалось удалить раскладку"
+
+#: prefs.js:677
+msgid "Could not export the layout"
+msgstr "Не удалось экспортировать раскладку"
+
+#: prefs.js:724
+msgid "Could not import the layout"
+msgstr "Не удалось импортировать раскладку"
+
+#: prefs.js:704
+#: prefs.js:829
+msgid "Could not read the file"
+msgstr "Не удалось прочитать файл"
+
+#: prefs.js:842
+msgid "Could not restore the layout"
+msgstr "Не удалось восстановить раскладку"
+
+#: prefs.js:818
+msgid "Could not save the layout"
+msgstr "Не удалось сохранить раскладку"
+
+#: prefs.js:813
+msgid "Could not write the file"
+msgstr "Не удалось записать файл"
+
+#: prefs.js:1077
+msgid "Customize the appearance of all widgets."
+msgstr "Настройте внешний вид виджетов."
+
+#: prefs.js:609
+#: prefs.js:851
+msgid "Delete"
+msgstr "Удалить"
+
+#: prefs.js:849
+msgid "Delete saved layout?"
+msgstr "Удалить сохранённую раскладку?"
+
+#: prefs.js:298
+msgid "Desktop Widgets"
+msgstr "Виджеты рабочего стола"
+
+#: prefs.js:1026
+msgid "Display the charge percentage below each ring"
+msgstr "Показывать процент заряда под каждым кольцом"
+
+#: prefs.js:409
+msgid "Edit mode"
+msgstr "Режим редактирования"
+
+#: prefs.js:443
+#: prefs.js:881
+msgid "Edit Mode Shortcut"
+msgstr "Горячая клавиша"
+
+#: prefs.js:1056
+msgid "Empty state GIF"
+msgstr "Анимация для пустого состояния"
+
+#: prefs.js:410
+msgid "Enable to move and remove widgets on the desktop"
+msgstr "Включите, чтобы перемещать и удалять виджеты"
+
+#: prefs.js:662
+msgid "Export"
+msgstr "Экспорт"
+
+#: prefs.js:524
+#: prefs.js:659
+msgid "Export layout"
+msgstr "Экспорт раскладки"
+
+#: prefs.js:141
+msgid "General"
+msgstr "Основные"
+
+#: prefs.js:882
+msgid "Global shortcut to toggle edit mode. Press Backspace to clear."
+msgstr "Глобальная горячая клавиша для режима редактирования. Backspace — очистить."
+
+#: widgets/weather/widget.js:637
+msgid "GNOME Weather"
+msgstr "Погода GNOME"
+
+#: prefs.js:418
+msgid "Grid step in pixels while dragging. 0 disables snapping."
+msgstr "Шаг сетки в пикселях при перетаскивании. 0 — свободное размещение."
+
+#: widgets/weather/widget.js:403
+msgid "H:%s L:%s"
+msgstr "В:%s Н:%s"
+
+#: extension.js:1448
+msgid "Hide widget"
+msgstr "Скрыть виджет"
+
+#: prefs.js:999
+msgid "How large the device icon is inside the charging ring"
+msgstr "Размер иконки устройства внутри кольца заряда"
+
+#: prefs.js:975
+msgid "How the photo fits the widget bounds"
+msgstr "Как фото вписывается в виджет"
+
+#: prefs.js:1047
+msgid "Ignore Web Browsers"
+msgstr "Игнорировать браузеры"
+
+#: prefs.js:689
+msgid "Import"
+msgstr "Импорт"
+
+#: prefs.js:534
+#: prefs.js:686
+msgid "Import layout"
+msgstr "Импорт раскладки"
+
+#: widgets/weather/widget.js:89
+msgid "It feels like"
+msgstr "Ощущается как"
+
+#: prefs.js:535
+msgid "Load a widget layout from a JSON file"
+msgstr "Загрузить раскладку из JSON-файла"
+
+#: prefs.js:1010
+msgid "Maximum number of devices shown"
+msgstr "Максимальное количество отображаемых устройств"
+
+#: prefs.js:160
+#: prefs.js:1041
+msgid "Music Widget"
+msgstr "Виджет музыки"
+
+#: prefs.js:887
+#: prefs.js:914
+msgid "New accelerator…"
+msgstr "Новое сочетание клавиш…"
+
+#: widgets/calendar/widget.js:198
+msgid "No events today"
+msgstr "Сегодня без событий"
+
+#: prefs.js:558
+msgid "No widget of this type in the layout"
+msgstr "Нет виджетов такого типа"
+
+#: prefs.js:836
+msgid "Not a valid widget layout"
+msgstr "Файл раскладки повреждён"
+
+#: widgets/weather/widget.js:636
+msgid "Open Weather to set a location"
+msgstr "Откройте «Погоду» и выберите город"
+
+#: prefs.js:783
+msgid "Overwrite"
+msgstr "Заменить"
+
+#: prefs.js:781
+msgid "Overwrite existing layout?"
+msgstr "Заменить существующую раскладку?"
+
+#: prefs.js:974
+msgid "Photo size"
+msgstr "Размер фото"
+
+#: prefs.js:148
+#: prefs.js:967
+msgid "Photos Widget"
+msgstr "Виджет фотографий"
+
+#: prefs.js:602
+msgid "Pick a saved layout to restore or delete"
+msgstr "Выберите сохранённую раскладку для восстановления или удаления"
+
+#: extension.js:1053
+#: extension.js:1443
+msgid "Pin widget"
+msgstr "Закрепить виджет"
+
+#: prefs.js:1042
+msgid "Preferences for the media player widget on your desktop."
+msgstr "Настройки виджета музыкального проигрывателя."
+
+#: prefs.js:584
+msgid "Preset name"
+msgstr "Название пресета"
+
+#: prefs.js:1048
+msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
+msgstr "Не давать браузерам перехватывать виджет музыки."
+
+#: extension.js:1039
+#: extension.js:1454
+msgid "Remove widget"
+msgstr "Удалить виджет"
+
+#: prefs.js:504
+msgid "Reset default widgets"
+msgstr "Сбросить виджеты по умолчанию"
+
+#: prefs.js:1212
+msgid "Reset Style"
+msgstr "Сбросить стиль"
+
+#: prefs.js:607
+msgid "Restore"
+msgstr "Восстановить"
+
+#: prefs.js:1213
+msgid "Restore default widget appearance"
+msgstr "Восстановить виджеты по умолчанию"
+
+#: prefs.js:621
+msgid "Restore or delete the selected preset"
+msgstr "Восстановить или удалить выбранный пресет"
+
+#: prefs.js:505
+msgid "Restore the default widget layout"
+msgstr "Восстановить раскладку по умолчанию"
+
+#: prefs.js:586
+msgid "Save layout"
+msgstr "Сохранить раскладку"
+
+#: prefs.js:525
+msgid "Save the current widget layout to a JSON file"
+msgstr "Сохранить текущую раскладку в JSON-файл"
+
+#: prefs.js:580
+msgid "Save the current widget positions under a name and restore them later."
+msgstr "Сохраните расположение виджетов под именем для последующего восстановления."
+
+#: prefs.js:579
+msgid "Saved Layouts"
+msgstr "Сохранённые раскладки"
+
+#: prefs.js:601
+msgid "Saved presets"
+msgstr "Сохранённые пресеты"
+
+#: prefs.js:332
+msgid "Search"
+msgstr "Поиск"
+
+#: prefs.js:322
+msgid "Search settings…"
+msgstr "Поиск по настройкам…"
+
+#: prefs.js:333
+msgid "Search…"
+msgstr "Поиск…"
+
+#: prefs.js:186
+msgid "Type to search"
+msgstr "Введите текст для поиска"
+
+#: prefs.js:206
+msgid "No results"
+msgstr "Ничего не найдено"
+
+#: prefs.js:556
+msgid "Press Esc to close"
+msgstr "Esc — закрыть"
+
+#: widgets/photos/widget.js:189
+msgid "Select image"
+msgstr "Выбрать изображение"
+
+#: prefs.js:472
+msgid "Select widget to add"
+msgstr "Выберите виджет для добавления"
+
+#: prefs.js:1146
+msgid "Shadow Size"
+msgstr "Размер тени"
+
+#: prefs.js:1025
+msgid "Show battery percentage"
+msgstr "Показывать процент заряда"
+
+#: prefs.js:548
+msgid "Show or hide widget types without removing them from the layout."
+msgstr "Показать или скрыть типы виджетов, не удаляя их из раскладки."
+
+#: prefs.js:557
+msgid "Show this widget on the desktop"
+msgstr "Показывать этот виджет"
+
+#: prefs.js:417
+msgid "Snap to grid"
+msgstr "Привязка к сетке"
+
+#: prefs.js:1103
+msgid "Thickness of widget borders"
+msgstr "Толщина рамок виджетов"
+
+#: prefs.js:711
+msgid "This file is not a valid layout"
+msgstr "Файл не является раскладкой"
+
+#: widgets/weather/widget.js:158
+msgid "Today"
+msgstr "Сегодня"
+
+#: prefs.js:1185
+msgid "Transparency of all desktop widgets"
+msgstr "Прозрачность всех виджетов"
+
+#: prefs.js:915
+msgid "Type the shortcut to toggle edit mode. Press Backspace to clear."
+msgstr "Введите сочетание клавиш. Backspace — очистить."
+
+#: extension.js:1471
+msgid "Unknown widget"
+msgstr "Неизвестный виджет"
+
+#: prefs.js:718
+msgid "Unknown widget type"
+msgstr "Неизвестный тип виджета"
+
+#: extension.js:1443
+msgid "Unpin widget"
+msgstr "Открепить виджет"
+
+#: widgets/weather/widget.js:260
+#: widgets/weather/widget.js:633
+msgid "Weather unavailable"
+msgstr "Погода недоступна"
+
+#: prefs.js:1184
+msgid "Widget opacity"
+msgstr "Прозрачность виджета"
+
+#: extension.js:1075
+#: extension.js:1423
+msgid "Widget size"
+msgstr "Размер виджета"
+
+#: prefs.js:1076
+msgid "Widget Styling"
+msgstr "Оформление"
+
+#: prefs.js:547
+msgid "Widget Visibility"
+msgstr "Видимость виджетов"
+
+#: prefs.js:403
+msgid "Widgets"
+msgstr "Виджеты"
+

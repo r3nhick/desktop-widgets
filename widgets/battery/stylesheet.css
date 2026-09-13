@@ -1,0 +1,15 @@
+.widget-battery .widget-body {
+  spacing: 0;
+}
+
+.widget-battery-tray {
+  padding: 0;
+}
+
+.widget-battery-slot {
+  spacing: 12px;
+}
+
+.widget-battery-percent {
+  font-weight: 800;
+}

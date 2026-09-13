@@ -1,0 +1,174 @@
+.widget-layer {
+    /* Ensure this layer doesn't affect system UI */
+    pointer-events: none;  /* Ignore events on empty space - let DING handle */
+}
+
+.widget-layer .widget {
+    border: 1px solid #505058;
+    border-radius: 16px;
+    padding: 16px;
+    color: #f5f5f7;
+    line-height: 1.35em;
+    font-size: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.26);
+    transition: box-shadow 160ms ease-out, border-color 160ms ease-out;
+    pointer-events: auto;  /* Handle events on widgets */
+}
+
+.widget-layer .widget:hover {
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.34);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.widget-layer .widget-edit-border {
+    border: 1.5px solid rgba(88, 161, 235, 0.85);
+    border-radius: 16px;
+    box-shadow: 0 0 0 3px rgba(88, 161, 235, 0.12);
+    pointer-events: auto;
+}
+
+.widget-layer .icon-button {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 13px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    background-color: rgba(24, 26, 32, 0.72);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    transition: background-color 120ms ease-out, border-color 120ms ease-out, box-shadow 120ms ease-out;
+    pointer-events: auto;
+}
+
+.widget-layer .icon-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.widget-layer .icon-button:active {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+.widget-layer .icon-button:focus {
+    box-shadow: 0 0 0 2px rgba(88, 161, 235, 0.9);
+}
+
+.widget-layer .widget-edit-remove {
+    color: rgba(255, 123, 123, 0.92);
+}
+
+.widget-layer .widget-edit-remove:hover {
+    background-color: rgba(230, 45, 66, 0.24);
+    border-color: rgba(255, 123, 123, 0.35);
+}
+
+.widget-layer .widget-size-menu {
+    border-radius: 12px;
+    background-color: rgba(0, 0, 0, 0.72);
+    padding: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
+}
+
+.widget-layer .widget-size-menu-item {
+    padding: 6px 12px;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 44px;
+    text-align: center;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.widget-layer .widget-size-menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.widget-layer .widget-size-menu-item.active {
+    color: #54a2f0;
+    font-weight: 700;
+}
+
+.widget-size-menu-item.active {
+    color: #54a2f0;
+    font-weight: 700;
+}
+
+.widget-layer .widget-edit-pin {
+    min-width: 26px;
+    min-height: 26px;
+    padding: 0;
+    border-radius: 13px;
+    color: #ffffff;
+    background-color: rgba(24, 26, 32, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
+}
+
+.widget-layer .widget-edit-pin:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.widget-layer .widget-edit-pin:active,
+.widget-layer .widget-edit-pin.active {
+    background-color: rgba(88, 161, 235, 0.9);
+    color: #ffffff;
+    border-color: rgba(88, 161, 235, 0.9);
+}
+
+.widget-layer .widget-edit-pin:active:hover,
+.widget-layer .widget-edit-pin.active:hover {
+    background-color: rgba(120, 180, 245, 0.95);
+}
+
+.widget-context-menu {
+    min-width: 160px;
+    border-radius: 10px;
+    background-color: rgba(16, 17, 21, 0.96);
+    padding: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    pointer-events: auto;
+}
+
+.widget-context-menu-item {
+    text-align: left;
+    min-width: 132px;
+    min-height: 30px;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    pointer-events: auto;
+}
+
+.widget-context-menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.widget-context-menu-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.45);
+    padding: 6px 10px 3px;
+}
+
+.widget-context-menu-item-danger {
+    color: rgba(255, 123, 123, 0.92);
+}
+
+.widget-context-menu-item-danger:hover {
+    background-color: rgba(230, 45, 66, 0.18);
+    color: #ff9a9a;
+}
+
+.widget-layer .widget-panel-icon {
+    icon-size: 16px;
+    pointer-events: auto;
+}

@@ -1,0 +1,31 @@
+.widget-calendar-month {
+    font-weight: 800;
+}
+
+.widget-calendar-grid {
+    spacing: 4px;
+}
+
+.widget-calendar-row {
+    spacing: 4px;
+}
+
+.widget-calendar-cell {
+    border-radius: 999px;
+}
+
+.widget-calendar-cell:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.widget-calendar-day-name {
+    font-weight: 700;
+}
+
+.widget-calendar-day-number {
+    font-weight: 400;
+}
+
+.widget-calendar-events {
+    font-size: 13px;
+}
