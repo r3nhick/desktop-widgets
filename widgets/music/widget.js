@@ -81,7 +81,7 @@ function pixbufToBytesIcon(pixbuf) {
 	return new Gio.BytesIcon({bytes: new GLib.Bytes(data)});
 };
 
-function decodeGifFrames(path) {
+function decodeGifFrames(path, onDone) {
 	try {
 		const animation = GdkPixbuf.PixbufAnimation.new_from_file(path);
 		const iter = animation.get_iter(null);
@@ -121,79 +121,97 @@ function decodeGifFrames(path) {
 		};
 
 		if (frames.length > 1) {
-			return frames;
+			onDone(frames);
+			return;
 		};
 
-		return decodeGifFramesWithFfmpeg(path, frames) ?? (frames.length > 0 ? frames : null);
+		decodeGifFramesWithFfmpeg(path, frames, onDone);
 	} catch (error) {
 		warn('music: failed to decode gif', error);
-		return decodeGifFramesWithFfmpeg(path);
+		decodeGifFramesWithFfmpeg(path, null, onDone);
 	};
 };
 
-function decodeGifFramesWithFfmpeg(path, fallbackFrames = null) {
+function removeGifTempDir(baseDir) {
+	try {
+		Gio.File.new_for_path(baseDir).delete(null);
+	} catch (cleanupError) {
+		// Ignore cleanup failures.
+	};
+};
+
+function collectFfmpegFrames(baseDir, frameDelay) {
+	const frames = [];
+
+	for (let index = 1; index <= 240; index++) {
+		const framePath = GLib.build_filenamev([baseDir, `frame_${String(index).padStart(3, '0')}.png`]);
+		const file = Gio.File.new_for_path(framePath);
+
+		if (!file.query_exists(null)) {
+			break;
+		};
+
+		try {
+			const icon = pixbufToBytesIcon(GdkPixbuf.Pixbuf.new_from_file(framePath));
+
+			if (icon) {
+				frames.push({icon, delay: frameDelay});
+			};
+		} catch (error) {
+			warn('music: failed to load ffmpeg gif frame', error);
+		};
+
+		file.delete(null);
+	};
+
+	removeGifTempDir(baseDir);
+
+	return frames.length > 1 ? frames : null;
+};
+
+function decodeGifFramesWithFfmpeg(path, fallbackFrames = null, onDone) {
 	const ffmpeg = GLib.find_program_in_path('ffmpeg');
 
 	if (!ffmpeg) {
-		return null;
+		onDone(fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames : null);
+		return;
 	};
 
 	const frameDelay = fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames[0].delay : gifFrameDelay(path);
 	const baseDir = GLib.build_filenamev([GLib.get_tmp_dir(), `widgets-music-${GLib.get_monotonic_time()}`]);
 	const pattern = GLib.build_filenamev([baseDir, 'frame_%03d.png']);
 
+	if (!GLib.mkdir_with_parents(baseDir, 0o700)) {
+		onDone(fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames : null);
+		return;
+	};
+
 	try {
-		GLib.mkdir_with_parents(baseDir, 0o700);
+		const process = Gio.Subprocess.new(
+			[ffmpeg, '-y', '-v', 'error', '-i', path, pattern],
+			Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE);
 
-		const [success, , , status] = GLib.spawn_sync(null, [ffmpeg, '-y', '-v', 'error', '-i', path, pattern],
-			null, GLib.SpawnFlags.DEFAULT, null);
-
-		if (!success || status !== 0) {
-			try {
-				Gio.File.new_for_path(baseDir).delete(null);
-			} catch (cleanupError) {
-				// Ignore cleanup failures.
-			};
-
-			return null;
-		};
-
-		const frames = [];
-
-		for (let index = 1; index <= 240; index++) {
-			const framePath = GLib.build_filenamev([baseDir, `frame_${String(index).padStart(3, '0')}.png`]);
-			const file = Gio.File.new_for_path(framePath);
-
-			if (!file.query_exists(null)) {
-				break;
-			};
+		process.wait_check_async(null, (_source, result) => {
+			let success = false;
 
 			try {
-				const icon = pixbufToBytesIcon(GdkPixbuf.Pixbuf.new_from_file(framePath));
-
-				if (icon) {
-					frames.push({icon, delay: frameDelay});
-				};
+				success = _source.wait_check_finish(result);
 			} catch (error) {
-				warn('music: failed to load ffmpeg gif frame', error);
+				success = false;
 			};
 
-			file.delete(null);
-		};
+			if (!success) {
+				removeGifTempDir(baseDir);
+				onDone(fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames : null);
+				return;
+			};
 
-		Gio.File.new_for_path(baseDir).delete(null);
-
-		return frames.length > 1 ? frames : null;
+			onDone(collectFfmpegFrames(baseDir, frameDelay) ?? (fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames : null));
+		});
 	} catch (error) {
-		warn('music: ffmpeg gif extraction failed', error);
-
-		try {
-			Gio.File.new_for_path(baseDir).delete(null);
-		} catch (cleanupError) {
-			// Ignore cleanup failures.
-		};
-
-		return null;
+		warn('music: failed to spawn ffmpeg', error);
+		removeGifTempDir(baseDir);
+		onDone(fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames : null);
 	};
 };
 
@@ -211,39 +229,41 @@ function gifFrameDelay(path) {
 function startEmptyGif(card, path) {
 	stopEmptyGif(card);
 
-	const frames = decodeGifFrames(path);
+	const token = (card._gifToken ?? 0) + 1;
+	card._gifToken = token;
 
-	if (!frames) {
-		card.cover.gicon = null;
-		card.cover.icon_name = 'audio-x-generic-symbolic';
-		card.cover.style = `icon-size: ${Math.round(card._coverSize * 0.45)}px;`;
-		return;
-	};
+	decodeGifFrames(path, frames => {
+		if (!frames || !card.cover || card._gifToken !== token) {
+			return;
+		};
 
-	card.gifFrames = frames;
-	card.gifIndex = 0;
-	card.cover.style = `icon-size: ${card._coverSize}px;`;
-	card.cover.gicon = frames[0].icon;
-	card.cover.icon_name = '';
+		card.gifFrames = frames;
+		card.gifIndex = 0;
+		card.cover.style = `icon-size: ${card._coverSize}px;`;
+		card.cover.gicon = frames[0].icon;
+		card.cover.icon_name = '';
 
-	const schedule = () => {
-		card.gifTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, frames[card.gifIndex % frames.length].delay, () => {
-			if (!card.gifFrames) {
+		const schedule = () => {
+			card.gifTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, frames[card.gifIndex % frames.length].delay, () => {
+				if (!card.gifFrames) {
+					return GLib.SOURCE_REMOVE;
+				};
+
+				card.gifIndex = (card.gifIndex + 1) % frames.length;
+				card.cover.gicon = frames[card.gifIndex].icon;
+				schedule();
+
 				return GLib.SOURCE_REMOVE;
-			};
+			});
+		};
 
-			card.gifIndex = (card.gifIndex + 1) % frames.length;
-			card.cover.gicon = frames[card.gifIndex].icon;
-			schedule();
-
-			return GLib.SOURCE_REMOVE;
-		});
-	};
-
-	schedule();
+		schedule();
+	});
 };
 
 function stopEmptyGif(card) {
+	card._gifToken = (card._gifToken ?? 0) + 1;
+
 	if (card.gifTimer) {
 		GLib.source_remove(card.gifTimer);
 		card.gifTimer = 0;
@@ -642,6 +662,7 @@ let Controller = class Controller {
 		this._lastRejectedMeta = null;
 		this._acceptUntil = 0;
 		this._loopSupport = null;
+		this._controlSignals = [];
 		this._bindControls();
 
 		this._settingsId = 0;
@@ -1195,13 +1216,16 @@ let Controller = class Controller {
 
 		const c = this._card;
 		const callMethod = method => () => this._callMethod(method);
+		const connect = (target, signal, handler) => {
+			this._controlSignals.push([target, target.connect(signal, handler)]);
+		};
 
-		c.btnLoop.button.connect('clicked', () => this._cycleLoop());
-		c.btnPrev.button.connect('clicked', callMethod('Previous'));
-		c.btnPlay.button.connect('clicked', callMethod('PlayPause'));
-		c.btnNext.button.connect('clicked', callMethod('Next'));
-		c.slider.connect('button-press-event', (_source, event) => this._onSliderPress(event));
-		c.slider.connect('touch-event', (_source, event) => this._onSliderTouch(event));
+		connect(c.btnLoop.button, 'clicked', () => this._cycleLoop());
+		connect(c.btnPrev.button, 'clicked', callMethod('Previous'));
+		connect(c.btnPlay.button, 'clicked', callMethod('PlayPause'));
+		connect(c.btnNext.button, 'clicked', callMethod('Next'));
+		connect(c.slider, 'button-press-event', (_source, event) => this._onSliderPress(event));
+		connect(c.slider, 'touch-event', (_source, event) => this._onSliderTouch(event));
 	};
 
 	_onSliderTouch(event) {
@@ -1497,6 +1521,16 @@ let Controller = class Controller {
 			this._settings.disconnect(this._settingsId);
 			this._settingsId = 0;
 		};
+
+		for (const [target, id] of this._controlSignals) {
+			try {
+				target.disconnect(id);
+			} catch (error) {
+				// Ignore disconnect failures.
+			};
+		};
+
+		this._controlSignals = [];
 
 		this._card = null;
 	};

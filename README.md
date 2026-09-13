@@ -87,7 +87,7 @@ Pack the extension:
 
 ```bash
 gnome-extensions pack \
-  --extra-source=widgets/ --extra-source=schemas/ --extra-source=po/ --extra-source=assets/ \
+  --extra-source=widgets/ --extra-source=schemas/ --extra-source=assets/ \
   --extra-source=paths.js --extra-source=logger.js --extra-source=utils.js --extra-source=workspaceIntegration.js \
   .
 ```
