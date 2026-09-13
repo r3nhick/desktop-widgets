@@ -17,6 +17,7 @@ import * as MusicWidget from './widgets/music/widget.js';
 import * as PhotosWidget from './widgets/photos/widget.js';
 import * as WeatherWidget from './widgets/weather/widget.js';
 import { configureLogger, resetLogger, warn } from './logger.js';
+import { assetPath } from './paths.js';
 import { clamp } from './utils.js';
 import { WorkspaceIntegration } from './workspaceIntegration.js';
 
@@ -117,6 +118,16 @@ function defaultWidgetPositions() {
   };
 };
 
+function defaultPhotoData() {
+  const path = assetPath('photofrwidgets.webp');
+
+  if (path && Gio.File.new_for_path(path).query_exists(null)) {
+    return {photo: path};
+  };
+
+  return {};
+};
+
 function cloneDefaultWidgets() {
   const positions = defaultWidgetPositions();
 
@@ -126,7 +137,7 @@ function cloneDefaultWidgets() {
     size: widget.size,
     x: positions?.[widget.type]?.x ?? WIDGET_GAP,
     y: positions?.[widget.type]?.y ?? WIDGET_GAP,
-    data: {},
+    data: widget.type === 'photos' ? defaultPhotoData() : {},
   }));
 };
 
