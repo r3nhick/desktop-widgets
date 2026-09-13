@@ -55,6 +55,12 @@ The Music widget picks up any MPRIS player on the bus (GNOME Music, Amberol, VLC
 
 ## Development
 
+Regenerate the compiled schema after editing `schemas/*.gschema.xml`:
+
+```bash
+glib-compile-schemas schemas/
+```
+
 Extract translatable strings:
 
 ```bash
