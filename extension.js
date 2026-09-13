@@ -29,6 +29,7 @@ const SNAP_DISTANCE = 12;
 const CELL_SIZE = 190;
 const MEDIUM_WIDGET_WIDTH = CELL_SIZE * 2 + WIDGET_GAP;
 const MINI_WIDGET_WIDTH = 260;
+const MINI_WIDGET_HEIGHT = 120;
 const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
 const EDIT_MODE_BINDING_KEY = 'edit-mode-binding';
 
@@ -96,20 +97,23 @@ function defaultWidgetPositions() {
   const union = unionOfMonitors(monitors);
   const ox = primary.x - union.x;
   const oy = primary.y - union.y;
-  const rightX = snap(Math.max(ox + WIDGET_GAP, ox + primary.width - MEDIUM_WIDGET_WIDTH - WIDGET_GAP));
-  const middleX = snap(Math.max(ox + WIDGET_GAP, rightX - CELL_SIZE - WIDGET_GAP));
-  const leftX = snap(Math.max(ox + WIDGET_GAP, middleX - CELL_SIZE - WIDGET_GAP));
   const topY = snap(oy + topYFor(primary));
-  const bottomY = snap(topY + CELL_SIZE + WIDGET_GAP);
+  const row2Y = snap(topY + CELL_SIZE + WIDGET_GAP);
+  const row3Y = snap(row2Y + MINI_WIDGET_HEIGHT + WIDGET_GAP);
+  const rightX = snap(Math.max(ox + WIDGET_GAP, ox + primary.width - MEDIUM_WIDGET_WIDTH - WIDGET_GAP));
+  const middleX = snap(Math.max(ox + WIDGET_GAP, rightX - MEDIUM_WIDGET_WIDTH - WIDGET_GAP));
+  const leftSmallX = snap(Math.max(ox + WIDGET_GAP, middleX - CELL_SIZE - WIDGET_GAP));
+  const rightMiniX = snap(Math.max(ox + WIDGET_GAP, rightX - MINI_WIDGET_WIDTH - WIDGET_GAP));
+  const leftMiniX = snap(Math.max(ox + WIDGET_GAP, rightMiniX - MINI_WIDGET_WIDTH - WIDGET_GAP));
 
   return {
-    weather: {x: leftX, y: topY},
-    binaryclock: {x: leftX, y: bottomY},
-    calendar: {x: middleX, y: topY},
-    photos: {x: rightX, y: topY},
-    clock: {x: middleX, y: bottomY},
-    battery: {x: rightX, y: bottomY},
-    music: {x: rightX, y: snap(topY + 2 * (CELL_SIZE + WIDGET_GAP))},
+    weather: {x: middleX, y: topY},
+    calendar: {x: rightX, y: topY},
+    clock: {x: leftSmallX, y: topY},
+    binaryclock: {x: leftMiniX, y: row2Y},
+    battery: {x: rightMiniX, y: row2Y},
+    music: {x: rightX, y: row2Y},
+    photos: {x: middleX, y: row3Y},
   };
 };
 

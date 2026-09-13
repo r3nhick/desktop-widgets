@@ -6,7 +6,7 @@ import St from 'gi://St';
 export const type = 'binaryclock';
 export const label = 'Binary Clock';
 export const stylesheet = 'widgets/binaryclock/stylesheet.css';
-export const defaultSize = 'medium';
+export const defaultSize = 'mini';
 export const supportedSizes = ['mini', 'small', 'medium'];
 
 const ROWS = 4;

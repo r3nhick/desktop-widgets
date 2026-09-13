@@ -14,7 +14,7 @@ export const stylesheet = 'widgets/weather/stylesheet.css';
 export const appIds = ['org.gnome.Weather.desktop'];
 export const settingsSchema = 'org.gnome.Weather';
 export const cacheTtlMs = 10 * 60 * 1000;
-export const defaultSize = 'small';
+export const defaultSize = 'medium';
 export const supportedSizes = ['small', 'medium', 'large', 'wide'];
 
 const HOUR_MS = 3600 * 1000;

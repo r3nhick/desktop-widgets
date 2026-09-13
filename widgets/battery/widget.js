@@ -9,7 +9,7 @@ import { warn } from '../../logger.js';
 export const type = 'battery';
 export const label = 'Battery';
 export const stylesheet = 'widgets/battery/stylesheet.css';
-export const defaultSize = 'medium';
+export const defaultSize = 'mini';
 export const supportedSizes = ['mini', 'medium', 'large'];
 
 const SLOT_COUNT_DEFAULT = 4;

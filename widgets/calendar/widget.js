@@ -12,7 +12,7 @@ export const type = 'calendar';
 export const label = 'Calendar';
 export const stylesheet = 'widgets/calendar/stylesheet.css';
 export const appIds = ['org.gnome.Calendar.desktop'];
-export const defaultSize = 'small';
+export const defaultSize = 'medium';
 export const supportedSizes = ['small', 'medium'];
 
 const TEXT = '#f5f5f7';
