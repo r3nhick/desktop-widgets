@@ -51,6 +51,11 @@
       <summary>Empty state GIF</summary>
       <description>Animated GIF shown by the music widget when no track is playing. Allowed values: pushy.gif, pushy2.gif.</description>
     </key>
+    <key name="calendar-weekday-format" type="s">
+      <default>'short'</default>
+      <summary>Calendar weekday format</summary>
+      <description>How weekday labels appear in the calendar header. Allowed values: short (Пн Вт Ср) or narrow (П В С).</description>
+    </key>
     <key name="edit-mode-binding" type="as">
       <default>[]</default>
       <summary>Edit mode shortcut</summary>

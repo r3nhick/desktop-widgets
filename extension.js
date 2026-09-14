@@ -298,6 +298,7 @@ class WidgetController {
       'changed::battery-show-percent', () => this._refreshWidgets(),
       'changed::arrange-widgets', () => this._onArrangeRequested(),
       'changed::edit-mode-binding', () => this._registerEditModeBinding(),
+      'changed::calendar-weekday-format', () => this._refreshCalendarWeekdays(),
       'changed::style-border-radius', () => this._rebuildWidgets(),
       'changed::style-border-width', () => this._rebuildWidgets(),
       'changed::style-background', () => this._rebuildWidgets(),
@@ -1728,6 +1729,20 @@ class WidgetController {
         this._suppressAppClickUntil = Date.now() + 400;
       },
     });
+  };
+
+  _refreshCalendarWeekdays() {
+    for (const [id, view] of this._views) {
+      if (view.widget.type !== 'calendar' || !view.body) {
+        continue;
+      };
+
+      try {
+        this._fillWidgetBody(view.widget, view.body);
+      } catch (error) {
+        warn('calendar-weekday-refresh', `refresh failed: ${error}`);
+      };
+    };
   };
 
   _setWidgetPhoto(widget, body, path) {

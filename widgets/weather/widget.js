@@ -7,6 +7,7 @@ import St from 'gi://St';
 
 import { warn } from '../../logger.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { lang } from '../../locale.js';
 
 export const type = 'weather';
 export const label = 'Weather';
@@ -84,9 +85,9 @@ export function weatherFromInfo(info, location, displayName = null) {
 	return {
 		temp: formatTemperature(currentInfo.get_temp()),
 		summary: cleanSummary(currentInfo.get_weather_summary(), locationName),
-		location: displayName || location.get_city_name() || locationName,
+		location: location.get_city_name() || displayName || locationName,
 		icon: currentInfo.get_icon_name() || 'weather-clear',
-		feelsLike: apparent && apparent !== '--' ? `${_('It feels like')} ${apparent}` : null,
+		feelsLike: apparent && apparent !== '--' ? `${(lang() === 'uk' ? 'Відчувається як' : lang() === 'ru' ? 'Ощущается как' : _('It feels like'))} ${apparent}` : null,
 		hourly,
 		daily,
 	};

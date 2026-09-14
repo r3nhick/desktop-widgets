@@ -7,6 +7,7 @@ import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.j
 
 import { clamp } from '../../utils.js';
 import { warn } from '../../logger.js';
+import { lang } from '../../locale.js';
 
 export const type = 'calendar';
 export const label = 'Calendar';
@@ -246,6 +247,38 @@ function uppercaseWeekday(date) {
 	return date.toLocaleDateString(undefined, {weekday: 'long'}).toUpperCase();
 };
 
+function weekdayLabels(format) {
+	const referenceDates = [
+		new Date(2024, 0, 7), // Sunday
+		new Date(2024, 0, 1), // Monday
+		new Date(2024, 0, 2), // Tuesday
+		new Date(2024, 0, 3), // Wednesday
+		new Date(2024, 0, 4), // Thursday
+		new Date(2024, 0, 5), // Friday
+		new Date(2024, 0, 6), // Saturday
+	];
+
+	return referenceDates.map(date => {
+		const label = date.toLocaleDateString(undefined, {weekday: format === 'narrow' ? 'narrow' : 'short'});
+
+		return format === 'narrow'
+			? label.charAt(0).toUpperCase()
+			: label.charAt(0).toUpperCase() + label.slice(1);
+	});
+};
+
+function noEventsToday() {
+	if (lang() === 'uk') {
+		return 'Немає подій';
+	};
+
+	if (lang() === 'ru') {
+		return 'Нет событий';
+	};
+
+	return _('No events today');
+};
+
 function calendarCell(text, labelStyle, cellStyle, createLabel, cellWidth, cellHeight, interactive = false, boost = 0) {
 	const binParams = {
 		style_class: 'widget-calendar-cell',
@@ -288,6 +321,7 @@ function buildGrid(options) {
 		text,
 		secondary,
 		accent,
+		weekdays,
 	} = options;
 	const grid = new St.BoxLayout({
 		vertical: true,
@@ -296,7 +330,6 @@ function buildGrid(options) {
 		x_align: Clutter.ActorAlign.CENTER,
 		style: `spacing: ${gap}px;`,
 	});
-	const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 	const weekdayRow = new St.BoxLayout({
 		style_class: 'widget-calendar-row',
 		x_expand: true,
@@ -380,7 +413,7 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
 		style ?? `font-size: 15px; font-weight: 600; color: ${secondary};`);
 
 	if (!eventsClient) {
-		container.add_child(eventLabel(_('No events today')));
+		container.add_child(eventLabel(noEventsToday()));
 		return;
 	};
 
@@ -404,7 +437,7 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
 	};
 
 	if (!shown.length) {
-		container.add_child(eventLabel(_('No events today')));
+		container.add_child(eventLabel(noEventsToday()));
 		return;
 	};
 
@@ -415,15 +448,17 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
 
 	if (todayEvents.length > 2) {
 		container.add_child(eventLabel(
-			`+${todayEvents.length - 2} more`,
+			`+${todayEvents.length - 2} ${lang() === 'uk' ? 'ще' : lang() === 'ru' ? 'ещё' : 'more'}`,
 			`font-size: 13px; font-weight: 500; color: ${secondary};`));
 	};
 };
 
-export function render({body, createLabel, events, sizeForWidget, widget, theme}) {
+export function render({body, createLabel, events, sizeForWidget, widget, theme, settings}) {
 	const [widgetWidth, widgetHeight] = sizeForWidget ? sizeForWidget(widget) : [220, 220];
 	const text = theme?.text ?? TEXT;
 	const secondary = theme?.muted ?? SECONDARY;
+	const weekdayFormat = settings?.get_string('calendar-weekday-format') ?? 'short';
+	const weekdays = weekdayLabels(weekdayFormat);
 	const now = new Date();
 	const today = now.getDate();
 	const first = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -514,6 +549,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme}
 			text,
 			secondary,
 			accent: theme.accent,
+			weekdays,
 		}));
 
 		container.add_child(left);
@@ -543,6 +579,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme}
 			text,
 			secondary,
 			accent: theme.accent,
+			weekdays,
 		}));
 
 	body.add_child(new St.Widget({y_expand: true}));

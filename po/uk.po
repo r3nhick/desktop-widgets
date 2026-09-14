@@ -473,3 +473,55 @@ msgstr "Видимість віджетів"
 msgid "Widgets"
 msgstr "Віджети"
 
+#: prefs.js:13
+msgid "Clock"
+msgstr "Годинник"
+
+#: prefs.js:14
+msgid "Binary Clock"
+msgstr "Бінарний годинник"
+
+#: prefs.js:15
+msgid "Calendar"
+msgstr "Календар"
+
+#: prefs.js:16
+msgid "Weather"
+msgstr "Погода"
+
+#: prefs.js:17
+msgid "Photos"
+msgstr "Фотографії"
+
+#: prefs.js:18
+msgid "Battery"
+msgstr "Батарея"
+
+#: prefs.js:19
+msgid "Music"
+msgstr "Музика"
+
+#: prefs.js:143
+msgid "Calendar Widget"
+msgstr "Віджет календаря"
+
+#: prefs.js:882
+msgid "Preferences for the date widget on your desktop."
+msgstr "Налаштування віджета дати на вашому робочому столі."
+
+#: prefs.js:889
+msgid "Weekday format"
+msgstr "Формат днів тижня"
+
+#: prefs.js:890
+msgid "How weekday labels appear in the calendar header"
+msgstr "Як дні тижня відображаються в шапці календаря"
+
+#: prefs.js:891
+msgid "Two letters (Пн Вт Ср)"
+msgstr "Дві літери (Пн Вт Ср)"
+
+#: prefs.js:891
+msgid "Single letter (П В С)"
+msgstr "Одна літера (П В С)"
+

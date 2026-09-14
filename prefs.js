@@ -140,6 +140,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         musicPage.set_icon_name('audio-x-generic-symbolic');
         this._addSidebarPage(musicPage);
 
+        // Calendar page
+        const calendarPage = this._createCalendarPage(settings);
+        calendarPage.set_title(_('Calendar Widget'));
+        calendarPage.set_icon_name('x-office-calendar-symbolic');
+        this._addSidebarPage(calendarPage);
+
         // Appearance page
         const appearancePage = this._createAppearancePage(settings);
         appearancePage.set_title(_('Appearance'));
@@ -305,7 +311,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             title: _('Select widget to add'),
         });
 
-        const widgetTypesModel = Gtk.StringList.new(WIDGET_TYPES.map(w => w.label));
+        const widgetTypesModel = Gtk.StringList.new(WIDGET_TYPES.map(w => _(w.label)));
         const addCombo = new Gtk.DropDown({
             model: widgetTypesModel,
             valign: Gtk.Align.CENTER,
@@ -866,6 +872,32 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             settings.set_string('music-empty-gif', MUSIC_GIFS[gifRow.selected] ?? 'pushy.gif');
         });
         group.add(gifRow);
+
+        page.add(group);
+        return page;
+    }
+
+    _createCalendarPage(settings) {
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            title: _('Calendar Widget'),
+            description: _('Preferences for the date widget on your desktop.'),
+            margin_top: 12,
+        });
+
+        const WEEKDAY_LABELS = [_('Two letters (Пн Вт Ср)'), _('Single letter (П В С)')];
+        const WEEKDAY_VALUES = ['short', 'narrow'];
+        const weekdayModel = Gtk.StringList.new(WEEKDAY_LABELS);
+        const weekdayRow = new Adw.ComboRow({
+            title: _('Weekday format'),
+            subtitle: _('How weekday labels appear in the calendar header'),
+            model: weekdayModel,
+        });
+        weekdayRow.set_selected(Math.max(0, WEEKDAY_VALUES.indexOf(settings.get_string('calendar-weekday-format'))));
+        weekdayRow.connect('notify::selected', () => {
+            settings.set_string('calendar-weekday-format', WEEKDAY_VALUES[weekdayRow.selected] ?? 'short');
+        });
+        group.add(weekdayRow);
 
         page.add(group);
         return page;
