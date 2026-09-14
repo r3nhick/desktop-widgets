@@ -20,6 +20,7 @@ const DBUS_IFACE = 'org.freedesktop.DBus.Properties';
 const TICK_MS = 500;
 const LOOP_CYCLE = ['None', 'Track', 'Playlist'];
 const GIF_CANDIDATES = ['pushy.gif', 'pushy2.gif'];
+const gifFramesCache = new Map();
 const CHROMIUM_MARKERS = ['chromium', 'chrome', 'brave', 'vivaldi', 'opera', 'edge', 'yandex', 'thorium', 'helium', 'firefox'];
 
 function isChromiumName(name) {
@@ -59,18 +60,6 @@ function emptyGifPath(preferred = null) {
 	return emptyGifPathCached;
 };
 
-function frameSignature(pixbuf) {
-	const pixels = pixbuf.get_pixels();
-	let hash = 2166136261;
-	const step = Math.max(1, Math.floor(pixels.length / 4000));
-
-	for (let index = 0; index < pixels.length; index += step) {
-		hash = ((hash ^ pixels[index]) * 16777619) >>> 0;
-	};
-
-	return hash;
-};
-
 function pixbufToBytesIcon(pixbuf) {
 	const [ok, data] = pixbuf.save_to_bufferv('png', [], null);
 
@@ -81,21 +70,34 @@ function pixbufToBytesIcon(pixbuf) {
 	return new Gio.BytesIcon({bytes: new GLib.Bytes(data)});
 };
 
-function decodeGifFrames(path, onDone) {
+function arraysEqual(a, b) {
+	if (a.length !== b.length) {
+		return false;
+	};
+
+	for (let index = 0; index < a.length; index++) {
+		if (a[index] !== b[index]) {
+			return false;
+		};
+	};
+
+	return true;
+};
+
+function pixbufFrames(path) {
+	const frames = [];
+	let firstPixels = null;
+
 	try {
 		const animation = GdkPixbuf.PixbufAnimation.new_from_file(path);
 		const iter = animation.get_iter(null);
-		const frames = [];
-		let firstSignature = null;
 		let guard = 0;
 
 		while (guard++ < 240) {
 			const pixbuf = iter.get_pixbuf();
-			const signature = frameSignature(pixbuf);
+			const pixels = pixbuf.get_pixels();
 
-			if (firstSignature === null) {
-				firstSignature = signature;
-			} else if (signature === firstSignature) {
+			if (firstPixels && arraysEqual(pixels, firstPixels)) {
 				break;
 			};
 
@@ -105,31 +107,21 @@ function decodeGifFrames(path, onDone) {
 				break;
 			};
 
+			if (!firstPixels) {
+				firstPixels = pixels;
+			};
+
 			frames.push({icon, delay: Math.max(40, iter.get_delay_time())});
 
 			if (!iter.advance(null)) {
 				break;
 			};
 		};
-
-		if (frames.length === 0) {
-			const icon = pixbufToBytesIcon(iter.get_pixbuf());
-
-			if (icon) {
-				frames.push({icon, delay: 100});
-			};
-		};
-
-		if (frames.length > 1) {
-			onDone(frames);
-			return;
-		};
-
-		decodeGifFramesWithFfmpeg(path, frames, onDone);
 	} catch (error) {
-		warn('music: failed to decode gif', error);
-		decodeGifFramesWithFfmpeg(path, null, onDone);
+		warn('music: failed to decode gif frames', error);
 	};
+
+	return frames;
 };
 
 function removeGifTempDir(baseDir) {
@@ -140,49 +132,21 @@ function removeGifTempDir(baseDir) {
 	};
 };
 
-function collectFfmpegFrames(baseDir, frameDelay) {
-	const frames = [];
-
-	for (let index = 1; index <= 240; index++) {
-		const framePath = GLib.build_filenamev([baseDir, `frame_${String(index).padStart(3, '0')}.png`]);
-		const file = Gio.File.new_for_path(framePath);
-
-		if (!file.query_exists(null)) {
-			break;
-		};
-
-		try {
-			const icon = pixbufToBytesIcon(GdkPixbuf.Pixbuf.new_from_file(framePath));
-
-			if (icon) {
-				frames.push({icon, delay: frameDelay});
-			};
-		} catch (error) {
-			warn('music: failed to load ffmpeg gif frame', error);
-		};
-
-		file.delete(null);
-	};
-
-	removeGifTempDir(baseDir);
-
-	return frames.length > 1 ? frames : null;
-};
-
-function decodeGifFramesWithFfmpeg(path, fallbackFrames = null, onDone) {
+function ffmpegFrames(path, frameDelay, onDone) {
 	const ffmpeg = GLib.find_program_in_path('ffmpeg');
 
 	if (!ffmpeg) {
-		onDone(fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames : null);
+		onDone(null);
 		return;
 	};
 
-	const frameDelay = fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames[0].delay : gifFrameDelay(path);
 	const baseDir = GLib.build_filenamev([GLib.get_tmp_dir(), `widgets-music-${GLib.get_monotonic_time()}`]);
 	const pattern = GLib.build_filenamev([baseDir, 'frame_%03d.png']);
 
-	if (!GLib.mkdir_with_parents(baseDir, 0o700)) {
-		onDone(fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames : null);
+	GLib.mkdir_with_parents(baseDir, 0o700);
+
+	if (!Gio.File.new_for_path(baseDir).query_exists(null)) {
+		onDone(null);
 		return;
 	};
 
@@ -202,17 +166,79 @@ function decodeGifFramesWithFfmpeg(path, fallbackFrames = null, onDone) {
 
 			if (!success) {
 				removeGifTempDir(baseDir);
-				onDone(fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames : null);
+				onDone(null);
 				return;
 			};
 
-			onDone(collectFfmpegFrames(baseDir, frameDelay) ?? (fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames : null));
+			const frames = [];
+
+			for (let index = 1; index <= 240; index++) {
+				const framePath = GLib.build_filenamev([baseDir, `frame_${String(index).padStart(3, '0')}.png`]);
+				const file = Gio.File.new_for_path(framePath);
+
+				if (!file.query_exists(null)) {
+					break;
+				};
+
+				try {
+					const icon = pixbufToBytesIcon(GdkPixbuf.Pixbuf.new_from_file(framePath));
+
+					if (icon) {
+						frames.push({icon, delay: frameDelay});
+					};
+				} catch (error) {
+					warn('music: failed to load extracted gif frame', error);
+				};
+
+				file.delete(null);
+			};
+
+			removeGifTempDir(baseDir);
+			onDone(frames.length > 1 ? frames : null);
 		});
 	} catch (error) {
 		warn('music: failed to spawn ffmpeg', error);
 		removeGifTempDir(baseDir);
-		onDone(fallbackFrames && fallbackFrames.length > 0 ? fallbackFrames : null);
+		onDone(null);
 	};
+};
+
+function decodeGifFrames(path, onDone) {
+	const cached = gifFramesCache.get(path);
+
+	if (cached) {
+		onDone(cached);
+		return;
+	};
+
+	const finish = decoded => {
+		if (decoded && decoded.length > 1) {
+			gifFramesCache.set(path, decoded);
+		};
+
+		onDone(decoded ?? null);
+	};
+
+	// GdkPixbuf iterates seamless loops as repeated identical bitmaps, which can
+	// collapse to a single frame. Extract with ffmpeg first, then fall back to
+	// the GdkPixbuf loop when ffmpeg is unavailable.
+	const ffmpeg = GLib.find_program_in_path('ffmpeg');
+
+	if (ffmpeg) {
+		ffmpegFrames(path, gifFrameDelay(path), frames => {
+			if (frames && frames.length >= 2) {
+				finish(frames);
+				return;
+			};
+
+			const pixbufDecoded = pixbufFrames(path);
+			finish(pixbufDecoded.length > 1 ? pixbufDecoded : null);
+		});
+		return;
+	};
+
+	const pixbufDecoded = pixbufFrames(path);
+	finish(pixbufDecoded.length > 1 ? pixbufDecoded : null);
 };
 
 function gifFrameDelay(path) {
@@ -233,7 +259,14 @@ function startEmptyGif(card, path) {
 	card._gifToken = token;
 
 	decodeGifFrames(path, frames => {
-		if (!frames || !card.cover || card._gifToken !== token) {
+		if (!card.cover || card._gifToken !== token) {
+			return;
+		};
+
+		if (!frames) {
+			card.cover.gicon = null;
+			card.cover.icon_name = 'audio-x-generic-symbolic';
+			card.cover.style = `icon-size: ${Math.round(card._coverSize * 0.45)}px;`;
 			return;
 		};
 
@@ -527,37 +560,37 @@ function createCard(theme, createLabel, widgetWidth, widgetHeight) {
 			? emptyGifPath(this._settings?.get_string('music-empty-gif'))
 			: null;
 
-if (hasTrack) {
-		card.title.text = title;
-		card.artist.text = artist || 'Unknown artist';
+		if (hasTrack) {
+			card.title.text = title;
+			card.artist.text = artist || 'Unknown artist';
 
-		stopEmptyGif(card);
-		card._gifPath = null;
-
-		card.showArt(artUrl);
-	} else {
-		card.title.text = "I'm waiting 🐾";
-		card.artist.text = 'Play something to get going';
-
-		if (gifPath) {
-			if (card._gifPath !== gifPath) {
-				card.showArt(null);
-				card._gifPath = gifPath;
-				startEmptyGif(card, gifPath);
-			};
-		} else {
 			stopEmptyGif(card);
 			card._gifPath = null;
-			card.showArt(null);
-		};
 
-		// Reset time displays and slider when no track
-		card.timeElapsed.text = '0:00';
-		card.timeTotal.text = length > 0 ? formatUs(length) : '0:00';
-		card.fill.set_size(0, barHeight);
-		card.thumb.set_position(0, Math.round((barHeight - thumbSize) / 2));
-		card.thumb.opacity = 0;
-	};
+			card.showArt(artUrl);
+		} else {
+			card.title.text = "I'm waiting 🐾";
+			card.artist.text = 'Play something to get going';
+
+			if (gifPath) {
+				if (card._gifPath !== gifPath) {
+					card.showArt(null);
+					card._gifPath = gifPath;
+					startEmptyGif(card, gifPath);
+				};
+			} else {
+				stopEmptyGif(card);
+				card._gifPath = null;
+				card.showArt(null);
+			};
+
+			// Reset time displays and slider when no track
+			card.timeElapsed.text = '0:00';
+			card.timeTotal.text = length > 0 ? formatUs(length) : '0:00';
+			card.fill.set_size(0, barHeight);
+			card.thumb.set_position(0, Math.round((barHeight - thumbSize) / 2));
+			card.thumb.opacity = 0;
+		};
 
 		const displayLength = hasTrack ? length : 0;
 		card._lastLength = displayLength;
@@ -655,11 +688,8 @@ let Controller = class Controller {
 		this._relisten = false;
 		this._bound = false;
 		this._lastPlayingAt = {};
-		this._activeScore = -1;
-		this._activeRecency = 0;
 		this._chromium = false;
 		this._lockedTrackId = null;
-		this._lastRejectedMeta = null;
 		this._acceptUntil = 0;
 		this._loopSupport = null;
 		this._controlSignals = [];
@@ -700,7 +730,7 @@ let Controller = class Controller {
 
 		const bestRow = await this._pickActive();
 
-		if (bestRow) {
+		if (bestRow && typeof bestRow.name === 'string' && bestRow.name) {
 			this._name = bestRow.name;
 			this._wire(bestRow.name);
 			this._applyProps(bestRow.props);
@@ -766,9 +796,7 @@ let Controller = class Controller {
 			if (status === 'Playing' && hasTitle) {
 				value = 500;
 
-				if (ignoreBrowsers && isChromium) {
-					// Ignored above already, but keeping logic
-				} else if (!isChromium) {
+				if (!isChromium) {
 					this._lastPlayingAt[candidate] = Date.now();
 				};
 			} else if (status === 'Paused' && hasTitle) {
@@ -818,6 +846,10 @@ let Controller = class Controller {
 	};
 
 	_wire(name) {
+		if (typeof name !== 'string' || !name) {
+			return;
+		};
+
 		for (const id of this._subIds) {
 			this._bus?.signal_unsubscribe(id);
 		};
@@ -826,7 +858,6 @@ let Controller = class Controller {
 
 		this._chromium = isChromiumName(name);
 		this._lockedTrackId = null;
-		this._lastRejectedMeta = null;
 		this._acceptUntil = 0;
 		this._loopSupport = null;
 
@@ -891,11 +922,11 @@ let Controller = class Controller {
 					this._rate = Number(variantValue(changed.Rate)) || 1;
 				};
 
-			if (changed?.Metadata !== undefined) {
-				this._handleMetaChange(parseMetadata(changed.Metadata), statusChanged);
-			};
+				if (changed?.Metadata !== undefined) {
+					this._handleMetaChange(parseMetadata(changed.Metadata), statusChanged);
+				};
 
-			this._render();
+				this._render();
 			}));
 
 		this._subIds.push(this._bus.signal_subscribe(name, PLAYER_IFACE, 'Seeked', PLAYER_PATH, null,
@@ -930,24 +961,23 @@ let Controller = class Controller {
 					return;
 				};
 
-			this._position = 0;
-			this._posAt = 0;
-			this._meta = {title: null, artist: null, artUrl: null};
-			this._playing = false;
-			this._canControl = false;
-			this._canPrev = false;
-			this._canNext = false;
-			this._canPlay = false;
-			this._canPause = false;
-			this._canSeek = false;
-			this._loop = 'None';
-			this._rate = 1;
-			this._trackId = null;
-			this._lockedTrackId = null;
-			this._lastRejectedMeta = null;
-			this._acceptUntil = 0;
-			this._loopSupport = null;
-			this._chromium = false;
+				this._position = 0;
+				this._posAt = 0;
+				this._meta = {title: null, artist: null, artUrl: null};
+				this._playing = false;
+				this._canControl = false;
+				this._canPrev = false;
+				this._canNext = false;
+				this._canPlay = false;
+				this._canPause = false;
+				this._canSeek = false;
+				this._loop = 'None';
+				this._rate = 1;
+				this._trackId = null;
+				this._lockedTrackId = null;
+				this._acceptUntil = 0;
+				this._loopSupport = null;
+				this._chromium = false;
 
 				this._card.update({title: null, artist: null, artUrl: null, playing: false, position: 0, length: 0,
 					canControl: false, canPrev: false, canNext: false, canPlay: false, canPause: false, canSeek: false});
@@ -976,7 +1006,6 @@ let Controller = class Controller {
 			this._seekActive = false;
 			this._seekFrac = null;
 			this._lockedTrackId = null;
-			this._lastRejectedMeta = null;
 		};
 	};
 
@@ -1015,14 +1044,6 @@ let Controller = class Controller {
 			const acceptNew = Date.now() < this._acceptUntil;
 
 			if (!(pinned && sameTrack) && !acceptNew) {
-				this._lastRejectedMeta = {
-					title: meta.title,
-					artist: meta.artist,
-					artUrl: meta.artUrl,
-					length: meta.length,
-					trackId: meta.trackId,
-				};
-
 				return;
 			};
 
@@ -1055,7 +1076,6 @@ let Controller = class Controller {
 
 		if (this._chromium) {
 			this._lockedTrackId = meta.trackId ?? null;
-			this._lastRejectedMeta = null;
 		};
 
 		if (meta.length > 0) {
@@ -1084,7 +1104,6 @@ let Controller = class Controller {
 			this._meta = {title: null, artist: null, artUrl: null};
 			this._length = 0;
 			this._lockedTrackId = null;
-			this._lastRejectedMeta = null;
 		} else {
 			this._meta = {title: meta.title, artist: meta.artist, artUrl: meta.artUrl};
 			this._lockedTrackId = meta.trackId ?? null;
@@ -1162,9 +1181,16 @@ let Controller = class Controller {
 			return;
 		};
 
-		const best = this._pickActive();
+		let best;
 
-		if (!best || best.name === this._name) {
+		try {
+			best = this._pickActive();
+		} catch (error) {
+			warn('music: failed to scan MPRIS players', error);
+			return;
+		};
+
+		if (!best || typeof best.name !== 'string' || !best.name || best.name === this._name) {
 			return;
 		};
 

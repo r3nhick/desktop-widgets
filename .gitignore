@@ -2,3 +2,4 @@
 locale/
 node_modules/
 *.zip
+layouts/

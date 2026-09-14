@@ -1,5 +1,5 @@
 {
-  "description": "Desktop widgets for GNOME Shell in a grid layout: clock, binary clock, calendar, weather, photos, battery rings for your device, and an MPRIS music player. In edit mode you can add, move, resize, and remove widgets directly on your desktop, then style them with custom colors, borders, radius, shadow, and opacity.",
+  "description": "Desktop widgets for GNOME Shell in a grid layout: clock, binary clock, calendar, weather, photos, battery rings for your device, and an MPRIS music player. In edit mode you can add, move, resize, and remove widgets directly on your desktop, then style them with custom colors, borders, radius, shadow, and opacity. A fork of Widgets (https://github.com/TheRealSourcer/widgets).",
   "name": "Desktop widgets",
   "settings-schema": "org.gnome.shell.extensions.desktop-widgets-r3nhick",
   "shell-version": [
@@ -8,6 +8,6 @@
   "gettext-domain": "desktop-widgets@r3nhick",
   "url": "https://github.com/r3nhick/desktop-widgets",
   "uuid": "desktop-widgets@r3nhick",
-  "version": 4,
-  "version-name": "1.0.3"
+  "version": 5,
+  "version-name": "1.0.4"
 }

@@ -1282,11 +1282,23 @@ class WidgetController {
 
   _openWidgetApp(type) {
     for (const appId of WIDGET_APP_IDS[type] ?? []) {
-      const appInfo = Gio.DesktopAppInfo.new(appId);
+      const desktopId = appId.endsWith('.desktop') ? appId : `${appId}.desktop`;
+      const app = Shell.AppSystem.get_default().lookup_app(desktopId);
 
-      if (appInfo && !appInfo.get_is_launch_disabled()) {
-        appInfo.launch([], null);
+      if (app) {
+        app.activate();
         return;
+      };
+
+      try {
+        const appInfo = Gio.DesktopAppInfo.new(appId) ?? Gio.DesktopAppInfo.new(desktopId);
+
+        if (appInfo) {
+          appInfo.launch([], null);
+          return;
+        };
+      } catch (error) {
+        warn('desktop-widgets: failed to launch', appId, error);
       };
     };
   };
