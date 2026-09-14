@@ -50,8 +50,7 @@ cd desktop-widgets
 cp -r . ~/.local/share/gnome-shell/extensions/desktop-widgets@r3nhick
 ```
 
-Restart GNOME Shell (`Alt`+`F2`, then `r`) and enable the extension with the Extensions app.
-On Wayland, simply logging out does not reload the shell; you must use the restart command above.
+Log out of your session and log back in to restart GNOME Shell, then enable the extension via the Extensions app.
 
 ### Installing mpris (music widget)
 
