@@ -6,451 +6,441 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language-Team: r3nhick\n"
 
-#: prefs.js:483
+#: prefs.js:322
 msgid "Add"
 msgstr ""
 
-#: prefs.js:467
+#: prefs.js:306
 msgid "Add a new widget to your desktop."
 msgstr ""
 
-#: prefs.js:466
+#: prefs.js:305
 msgid "Add Widget"
 msgstr ""
 
-#: prefs.js:992
+#: prefs.js:799
 msgid "Adjust the visual size of the device indicators displayed inside the battery charge rings."
 msgstr ""
 
-#: prefs.js:515
+#: prefs.js:354
 msgid "Align all widgets into a grid of columns and rows"
 msgstr ""
 
-#: prefs.js:1057
+#: prefs.js:864
 msgid "Animation shown when no track is playing"
 msgstr ""
 
-#: prefs.js:166
+#: prefs.js:151
 msgid "Appearance"
 msgstr ""
 
-#: prefs.js:514
+#: prefs.js:353
 msgid "Arrange widgets"
 msgstr ""
 
-#: prefs.js:1121
+#: prefs.js:954
 msgid "Background Color"
 msgstr ""
 
-#: prefs.js:998
+#: prefs.js:805
 msgid "Battery icon size"
 msgstr ""
 
-#: prefs.js:1009
+#: prefs.js:816
 msgid "Battery slot count"
 msgstr ""
 
-#: prefs.js:154
-#: prefs.js:991
+#: prefs.js:133
+#: prefs.js:798
 msgid "Battery Widget"
 msgstr ""
 
-#: prefs.js:1147
+#: prefs.js:980
 msgid "Blur radius of the shadow"
 msgstr ""
 
-#: prefs.js:1131
+#: prefs.js:964
 msgid "Border Color"
 msgstr ""
 
-#: prefs.js:1083
+#: prefs.js:916
 msgid "Border Radius"
 msgstr ""
 
-#: prefs.js:1102
+#: prefs.js:935
 msgid "Border Width"
 msgstr ""
 
-#: prefs.js:1141
+#: prefs.js:974
 msgid "Box Shadow"
 msgstr ""
 
-#: prefs.js:663
-#: prefs.js:690
-#: prefs.js:783
-#: prefs.js:851
+#: prefs.js:145
+#: prefs.js:883
+msgid "Calendar Widget"
+msgstr ""
+
+#: prefs.js:470
+#: prefs.js:497
+#: prefs.js:590
+#: prefs.js:658
 msgid "Cancel"
 msgstr ""
 
-#: extension.js:1144
-#: widgets/photos/widget.js:251
+#: extension.js:1265
+#: extension.js:1685
 msgid "Change photo"
 msgstr ""
 
-#: prefs.js:1122
+#: prefs.js:955
 msgid "Choose background color"
 msgstr ""
 
-#: prefs.js:1132
+#: prefs.js:965
 msgid "Choose border color"
 msgstr ""
 
-#: prefs.js:1142
+#: prefs.js:975
 msgid "Choose shadow color. Leave unset for default."
 msgstr ""
 
-#: prefs.js:874
+#: prefs.js:681
 msgid "Close"
 msgstr ""
 
-#: prefs.js:404
+#: prefs.js:261
 msgid "Configure desktop widgets. Changes apply immediately."
 msgstr ""
 
-#: prefs.js:968
+#: prefs.js:775
 msgid "Configure how your pictures are scaled and cropped inside the Photos widget bounds."
 msgstr ""
 
-#: prefs.js:1084
+#: prefs.js:917
 msgid "Corner roundness of widgets"
 msgstr ""
 
-#: prefs.js:865
+#: prefs.js:672
 msgid "Could not delete the layout"
 msgstr ""
 
-#: prefs.js:677
+#: prefs.js:484
 msgid "Could not export the layout"
 msgstr ""
 
-#: prefs.js:724
+#: prefs.js:531
 msgid "Could not import the layout"
 msgstr ""
 
-#: prefs.js:704
-#: prefs.js:829
+#: prefs.js:511
+#: prefs.js:636
 msgid "Could not read the file"
 msgstr ""
 
-#: prefs.js:842
+#: prefs.js:649
 msgid "Could not restore the layout"
 msgstr ""
 
-#: prefs.js:818
+#: prefs.js:625
 msgid "Could not save the layout"
 msgstr ""
 
-#: prefs.js:813
+#: prefs.js:620
 msgid "Could not write the file"
 msgstr ""
 
-#: prefs.js:1077
+#: prefs.js:910
 msgid "Customize the appearance of all widgets."
 msgstr ""
 
-#: prefs.js:609
-#: prefs.js:851
+#: prefs.js:416
+#: prefs.js:658
 msgid "Delete"
 msgstr ""
 
-#: prefs.js:849
+#: prefs.js:656
 msgid "Delete saved layout?"
 msgstr ""
 
-#: prefs.js:298
+#: prefs.js:111
+#: prefs.js:187
 msgid "Desktop Widgets"
 msgstr ""
 
-#: prefs.js:1026
+#: prefs.js:833
 msgid "Display the charge percentage below each ring"
 msgstr ""
 
-#: prefs.js:409
+#: prefs.js:266
 msgid "Edit mode"
 msgstr ""
 
-#: prefs.js:443
-#: prefs.js:881
+#: prefs.js:282
+#: prefs.js:688
 msgid "Edit Mode Shortcut"
 msgstr ""
 
-#: prefs.js:1056
+#: prefs.js:863
 msgid "Empty state GIF"
 msgstr ""
 
-#: prefs.js:410
+#: prefs.js:267
 msgid "Enable to move and remove widgets on the desktop"
 msgstr ""
 
-#: prefs.js:662
+#: prefs.js:469
 msgid "Export"
 msgstr ""
 
-#: prefs.js:524
-#: prefs.js:659
+#: prefs.js:363
+#: prefs.js:466
 msgid "Export layout"
 msgstr ""
 
-#: prefs.js:141
+#: prefs.js:120
 msgid "General"
 msgstr ""
 
-#: prefs.js:882
+#: prefs.js:689
 msgid "Global shortcut to toggle edit mode. Press Backspace to clear."
 msgstr ""
 
-#: widgets/weather/widget.js:637
+#: widgets/weather/widget.js:638
 msgid "GNOME Weather"
 msgstr ""
 
-#: prefs.js:418
-msgid "Grid step in pixels while dragging. 0 disables snapping."
-msgstr ""
-
-#: widgets/weather/widget.js:403
+#: widgets/weather/widget.js:404
 msgid "H:%s L:%s"
 msgstr ""
 
-#: extension.js:1448
-msgid "Hide widget"
-msgstr ""
-
-#: prefs.js:999
+#: prefs.js:806
 msgid "How large the device icon is inside the charging ring"
 msgstr ""
 
-#: prefs.js:975
+#: prefs.js:782
 msgid "How the photo fits the widget bounds"
 msgstr ""
 
-#: prefs.js:1047
+#: prefs.js:893
+msgid "How weekday labels appear in the calendar header"
+msgstr ""
+
+#: prefs.js:854
 msgid "Ignore Web Browsers"
 msgstr ""
 
-#: prefs.js:689
+#: prefs.js:496
 msgid "Import"
 msgstr ""
 
-#: prefs.js:534
-#: prefs.js:686
+#: prefs.js:373
+#: prefs.js:493
 msgid "Import layout"
 msgstr ""
 
-#: widgets/weather/widget.js:89
+#: widgets/weather/widget.js:90
 msgid "It feels like"
 msgstr ""
 
-#: prefs.js:535
+#: prefs.js:374
 msgid "Load a widget layout from a JSON file"
 msgstr ""
 
-#: prefs.js:1010
+#: prefs.js:817
 msgid "Maximum number of devices shown"
 msgstr ""
 
-#: prefs.js:160
-#: prefs.js:1041
+#: prefs.js:139
+#: prefs.js:848
 msgid "Music Widget"
 msgstr ""
 
-#: prefs.js:887
-#: prefs.js:914
+#: prefs.js:694
+#: prefs.js:721
 msgid "New accelerator…"
 msgstr ""
 
-#: widgets/calendar/widget.js:198
+#: widgets/calendar/widget.js:283
 msgid "No events today"
 msgstr ""
 
-#: prefs.js:558
-msgid "No widget of this type in the layout"
-msgstr ""
-
-#: prefs.js:836
+#: prefs.js:643
 msgid "Not a valid widget layout"
 msgstr ""
 
-#: widgets/weather/widget.js:636
+#: widgets/weather/widget.js:637
 msgid "Open Weather to set a location"
 msgstr ""
 
-#: prefs.js:783
+#: prefs.js:590
 msgid "Overwrite"
 msgstr ""
 
-#: prefs.js:781
+#: prefs.js:588
 msgid "Overwrite existing layout?"
 msgstr ""
 
-#: prefs.js:974
+#: prefs.js:781
 msgid "Photo size"
 msgstr ""
 
-#: prefs.js:148
-#: prefs.js:967
+#: prefs.js:127
+#: prefs.js:774
 msgid "Photos Widget"
 msgstr ""
 
-#: prefs.js:602
+#: prefs.js:409
 msgid "Pick a saved layout to restore or delete"
 msgstr ""
 
-#: extension.js:1053
-#: extension.js:1443
+#: extension.js:1174
+#: extension.js:1690
 msgid "Pin widget"
 msgstr ""
 
-#: prefs.js:1042
+#: prefs.js:884
+msgid "Preferences for the date widget on your desktop."
+msgstr ""
+
+#: prefs.js:849
 msgid "Preferences for the media player widget on your desktop."
 msgstr ""
 
-#: prefs.js:584
+#: prefs.js:391
 msgid "Preset name"
 msgstr ""
 
-#: prefs.js:1048
+#: prefs.js:855
 msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
 msgstr ""
 
-#: extension.js:1039
-#: extension.js:1454
+#: extension.js:1160
+#: extension.js:1695
 msgid "Remove widget"
 msgstr ""
 
-#: prefs.js:504
+#: prefs.js:343
 msgid "Reset default widgets"
 msgstr ""
 
-#: prefs.js:1212
+#: prefs.js:1045
 msgid "Reset Style"
 msgstr ""
 
-#: prefs.js:607
+#: prefs.js:414
 msgid "Restore"
 msgstr ""
 
-#: prefs.js:1213
+#: prefs.js:1046
 msgid "Restore default widget appearance"
 msgstr ""
 
-#: prefs.js:621
+#: prefs.js:428
 msgid "Restore or delete the selected preset"
 msgstr ""
 
-#: prefs.js:505
+#: prefs.js:344
 msgid "Restore the default widget layout"
 msgstr ""
 
-#: prefs.js:586
+#: prefs.js:393
 msgid "Save layout"
 msgstr ""
 
-#: prefs.js:525
+#: prefs.js:364
 msgid "Save the current widget layout to a JSON file"
 msgstr ""
 
-#: prefs.js:580
+#: prefs.js:387
 msgid "Save the current widget positions under a name and restore them later."
 msgstr ""
 
-#: prefs.js:579
+#: prefs.js:386
 msgid "Saved Layouts"
 msgstr ""
 
-#: prefs.js:601
+#: prefs.js:408
 msgid "Saved presets"
 msgstr ""
 
-#: prefs.js:332
-msgid "Search"
-msgstr ""
-
-#: prefs.js:322
-msgid "Search settings…"
-msgstr ""
-
-#: widgets/photos/widget.js:189
+#: widgets/photos/widget.js:186
 msgid "Select image"
 msgstr ""
 
-#: prefs.js:472
+#: prefs.js:311
 msgid "Select widget to add"
 msgstr ""
 
-#: prefs.js:1146
+#: prefs.js:979
 msgid "Shadow Size"
 msgstr ""
 
-#: prefs.js:1025
+#: prefs.js:832
 msgid "Show battery percentage"
 msgstr ""
 
-#: prefs.js:548
-msgid "Show or hide widget types without removing them from the layout."
+#: prefs.js:888
+msgid "Single letter (M T W)"
 msgstr ""
 
-#: prefs.js:557
-msgid "Show this widget on the desktop"
-msgstr ""
-
-#: prefs.js:417
-msgid "Snap to grid"
-msgstr ""
-
-#: prefs.js:1103
+#: prefs.js:936
 msgid "Thickness of widget borders"
 msgstr ""
 
-#: prefs.js:711
+#: prefs.js:518
 msgid "This file is not a valid layout"
 msgstr ""
 
-#: widgets/weather/widget.js:158
+#: widgets/weather/widget.js:159
 msgid "Today"
 msgstr ""
 
-#: prefs.js:1185
+#: prefs.js:1018
 msgid "Transparency of all desktop widgets"
 msgstr ""
 
-#: prefs.js:915
+#: prefs.js:888
+msgid "Two letters (Mo Tu We)"
+msgstr ""
+
+#: prefs.js:722
 msgid "Type the shortcut to toggle edit mode. Press Backspace to clear."
 msgstr ""
 
-#: extension.js:1471
+#: extension.js:1713
 msgid "Unknown widget"
 msgstr ""
 
-#: prefs.js:718
+#: prefs.js:525
 msgid "Unknown widget type"
 msgstr ""
 
-#: extension.js:1443
+#: extension.js:1690
 msgid "Unpin widget"
 msgstr ""
 
-#: widgets/weather/widget.js:260
-#: widgets/weather/widget.js:633
+#: widgets/weather/widget.js:261
+#: widgets/weather/widget.js:634
 msgid "Weather unavailable"
 msgstr ""
 
-#: prefs.js:1184
+#: prefs.js:892
+msgid "Weekday format"
+msgstr ""
+
+#: prefs.js:1017
 msgid "Widget opacity"
 msgstr ""
 
-#: extension.js:1075
-#: extension.js:1423
+#: extension.js:1196
+#: extension.js:1666
 msgid "Widget size"
 msgstr ""
 
-#: prefs.js:1076
+#: prefs.js:909
 msgid "Widget Styling"
 msgstr ""
 
-#: prefs.js:547
-msgid "Widget Visibility"
-msgstr ""
-
-#: prefs.js:403
+#: prefs.js:260
 msgid "Widgets"
 msgstr ""

@@ -2,6 +2,7 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Pango from 'gi://Pango';
+import PangoCairo from 'gi://PangoCairo';
 import St from 'gi://St';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
@@ -261,10 +262,48 @@ function weekdayLabels(format) {
 	return referenceDates.map(date => {
 		const label = date.toLocaleDateString(undefined, {weekday: format === 'narrow' ? 'narrow' : 'short'});
 
-		return format === 'narrow'
-			? label.charAt(0).toUpperCase()
-			: label.charAt(0).toUpperCase() + label.slice(1);
+		if (format === 'narrow') {
+			return label.charAt(0).toUpperCase();
+		};
+
+		const two = label.slice(0, 2);
+
+		return two.charAt(0).toUpperCase() + two.slice(1);
 	});
+};
+
+function measureTextWidth(text, fontSizePx) {
+	const layout = Pango.Layout.new(PangoCairo.font_map_get_default().create_context());
+	const description = Pango.FontDescription.new();
+	description.set_absolute_size(fontSizePx * Pango.SCALE);
+	description.set_weight(Pango.Weight.SEMIBOLD);
+	layout.set_font_description(description);
+	layout.set_text(text, -1);
+	const [, logical] = layout.get_pixel_extents();
+	return logical.width;
+};
+
+function fitWeekdayFontSize(weekdays, cellWidth, desiredFont, minFont = 9) {
+	let size = desiredFont;
+
+	while (size > minFont) {
+		let overflow = false;
+
+		for (const weekday of weekdays) {
+			if (measureTextWidth(weekday, size) + 1 > cellWidth) {
+				overflow = true;
+				break;
+			};
+		};
+
+		if (!overflow) {
+			break;
+		};
+
+		size--;
+	};
+
+	return size;
 };
 
 function noEventsToday() {
@@ -279,7 +318,7 @@ function noEventsToday() {
 	return _('No events today');
 };
 
-function calendarCell(text, labelStyle, cellStyle, createLabel, cellWidth, cellHeight, interactive = false, boost = 0) {
+function calendarCell(text, labelStyle, cellStyle, createLabel, cellWidth, cellHeight, interactive = false, boost = 0, labelModifier = null) {
 	const binParams = {
 		style_class: 'widget-calendar-cell',
 		x_align: Clutter.ActorAlign.CENTER,
@@ -300,6 +339,10 @@ function calendarCell(text, labelStyle, cellStyle, createLabel, cellWidth, cellH
 	const bin = new St.Bin(binParams);
 	const labelActor = createLabel(text, 'widget-calendar-day', labelStyle);
 
+	if (labelModifier) {
+		labelModifier(labelActor);
+	};
+
 	labelActor.x_expand = true;
 	labelActor.x_align = Clutter.ActorAlign.CENTER;
 	labelActor.y_align = Clutter.ActorAlign.CENTER;
@@ -317,6 +360,7 @@ function buildGrid(options) {
 		cellWidth,
 		cellHeight,
 		dayFont,
+		weekdayFont,
 		gap,
 		text,
 		secondary,
@@ -339,12 +383,17 @@ function buildGrid(options) {
 	for (const weekday of weekdays) {
 		weekdayRow.add_child(calendarCell(
 			weekday,
-			`font-size: ${dayFont}px; font-weight: 600; color: ${secondary};`,
+			`font-size: ${Math.max(8, weekdayFont)}px; font-weight: 600; color: ${secondary};`,
 			null,
 			createLabel,
 			cellWidth,
 			cellHeight,
-			false));
+			false,
+			0,
+			label => {
+				label.clutter_text.set_line_wrap(false);
+				label.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
+			}));
 	};
 
 	grid.add_child(weekdayRow);
@@ -480,6 +529,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 		const cellWidth = Math.round(20 * (rightWidth / 175));
 		const cellHeight = Math.round(cellWidth * (compact ? 0.95 : 1));
 		const dayFont = Math.max(9, Math.round(DAY_BASE_FONT * (cellWidth / 20)));
+		const weekdayFont = fitWeekdayFontSize(weekdays, cellWidth, dayFont);
 		const gap = GAP_BASE;
 
 		const container = new St.BoxLayout({
@@ -545,6 +595,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 			cellWidth,
 			cellHeight,
 			dayFont,
+			weekdayFont,
 			gap,
 			text,
 			secondary,
@@ -564,6 +615,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 	const gap = Math.max(2, Math.round(GAP_BASE * scale));
 	const cellWidth = Math.max(dayFont + 6, Math.floor((availWidth - 6 * gap) / 7));
 	const cellHeight = (compact ? COMPACT_CELL_BASE_HEIGHT : CELL_BASE_HEIGHT) * scale;
+	const weekdayFont = fitWeekdayFontSize(weekdays, cellWidth, dayFont);
 
 	body.add_child(monthLabel(now, createLabel, dayFont, theme));
 
@@ -575,6 +627,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 			cellWidth,
 			cellHeight,
 			dayFont,
+			weekdayFont,
 			gap,
 			text,
 			secondary,

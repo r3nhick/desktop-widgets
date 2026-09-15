@@ -34,7 +34,7 @@ const PLAYER_PATH = '/org/mpris/MediaPlayer2';
 const DBUS_IFACE = 'org.freedesktop.DBus.Properties';
 const TICK_MS = 500;
 const LOOP_CYCLE = ['None', 'Track', 'Playlist'];
-const GIF_CANDIDATES = ['pushy.gif', 'pushy2.gif'];
+const GIF_CANDIDATES = ['pushy.gif', 'pushy2.gif', 'pushy3.gif', 'pushy4.gif', 'pushy5.gif'];
 const gifFramesCache = new Map();
 const CHROMIUM_MARKERS = ['chromium', 'chrome', 'brave', 'vivaldi', 'opera', 'edge', 'yandex', 'thorium', 'helium', 'firefox'];
 

@@ -518,10 +518,10 @@ msgid "How weekday labels appear in the calendar header"
 msgstr "Як дні тижня відображаються в шапці календаря"
 
 #: prefs.js:891
-msgid "Two letters (Пн Вт Ср)"
+msgid "Two letters (Mo Tu We)"
 msgstr "Дві літери (Пн Вт Ср)"
 
 #: prefs.js:891
-msgid "Single letter (П В С)"
+msgid "Single letter (M T W)"
 msgstr "Одна літера (П В С)"
 

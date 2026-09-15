@@ -35,7 +35,7 @@ const PHOTO_SIZE_LABELS = ['Cover', 'Contain', 'Stretch', 'Small'];
 const BATTERY_ICON_SIZES = ['small', 'medium', 'large'];
 const BATTERY_ICON_SIZE_LABELS = ['Small', 'Medium', 'Large'];
 
-const MUSIC_GIFS = ['pushy.gif', 'pushy2.gif'];
+const MUSIC_GIFS = ['pushy.gif', 'pushy2.gif', 'pushy3.gif', 'pushy4.gif', 'pushy5.gif'];
 
 function layoutWidgets(settings) {
     try {
@@ -885,7 +885,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             margin_top: 12,
         });
 
-        const WEEKDAY_LABELS = [_('Two letters (Пн Вт Ср)'), _('Single letter (П В С)')];
+        const WEEKDAY_LABELS = [_('Two letters (Mo Tu We)'), _('Single letter (M T W)')];
         const WEEKDAY_VALUES = ['short', 'narrow'];
         const weekdayModel = Gtk.StringList.new(WEEKDAY_LABELS);
         const weekdayRow = new Adw.ComboRow({

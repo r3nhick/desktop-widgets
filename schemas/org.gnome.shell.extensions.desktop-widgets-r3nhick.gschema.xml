@@ -49,12 +49,12 @@
     <key name="music-empty-gif" type="s">
       <default>'pushy.gif'</default>
       <summary>Empty state GIF</summary>
-      <description>Animated GIF shown by the music widget when no track is playing. Allowed values: pushy.gif, pushy2.gif.</description>
+      <description>Animated GIF shown by the music widget when no track is playing. Allowed values: pushy.gif, pushy2.gif, pushy3.gif, pushy4.gif, pushy5.gif.</description>
     </key>
     <key name="calendar-weekday-format" type="s">
       <default>'short'</default>
       <summary>Calendar weekday format</summary>
-      <description>How weekday labels appear in the calendar header. Allowed values: short (Пн Вт Ср) or narrow (П В С).</description>
+      <description>How weekday labels appear in the calendar header. Allowed values: short (Mo Tu We) or narrow (M T W).</description>
     </key>
     <key name="edit-mode-binding" type="as">
       <default>[]</default>
