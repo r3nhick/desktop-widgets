@@ -525,3 +525,47 @@ msgstr "Две буквы (Пн Вт Ср)"
 msgid "Single letter (M T W)"
 msgstr "Одна буква (П В С)"
 
+#: prefs.js:431
+msgid "12-hour"
+msgstr "12-часовой"
+
+#: prefs.js:431
+msgid "24-hour"
+msgstr "24-часовой"
+
+#: prefs.js:437
+msgid "Appearance of the clock on your desktop."
+msgstr "Внешний вид часов на вашем рабочем столе."
+
+#: prefs.js:432
+msgid "Available with the 12-hour format"
+msgstr "Доступно с 12-часовым форматом"
+
+#: prefs.js:22
+msgid "Digital Clock"
+msgstr "Цифровые часы"
+
+#: prefs.js:157
+msgid "Digital Clock Widget"
+msgstr "Виджет цифровых часов"
+
+#: prefs.js:434
+msgid "How the clock shows the hour"
+msgstr "Как часы показывают час"
+
+#: prefs.js:433
+msgid "Only available in the 2×1 and 2×1 mini sizes"
+msgstr "Доступно только в размерах 2×1 и 2×1 mini"
+
+#: prefs.js:436
+msgid "Show AM/PM"
+msgstr "Показывать AM/PM"
+
+#: prefs.js:435
+msgid "Show seconds"
+msgstr "Показывать секунды"
+
+#: prefs.js:430
+msgid "Time format"
+msgstr "Формат времени"
+

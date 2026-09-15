@@ -13,6 +13,7 @@ import * as BatteryWidget from './widgets/battery/widget.js';
 import * as BinaryClockWidget from './widgets/binaryclock/widget.js';
 import * as CalendarWidget from './widgets/calendar/widget.js';
 import * as ClockWidget from './widgets/clock/widget.js';
+import * as DigitalClockWidget from './widgets/digitalclock/widget.js';
 import * as MusicWidget from './widgets/music/widget.js';
 import * as PhotosWidget from './widgets/photos/widget.js';
 import * as WeatherWidget from './widgets/weather/widget.js';
@@ -36,6 +37,7 @@ const EDIT_MODE_BINDING_KEY = 'edit-mode-binding';
 
 const WIDGET_MODULES = [
   ClockWidget,
+  DigitalClockWidget,
   BinaryClockWidget,
   CalendarWidget,
   WeatherWidget,
@@ -54,7 +56,10 @@ const WIDGET_APP_IDS = Object.fromEntries(WIDGET_MODULES
   .filter(widgetModule => widgetModule.appIds)
   .map(widgetModule => [widgetModule.type, widgetModule.appIds]));
 const WIDGET_SIZES = {
+  minismall: [MINI_WIDGET_HEIGHT, MINI_WIDGET_HEIGHT], // 1x1 mini
   mini: [MINI_WIDGET_WIDTH, 120], // 2x1 mini
+  portraitmini: [MINI_WIDGET_HEIGHT, MINI_WIDGET_WIDTH], // 1x2 mini
+  minilarge: [MINI_WIDGET_WIDTH, MINI_WIDGET_WIDTH], // 2x2 mini
   small: [CELL_SIZE, CELL_SIZE], // 1x1
   medium: [MEDIUM_WIDGET_WIDTH, CELL_SIZE], // 2x1
   portrait: [CELL_SIZE, MEDIUM_WIDGET_WIDTH], // 1x2
@@ -65,7 +70,10 @@ const WIDGET_SIZES = {
 };
 
 const SIZE_LABELS = {
+  minismall: '1×1 mini',
   mini: '2×1 mini',
+  portraitmini: '1×2 mini',
+  minilarge: '2×2 mini',
   small: '1×1',
   medium: '2×1',
   portrait: '1×2',
@@ -73,6 +81,21 @@ const SIZE_LABELS = {
   tall: '2×4',
   wide: '4×2',
   huge: '4×4',
+};
+
+function orderedSizes(sizeKeys) {
+  const mini = [];
+  const rest = [];
+
+  for (const key of sizeKeys) {
+    if (key.includes('mini')) {
+      mini.push(key);
+    } else {
+      rest.push(key);
+    };
+  };
+
+  return [...mini, ...rest];
 };
 
 const ACCENT_COLORS = {
@@ -111,6 +134,7 @@ function defaultWidgetPositions() {
     weather: {x: middleX, y: topY},
     calendar: {x: rightX, y: topY},
     clock: {x: leftSmallX, y: topY},
+    digitalclock: {x: leftSmallX, y: row2Y},
     binaryclock: {x: leftMiniX, y: row2Y},
     battery: {x: rightMiniX, y: row2Y},
     music: {x: rightX, y: row2Y},
@@ -299,6 +323,9 @@ class WidgetController {
       'changed::arrange-widgets', () => this._onArrangeRequested(),
       'changed::edit-mode-binding', () => this._registerEditModeBinding(),
       'changed::calendar-weekday-format', () => this._refreshCalendarWeekdays(),
+      'changed::digitalclock-hour-format', () => this._refreshWidgets(),
+      'changed::digitalclock-show-seconds', () => this._refreshWidgets(),
+      'changed::digitalclock-show-ampm', () => this._refreshWidgets(),
       'changed::style-border-radius', () => this._rebuildWidgets(),
       'changed::style-border-width', () => this._rebuildWidgets(),
       'changed::style-background', () => this._rebuildWidgets(),
@@ -934,7 +961,7 @@ class WidgetController {
     this._refreshWeather(false);
 
     for (const [id, view] of this._views) {
-      if (!['battery', 'calendar', 'photos', 'weather'].includes(view.widget.type)) {
+      if (!['battery', 'calendar', 'digitalclock', 'photos', 'weather'].includes(view.widget.type)) {
         continue;
       };
 
@@ -1206,7 +1233,7 @@ class WidgetController {
       this._layer.add_child(sizeMenu);
       sizeMenu.hide();
 
-      const sizeItems = supportedSizes.map(sizeKey => {
+      const sizeItems = orderedSizes(supportedSizes).map(sizeKey => {
         const item = new St.Button({
           style_class: 'widget-size-menu-item',
           label: SIZE_LABELS[sizeKey] ?? sizeKey,
@@ -1236,7 +1263,7 @@ class WidgetController {
 
         sizeItems.forEach(item => item.remove_style_pseudo_class('active'));
 
-        const activeIndex = supportedSizes.indexOf(view.widget.size);
+        const activeIndex = orderedSizes(supportedSizes).indexOf(view.widget.size);
 
         if (activeIndex >= 0) {
           sizeItems[activeIndex].add_style_pseudo_class('active');
@@ -1661,11 +1688,12 @@ class WidgetController {
 
     const widgetModule = WIDGETS.get(view.widget.type);
     const supportedSizes = widgetModule?.supportedSizes ?? [];
+    const menuSizes = orderedSizes(supportedSizes);
 
-    if (supportedSizes.length > 0) {
+    if (menuSizes.length > 0) {
       menu.add_child(this._contextMenuHeader(_('Widget size')));
 
-      for (const sizeKey of supportedSizes) {
+      for (const sizeKey of menuSizes) {
         const item = this._contextMenuItem(SIZE_LABELS[sizeKey] ?? sizeKey, () => {
           this._setWidgetSize(view.widget, sizeKey);
           this._hideContextMenus();

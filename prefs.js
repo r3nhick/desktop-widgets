@@ -11,6 +11,7 @@ import {ExtensionPreferences, gettext as _}
 
 const WIDGET_TYPES = [
     {type: 'clock', label: 'Clock'},
+    {type: 'digitalclock', label: 'Digital Clock'},
     {type: 'binaryclock', label: 'Binary Clock'},
     {type: 'calendar', label: 'Calendar'},
     {type: 'weather', label: 'Weather'},
@@ -21,6 +22,7 @@ const WIDGET_TYPES = [
 
 const DEFAULT_SIZES = {
     clock: 'small',
+    digitalclock: 'small',
     binaryclock: 'medium',
     calendar: 'small',
     weather: 'small',
@@ -145,6 +147,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         calendarPage.set_title(_('Calendar Widget'));
         calendarPage.set_icon_name('x-office-calendar-symbolic');
         this._addSidebarPage(calendarPage);
+
+        // Digital Clock page
+        const digitalClockPage = this._createDigitalClockPage(settings);
+        digitalClockPage.set_title(_('Digital Clock Widget'));
+        digitalClockPage.set_icon_name('appointment-new-symbolic');
+        this._addSidebarPage(digitalClockPage);
 
         // Appearance page
         const appearancePage = this._createAppearancePage(settings);
@@ -898,6 +906,52 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             settings.set_string('calendar-weekday-format', WEEKDAY_VALUES[weekdayRow.selected] ?? 'short');
         });
         group.add(weekdayRow);
+
+        page.add(group);
+        return page;
+    }
+
+    _createDigitalClockPage(settings) {
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            title: _('Digital Clock Widget'),
+            description: _('Appearance of the clock on your desktop.'),
+            margin_top: 12,
+        });
+
+        const FORMAT_LABELS = [_('12-hour'), _('24-hour')];
+        const FORMAT_VALUES = ['12', '24'];
+        const formatModel = Gtk.StringList.new(FORMAT_LABELS);
+        const formatRow = new Adw.ComboRow({
+            title: _('Time format'),
+            subtitle: _('How the clock shows the hour'),
+            model: formatModel,
+        });
+        formatRow.set_selected(Math.max(0, FORMAT_VALUES.indexOf(settings.get_string('digitalclock-hour-format'))));
+        formatRow.connect('notify::selected', () => {
+            settings.set_string('digitalclock-hour-format', FORMAT_VALUES[formatRow.selected] ?? '24');
+        });
+        group.add(formatRow);
+
+        const showSecondsRow = new Adw.SwitchRow({
+            title: _('Show seconds'),
+            subtitle: _('Only available in the 2×1 and 2×1 mini sizes'),
+        });
+        showSecondsRow.set_active(settings.get_boolean('digitalclock-show-seconds'));
+        group.add(showSecondsRow);
+        showSecondsRow.connect('notify::active', () => {
+            settings.set_boolean('digitalclock-show-seconds', showSecondsRow.get_active());
+        });
+
+        const showAmPmRow = new Adw.SwitchRow({
+            title: _('Show AM/PM'),
+            subtitle: _('Available with the 12-hour format'),
+        });
+        showAmPmRow.set_active(settings.get_boolean('digitalclock-show-ampm'));
+        group.add(showAmPmRow);
+        showAmPmRow.connect('notify::active', () => {
+            settings.set_boolean('digitalclock-show-ampm', showAmPmRow.get_active());
+        });
 
         page.add(group);
         return page;

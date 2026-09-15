@@ -170,7 +170,7 @@ function defaultPreviewIcon(iconSize) {
 	});
 };
 
-function buildEmptyState(createLabel, onPick) {
+function buildEmptyState(createLabel, onPick, radius = 16) {
 	const row = new St.BoxLayout({
 		style_class: 'widget-photo-empty',
 		x_expand: true,
@@ -198,7 +198,7 @@ function buildEmptyState(createLabel, onPick) {
 		reactive: true,
 		can_focus: true,
 		track_hover: true,
-		style: 'background-color: transparent; border: none; padding: 0px; border-radius: 16px;',
+		style: `background-color: transparent; border: none; padding: 0px; border-radius: ${radius}px;`,
 	});
 
 	button.set_child(row);
@@ -208,7 +208,7 @@ function buildEmptyState(createLabel, onPick) {
 
 const PhotoFrame = GObject.registerClass(
 	class PhotoFrame extends St.Widget {
-		_init(file, sizeKey = 'cover') {
+		_init(file, sizeKey = 'cover', radius = 16) {
 			super._init({
 				style_class: 'widget-photo',
 				x_expand: true,
@@ -221,6 +221,7 @@ const PhotoFrame = GObject.registerClass(
 
 			this._file = file;
 			this._sizeKey = SIZE_STYLES[sizeKey] ? sizeKey : 'cover';
+			this._radius = radius;
 			this._updateStyle();
 
 			this.connect('destroy', () => {
@@ -233,30 +234,31 @@ const PhotoFrame = GObject.registerClass(
 			const size = SIZE_STYLES[this._sizeKey] ?? SIZE_STYLES.cover;
 
 			this.set_style(uri
-				? `background-image: url(${JSON.stringify(uri)}); background-size: ${size};`
-				: `background-size: ${size};`);
+				? `background-image: url(${JSON.stringify(uri)}); background-size: ${size}; border-radius: ${this._radius}px;`
+				: `background-size: ${size}; border-radius: ${this._radius}px;`);
 		};
 	}
 );
 
 export function style(theme) {
-	return `background-color: #242424; border-color: ${theme.border}; border-radius: 16px; padding: 0px;`;
+	return `background-color: #242424; border-color: ${theme.border}; border-radius: ${theme?.radius ?? 16}px; padding: 0px;`;
 };
 
-export function render({body, widget, settings, createLabel, onPhotoChange}) {
+export function render({body, widget, settings, createLabel, onPhotoChange, theme}) {
 	const photo = widget?.data?.photo;
 	const hasPhoto = photo && Gio.File.new_for_path(photo).query_exists(null);
 	const sizeKey = String(settings?.get_string('photo-size') ?? 'cover');
+	const radius = theme?.radius ?? 16;
 
 	if (hasPhoto) {
 		const file = Gio.File.new_for_path(photo);
-		const frame = new PhotoFrame(file, sizeKey);
+		const frame = new PhotoFrame(file, sizeKey, radius);
 
 		body.add_child(frame);
 		return;
 	};
 
-	body.add_child(buildEmptyState(createLabel, () => openFileChooser(widget, onPhotoChange)));
+	body.add_child(buildEmptyState(createLabel, () => openFileChooser(widget, onPhotoChange), radius));
 };
 
 export function cleanup() {

@@ -525,3 +525,47 @@ msgstr "Дві літери (Пн Вт Ср)"
 msgid "Single letter (M T W)"
 msgstr "Одна літера (П В С)"
 
+#: prefs.js:431
+msgid "12-hour"
+msgstr "12-годинний"
+
+#: prefs.js:431
+msgid "24-hour"
+msgstr "24-годинний"
+
+#: prefs.js:437
+msgid "Appearance of the clock on your desktop."
+msgstr "Вигляд годинника на вашому робочому столі."
+
+#: prefs.js:432
+msgid "Available with the 12-hour format"
+msgstr "Доступно з 12-годинним форматом"
+
+#: prefs.js:22
+msgid "Digital Clock"
+msgstr "Цифровий годинник"
+
+#: prefs.js:157
+msgid "Digital Clock Widget"
+msgstr "Віджет цифрового годинника"
+
+#: prefs.js:434
+msgid "How the clock shows the hour"
+msgstr "Як годинник показує годину"
+
+#: prefs.js:433
+msgid "Only available in the 2×1 and 2×1 mini sizes"
+msgstr "Доступно лише в розмірах 2×1 та 2×1 mini"
+
+#: prefs.js:436
+msgid "Show AM/PM"
+msgstr "Показувати AM/PM"
+
+#: prefs.js:435
+msgid "Show seconds"
+msgstr "Показувати секунди"
+
+#: prefs.js:430
+msgid "Time format"
+msgstr "Формат часу"
+

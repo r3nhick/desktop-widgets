@@ -7,7 +7,7 @@ export const type = 'clock';
 export const label = 'Clock';
 export const stylesheet = 'widgets/clock/stylesheet.css';
 export const defaultSize = 'small';
-export const supportedSizes = ['small', 'medium', 'large'];
+export const supportedSizes = ['small', 'large', 'minismall', 'minilarge'];
 
 const CLOCK_RADIUS = 16;
 const TICK_INSET = 16;

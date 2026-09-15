@@ -56,6 +56,21 @@
       <summary>Calendar weekday format</summary>
       <description>How weekday labels appear in the calendar header. Allowed values: short (Mo Tu We) or narrow (M T W).</description>
     </key>
+    <key name="digitalclock-hour-format" type="s">
+      <default>'24'</default>
+      <summary>Digital clock time format</summary>
+      <description>Time format for the Digital Clock widget. Allowed values: 24 or 12.</description>
+    </key>
+    <key name="digitalclock-show-seconds" type="b">
+      <default>false</default>
+      <summary>Digital clock show seconds</summary>
+      <description>Show seconds in the Digital Clock widget. Only available in the 2×1 and 2×1 mini sizes.</description>
+    </key>
+    <key name="digitalclock-show-ampm" type="b">
+      <default>true</default>
+      <summary>Digital clock show AM/PM</summary>
+      <description>Show the AM/PM indicator next to the time in 12-hour format.</description>
+    </key>
     <key name="edit-mode-binding" type="as">
       <default>[]</default>
       <summary>Edit mode shortcut</summary>

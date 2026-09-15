@@ -64,14 +64,15 @@ const BinaryClockFace = GObject.registerClass(
 		};
 
 		_scheduleRepaint() {
-			if (!this.get_parent()) {
-				return;
-			};
-
 			const delay = 1000 - (Date.now() % 1000);
 
 			this._repaintTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
 				this._repaintTimeoutId = 0;
+
+				if (!this.get_parent()) {
+					return GLib.SOURCE_REMOVE;
+				};
+
 				this.queue_repaint();
 				this._scheduleRepaint();
 				return GLib.SOURCE_REMOVE;
