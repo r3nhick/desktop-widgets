@@ -1398,7 +1398,15 @@ class WidgetController {
   };
 
   _handleAppClickEvent(event) {
-    if (this._editMode || event.type() !== Clutter.EventType.BUTTON_RELEASE) {
+    const eventType = event.type();
+    
+    // Пропускаємо всі клавіатурні події, щоб не блокувати системні скріншоти (Win+Shift+S)
+    if (eventType === Clutter.EventType.KEY_PRESS || 
+        eventType === Clutter.EventType.KEY_RELEASE) {
+      return Clutter.EVENT_PROPAGATE;
+    };
+    
+    if (this._editMode || eventType !== Clutter.EventType.BUTTON_RELEASE) {
       return Clutter.EVENT_PROPAGATE;
     };
 
