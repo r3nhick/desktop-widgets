@@ -76,6 +76,11 @@
       <summary>Edit mode shortcut</summary>
       <description>Global keyboard shortcut to toggle edit mode on the desktop. Leave empty to disable.</description>
     </key>
+    <key name="github-use-green" type="b">
+      <default>false</default>
+      <summary>GitHub use green colors</summary>
+      <description>Use GitHub's default green color scheme instead of the theme accent color for contribution cells.</description>
+    </key>
     <key name="style-border-radius" type="i">
       <default>16</default>
       <summary>Border Radius</summary>

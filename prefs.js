@@ -18,6 +18,8 @@ const WIDGET_TYPES = [
     {type: 'photos', label: 'Photos'},
     {type: 'battery', label: 'Battery'},
     {type: 'music', label: 'Music'},
+    {type: 'todo', label: 'Task'},
+    {type: 'github', label: 'GitHub Activity'},
 ];
 
 const DEFAULT_SIZES = {
@@ -29,6 +31,8 @@ const DEFAULT_SIZES = {
     photos: 'medium',
     battery: 'medium',
     music: 'medium',
+    todo: 'medium',
+    github: 'medium',
 };
 
 const PHOTO_SIZES = ['cover', 'contain', 'fill', 'small'];
@@ -153,6 +157,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         digitalClockPage.set_title(_('Digital Clock Widget'));
         digitalClockPage.set_icon_name('appointment-new-symbolic');
         this._addSidebarPage(digitalClockPage);
+
+        // GitHub page
+        const githubPage = this._createGithubPage(settings);
+        githubPage.set_title(_('GitHub Widget'));
+        githubPage.set_icon_name('folder-publicshare-symbolic');
+        this._addSidebarPage(githubPage);
 
         // Appearance page
         const appearancePage = this._createAppearancePage(settings);
@@ -951,6 +961,28 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         group.add(showAmPmRow);
         showAmPmRow.connect('notify::active', () => {
             settings.set_boolean('digitalclock-show-ampm', showAmPmRow.get_active());
+        });
+
+        page.add(group);
+        return page;
+    }
+
+    _createGithubPage(settings) {
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            title: _('GitHub Widget'),
+            description: _('Customize the GitHub Activity widget appearance.'),
+            margin_top: 12,
+        });
+
+        const useGreenRow = new Adw.SwitchRow({
+            title: _('Use GitHub Green Colors'),
+            subtitle: _("Use GitHub's default green color scheme instead of the theme accent color"),
+        });
+        useGreenRow.set_active(settings.get_boolean('github-use-green'));
+        group.add(useGreenRow);
+        useGreenRow.connect('notify::active', () => {
+            settings.set_boolean('github-use-green', useGreenRow.get_active());
         });
 
         page.add(group);

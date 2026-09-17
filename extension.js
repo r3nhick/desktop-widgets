@@ -17,6 +17,8 @@ import * as DigitalClockWidget from './widgets/digitalclock/widget.js';
 import * as MusicWidget from './widgets/music/widget.js';
 import * as PhotosWidget from './widgets/photos/widget.js';
 import * as WeatherWidget from './widgets/weather/widget.js';
+import * as TodoWidget from './widgets/todo/widget.js';
+import * as GithubWidget from './widgets/github/widget.js';
 import { configureLogger, resetLogger, warn } from './logger.js';
 import { assetPath } from './paths.js';
 import { clamp } from './utils.js';
@@ -44,6 +46,8 @@ const WIDGET_MODULES = [
   PhotosWidget,
   BatteryWidget,
   MusicWidget,
+  TodoWidget,
+  GithubWidget,
 ];
 const WIDGETS = new Map(WIDGET_MODULES.map(widgetModule => [widgetModule.type, widgetModule]));
 
@@ -326,6 +330,7 @@ class WidgetController {
       'changed::digitalclock-hour-format', () => this._refreshWidgets(),
       'changed::digitalclock-show-seconds', () => this._refreshWidgets(),
       'changed::digitalclock-show-ampm', () => this._refreshWidgets(),
+      'changed::github-use-green', () => this._refreshWidgets(),
       'changed::style-border-radius', () => this._rebuildWidgets(),
       'changed::style-border-width', () => this._rebuildWidgets(),
       'changed::style-background', () => this._rebuildWidgets(),
@@ -961,7 +966,7 @@ class WidgetController {
     this._refreshWeather(false);
 
     for (const [id, view] of this._views) {
-      if (!['battery', 'calendar', 'digitalclock', 'photos', 'weather'].includes(view.widget.type)) {
+      if (!['battery', 'calendar', 'digitalclock', 'photos', 'weather', 'github'].includes(view.widget.type)) {
         continue;
       };
 
