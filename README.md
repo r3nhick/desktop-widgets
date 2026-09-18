@@ -8,6 +8,12 @@ A fork of [Widgets](https://github.com/TheRealSourcer/widgets) by TheRealSourcer
 
 ![Desktop Widgets full screenshot](assets/screenshot-full.png)
 
+![Desktop Widgets](assets/widgets-1.png)
+
+![Desktop Widgets](assets/widgets-2.png)
+
+![Desktop Widgets](assets/widgets-3.png)
+
 > **⚠️ Desktop Icons NG (DING) conflict**
 >
 > If you have the **Desktop Icons NG (DING)** extension enabled, the desktop
