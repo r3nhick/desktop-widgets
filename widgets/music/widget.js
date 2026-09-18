@@ -6,7 +6,7 @@ import St from 'gi://St';
 
 import { warn } from '../../logger.js';
 import { assetPath } from '../../paths.js';
-import { lang } from '../../locale.js';
+import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 export const type = 'music';
 export const label = 'Music';
@@ -14,20 +14,6 @@ export const stylesheet = 'widgets/music/stylesheet.css';
 export const defaultSize = 'medium';
 export const supportedSizes = ['mini', 'medium'];
 export const appIds = ['org.gnome.Music', 'io.bassi.Amberol', 'org.videolan.VLC'];
-
-function localize(uk, ru, en) {
-	const current = lang();
-
-	if (current === 'uk') {
-		return uk;
-	};
-
-	if (current === 'ru') {
-		return ru;
-	};
-
-	return en;
-};
 
 const PLAYER_IFACE = 'org.mpris.MediaPlayer2.Player';
 const PLAYER_PATH = '/org/mpris/MediaPlayer2';
@@ -577,15 +563,15 @@ function createCard(theme, createLabel, widgetWidth, widgetHeight) {
 
 		if (hasTrack) {
 			card.title.text = title;
-			card.artist.text = artist || localize('Невідомий виконавець', 'Неизвестный исполнитель', 'Unknown artist');
+			card.artist.text = artist || _('Unknown artist');
 
 			stopEmptyGif(card);
 			card._gifPath = null;
 
 			card.showArt(artUrl);
 		} else {
-			card.title.text = localize("Я чекаю 🐾", "Я жду 🐾", "I'm waiting 🐾");
-			card.artist.text = localize('Увімкни щось', 'Включи что-нибудь', 'Play something to get going');
+card.title.text = _("I'm waiting 🐾");
+card.artist.text = _('Play something to get going');
 
 			if (gifPath) {
 				if (card._gifPath !== gifPath) {

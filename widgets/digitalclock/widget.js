@@ -4,6 +4,7 @@ import GObject from 'gi://GObject';
 import Pango from 'gi://Pango';
 import PangoCairo from 'gi://PangoCairo';
 import St from 'gi://St';
+import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 export const type = 'digitalclock';
 export const label = 'Digital Clock';
@@ -129,7 +130,7 @@ const DigitalClockFace = GObject.registerClass(
 			};
 
 			if (!this._use24h && this._showAmPm) {
-				suffix = hours < 12 ? 'AM' : 'PM';
+				suffix = hours < 12 ? _('AM') : _('PM');
 			};
 
 			return {

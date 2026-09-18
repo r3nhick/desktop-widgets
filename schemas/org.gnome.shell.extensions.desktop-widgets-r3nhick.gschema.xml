@@ -36,6 +36,11 @@
       <summary>Show battery percentage</summary>
       <description>Show the charge percentage below each battery ring.</description>
     </key>
+    <key name="screentime-retention-days" type="i">
+      <default>30</default>
+      <summary>Screen Time retention (days)</summary>
+      <description>Number of days of per-app screen time history to keep. Data files older than this are deleted automatically.</description>
+    </key>
     <key name="arrange-widgets" type="b">
       <default>false</default>
       <summary>Arrange widgets</summary>

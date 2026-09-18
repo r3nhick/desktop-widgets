@@ -7,6 +7,7 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
+import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { getDataDir, isActorDestroyed, loadJsonFromFileAsync, parseCssColor, saveJsonToFile, saveJsonToFileSync, cssColorToRgba } from '../../utils/ported.js';
 
 export const type = 'todo';
@@ -24,13 +25,13 @@ const TITLE_FONT_SIZE_MINI = 30;
 const COUNT_FONT_SIZE = 36;
 const COUNT_FONT_SIZE_MINI = 34;
 const ADD_BUTTON_SIZE = 36;
-const ADD_BUTTON_SIZE_MINI = 28;
+const ADD_BUTTON_SIZE_MINI = 29;
 const TASK_ROW_RADIUS = 12;
 const TASK_ROW_PADDING_V = 12;
 const TASK_ROW_PADDING_H = 16;
-const TASK_TEXT_FONT_SIZE = 18;
+const TASK_TEXT_FONT_SIZE = 17;
 const TASK_TEXT_FONT_SIZE_MINI = 26;
-const CHECKBOX_SIZE = 20;
+const CHECKBOX_SIZE = 19;
 const CHECKBOX_SIZE_MINI = 16;
 const ROW_SPACING = 10;
 const BORDER_ALPHA = 0.14;
@@ -40,6 +41,12 @@ const DEFAULT_TASKS = [
     { text: 'Make cake', done: false },
     { text: 'Linux os', done: false },
 ];
+
+const defaultTaskText = (text) => ({
+    'Make tea': _('Make tea'),
+    'Make cake': _('Make cake'),
+    'Linux os': _('Linux os'),
+}[text] ?? text);
 
 function textOnAccentColor(hex) {
     const { r, g, b } = parseCssColor(hex);
@@ -67,7 +74,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
         `todo-${widget?.id}.json`,
     ]);
 
-    let tasks = DEFAULT_TASKS.map(t => ({ ...t }));
+    let tasks = DEFAULT_TASKS.map(t => ({ ...t, text: defaultTaskText(t.text) }));
     let tasksLoaded = false;
     const state = { entryVisible: false };
 
@@ -91,7 +98,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
     mainBox.add_child(leftColumn);
 
     const titleLabel = new St.Label({
-        text: 'Tasks',
+        text: _('Tasks'),
         style: `font-size: ${px(isMini ? TITLE_FONT_SIZE_MINI : TITLE_FONT_SIZE)}px; font-weight: 700; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
     });
 
@@ -169,7 +176,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
     });
 
     const taskEntry = new St.Entry({
-        hint_text: 'New task…',
+        hint_text: _('New task…'),
         can_focus: true,
         x_expand: true,
     });
@@ -196,7 +203,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
             style: task.done
                 ? `background-color: ${accentHex}; border-radius: 9999px; width: ${cSize}px; height: ${cSize}px;`
                 : `border: 1.5px solid ${cssColorToRgba(textColor, 0.35)}; border-radius: 9999px; width: ${cSize}px; height: ${cSize}px;`,
-            y_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.START,
         });
 
         if (task.done) {
@@ -212,11 +219,13 @@ export function render({ body, widget, theme, sizeForWidget }) {
 
         const textLabel = new St.Label({
             x_expand: true,
-            y_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.START,
             style: `font-size: ${fontSize}px; color: ${textColor}; opacity: ${task.done ? 0.5 : 1.0};`,
         });
         textLabel.clutter_text.use_markup = true;
-        textLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        textLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+        textLabel.clutter_text.line_wrap = true;
+        textLabel.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
         textLabel.clutter_text.set_markup(labelText);
 
         checkbox.connect('clicked', () => {
@@ -229,12 +238,12 @@ export function render({ body, widget, theme, sizeForWidget }) {
         const deleteButton = new St.Button({
             child: new St.Icon({
                 icon_name: 'edit-delete-symbolic',
-                icon_size: px(isMini ? 15 : 20),
+                icon_size: px(isMini ? 17 : 18),
             }),
             reactive: true,
             can_focus: true,
             style: 'opacity: 0.45;',
-            y_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.START,
         });
         deleteButton.connect('clicked', () => {
             if (isActorDestroyed(body)) return;
@@ -258,7 +267,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
         taskList.destroy_all_children();
         if (tasks.length === 0) {
             taskList.add_child(new St.Label({
-                text: 'No tasks yet',
+                text: _('No tasks yet'),
                 x_align: Clutter.ActorAlign.CENTER,
                 style: `font-size: ${px(TASK_TEXT_FONT_SIZE)}px; color: ${textColor}; opacity: 0.5;`,
             }));

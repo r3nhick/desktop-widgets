@@ -11,6 +11,7 @@ import Pango from 'gi://Pango';
 import PangoCairo from 'gi://PangoCairo';
 import Soup from 'gi://Soup?version=3.0';
 import St from 'gi://St';
+import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { getDataDir, isActorDestroyed, loadJsonFromFileAsync, saveJsonToFile, parseCssColor, cssColorToRgba } from '../../utils/ported.js';
 
 export const type = 'github';
@@ -26,6 +27,23 @@ const HTTP_OK = 200;
 const WIDGET_PADDING = 16;
 const GITHUB_GREEN_COLORS = ['#39d353', '#26a641', '#006d32', '#0e4429'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const monthNames = () =>
+    [_('Jan'), _('Feb'), _('Mar'), _('Apr'), _('May'), _('Jun'),
+     _('Jul'), _('Aug'), _('Sep'), _('Oct'), _('Nov'), _('Dec')];
+
+const translateDayRows = rows => {
+    const labels = {
+        Mon: _('Mon'),
+        Wed: _('Wed'),
+        Fri: _('Fri'),
+        M: _('M'),
+        W: _('W'),
+        F: _('F'),
+    };
+    return Object.fromEntries(
+        Object.entries(rows).map(([day, label]) => [day, labels[label] ?? label]));
+};
 
 const decoder = new TextDecoder();
 
@@ -68,6 +86,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
     const sizeKey = widget?.size ?? 'medium';
     const isMini = sizeKey === 'mini';
+    const isMiniLarge = sizeKey === 'minilarge';
     const isLarge = sizeKey === 'large';
 
     const [refW, refH] = sizeForWidget ? sizeForWidget(widget) : (isMini ? [260, 120] : (isLarge ? [394, 394] : [394, 190]));
@@ -78,20 +97,26 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
     const layout = isMini
         ? {
-            avatar: 20, username: 13, badge: 12, label: 7, entryWidth: 100,
-            footer: 0, month: 0, spacing: 3, gap: 1, daysW: 16,
-            footerFont: 0, dayRows: DAY_LABEL_ROWS_MINI, maxWeeks: 22,
+            avatar: 20, username: 13, badge: 12, label: 14, entryWidth: 100,
+            footer: 0, month: 0, spacing: 2, gap: 1, daysW: 20,
+            footerFont: 0, dayRows: translateDayRows(DAY_LABEL_ROWS_MINI), maxWeeks: 22,
         }
+        : isMiniLarge
+            ? {
+                avatar: 24, username: 14, badge: 14, label: 13, entryWidth: 120,
+                footer: 0, month: 11, spacing: 4, gap: 2, daysW: 20,
+                footerFont: 0, dayRows: translateDayRows(DAY_LABEL_ROWS), maxWeeks: 18,
+            }
         : isLarge
             ? {
-                avatar: 34, username: 16, badge: 18, label: 11, entryWidth: 170,
-                footer: 14, month: 14, spacing: 6, gap: 2, daysW: 24,
-                footerFont: 12, dayRows: DAY_LABEL_ROWS, maxWeeks: 24,
+                avatar: 34, username: 16, badge: 16, label: 13, entryWidth: 170,
+                footer: 14, month: 15, spacing: 6, gap: 2, daysW: 30,
+                footerFont: 16, dayRows: translateDayRows(DAY_LABEL_ROWS), maxWeeks: 24,
             }
             : {
-                avatar: 28, username: 14, badge: 12, label: 10, entryWidth: 150,
-                footer: 12, month: 12, spacing: 3, gap: 2, daysW: 24,
-                footerFont: 11, dayRows: DAY_LABEL_ROWS, maxWeeks: 24,
+                avatar: 28, username: 14, badge: 12, label: 12, entryWidth: 150,
+                footer: 12, month: 14, spacing: 3, gap: 2, daysW: 28,
+                footerFont: 11, dayRows: translateDayRows(DAY_LABEL_ROWS), maxWeeks: 24,
             };
 
     const avatarSize = layout.avatar;
@@ -173,7 +198,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
     });
 
     const usernameLabel = new St.Label({
-        text: 'Click to set username',
+        text: _('Click to set username'),
         y_align: Clutter.ActorAlign.CENTER,
         style: `font-size: ${layout.username}px; font-weight: 700; color: ${textColor};`,
         reactive: true,
@@ -196,9 +221,9 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
     // In mini the status lives in the header (no footer row)
     const statusLabel = new St.Label({
-        text: isMini ? 'Set user' : 'Click username to configure',
+        text: isMini ? _('Set user') : _('Click username to configure'),
         y_align: Clutter.ActorAlign.CENTER,
-        style: `font-size: ${isMini ? 8 : layout.footerFont - 1}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
+        style: `font-size: ${isMini ? 10 : (isLarge ? 15 : 12)}px; font-weight: 700; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
     });
 
     headerBox.add_child(avatarWidget);
@@ -224,6 +249,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         x_align: Clutter.ActorAlign.FILL,
         x_expand: true,
         y_expand: isLarge ? false : true,
+        style: `spacing: ${isMini ? 6 : 0}px;`,
     });
     matrixBox.add_child(matrixBody);
 
@@ -269,9 +295,9 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         });
 
         const lessLabel = new St.Label({
-            text: 'Less',
+            text: _('Less'),
             y_align: Clutter.ActorAlign.CENTER,
-            style: `font-size: ${layout.footerFont - 1}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-right: 3px;`,
+            style: `font-size: ${isLarge ? 15 : 12}px; font-weight: 700; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-right: 3px;`,
         });
         legendBox.add_child(lessLabel);
 
@@ -285,9 +311,9 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         });
 
         const moreLabel = new St.Label({
-            text: 'More',
+            text: _('More'),
             y_align: Clutter.ActorAlign.CENTER,
-            style: `font-size: ${layout.footerFont - 1}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-left: 3px;`,
+            style: `font-size: ${isLarge ? 15 : 12}px; font-weight: 700; color: ${textColor}; opacity: ${SECONDARY_OPACITY}; margin-left: 3px;`,
         });
         legendBox.add_child(moreLabel);
 
@@ -327,22 +353,53 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         if (isMini) return;
         const pitch = cellSize + cellGap;
         monthLabelsRow.destroy_all_children();
-        monthLabelsRow.style = `margin-left: ${dayLabelsWidth}px; height: ${layout.month}px;`;
+        const monthBottomMargin = isMini ? 0 : 4;
+        monthLabelsRow.style = `margin-left: ${dayLabelsWidth}px; height: ${layout.month}px; margin-bottom: ${monthBottomMargin}px;`;
+        
         let curMonth = -1;
+        let lastLabelEnd = -50;
+        const minLabelSpacing = isLarge ? 20 : 30;
+        
         for (let w = 0; w < weeksToRender; w++) {
-            if (dayLabelsWidth + w * pitch + 36 > contentW) break;
-            const dt = GLib.DateTime.new_from_unix_local(startUnix + w * 7 * 86400);
-            const month = dt.get_month() - 1;
-            if (month === curMonth) continue;
-            curMonth = month;
-            const lbl = new St.Label({
-                text: MONTH_NAMES[month],
-                x_align: Clutter.ActorAlign.START,
-                y_align: Clutter.ActorAlign.CENTER,
-                style: `font-size: ${layout.label}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
-            });
-            lbl.translation_x = w * pitch;
-            monthLabelsRow.add_child(lbl);
+            const weekStartUnix = startUnix + w * 7 * 86400;
+            
+            for (let d = 0; d < 7; d++) {
+                const dayUnix = weekStartUnix + d * 86400;
+                const dt = GLib.DateTime.new_from_unix_local(dayUnix);
+                const month = dt.get_month() - 1;
+                
+                if (month === curMonth) continue;
+                
+                const columnIndex = w;
+                const xPos = columnIndex * pitch;
+                
+                // Add left margin for first month equal to right margin for last month
+                const effectiveXPos = xPos + (curMonth === -1 ? 4 : 0);
+                
+                if (effectiveXPos < lastLabelEnd + minLabelSpacing) {
+                    continue;
+                }
+                
+                const estimatedLabelWidth = 30;
+                if (dayLabelsWidth + effectiveXPos + estimatedLabelWidth > contentW) {
+                    break;
+                }
+                
+                curMonth = month;
+                
+                const lbl = new St.Label({
+                    text: monthNames()[month],
+                    x_align: Clutter.ActorAlign.START,
+                    y_align: Clutter.ActorAlign.CENTER,
+                    style: `font-size: ${layout.month}px; font-weight: 700; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
+                });
+                
+                lbl.translation_x = effectiveXPos;
+                monthLabelsRow.add_child(lbl);
+                
+                lastLabelEnd = effectiveXPos + estimatedLabelWidth;
+                break;
+            }
         }
     }
 
@@ -359,8 +416,13 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                 const lbl = new St.Label({
                     text: layout.dayRows[row],
                     y_align: Clutter.ActorAlign.CENTER,
-                    style: `font-size: ${layout.label}px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
+                    style: `font-size: ${layout.label}px; font-weight: 700; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
                 });
+                // Disable text ellipsize to show full day names
+                const clutterText = lbl.get_clutter_text();
+                if (clutterText) {
+                    clutterText.ellipsize = Pango.EllipsizeMode.NONE;
+                }
                 slot.add_child(lbl);
             }
             dayLabelsColumn.add_child(slot);
@@ -451,9 +513,9 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         const statBg = `background-color: rgba(${accentBytes},0.08);`;
 
         const statsData = [
-            { icon: 'emoji-recent-symbolic', label: 'Today', value: String(todayCount) },
-            { icon: 'media-playlist-consecutive-symbolic', label: 'Current streak', value: `${currentStreak}d` },
-            { icon: 'starred-symbolic', label: 'Longest streak', value: `${longestStreak}d` },
+            { icon: 'emoji-recent-symbolic', label: _('Today'), value: String(todayCount) },
+            { icon: 'media-playlist-consecutive-symbolic', label: _('Current streak'), value: `${currentStreak}d` },
+            { icon: 'starred-symbolic', label: _('Longest streak'), value: `${longestStreak}d` },
         ];
 
         for (const stat of statsData) {
@@ -474,7 +536,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                 text: stat.label,
                 x_expand: true,
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `font-size: 12px; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
+                style: `font-size: 16px; font-weight: 400; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
             });
 
             const valueWidget = new St.Label({
@@ -493,7 +555,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
     // --- NETWORK ---
     function fetchContributions() {
         if (!username) return;
-        setStatus(isMini ? '…' : 'Fetching…');
+        setStatus(isMini ? '…' : _('Fetching…'));
         const url = `https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}`;
         const message = Soup.Message.new('GET', url);
         session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, state.cancellable, (s, res) => {
@@ -513,7 +575,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                 lastSyncTime = GLib.DateTime.new_now_local();
                 setStatus(isMini
                     ? lastSyncTime.format('%H:%M')
-                    : `Synced ${lastSyncTime.format('%H:%M')}`);
+                    : _('Synced %s').format(lastSyncTime.format('%H:%M')));
                 latestByDate = byDate;
                 renderMatrix(byDate);
 
@@ -532,15 +594,15 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                 if (!cancelled) {
                     const cached = latestByDate.size > 0;
                     setStatus(isMini
-                        ? (cached ? 'Cached' : 'Error')
-                        : (cached ? 'Offline — cached' : 'Error loading'));
+                        ? (cached ? _('Cached') : _('Error'))
+                        : (cached ? _('Offline — cached') : _('Error loading')));
                 }
             }
         });
     }
 
     function updateHeader() {
-        usernameLabel.text = username || 'Click to set username';
+        usernameLabel.text = username || _('Click to set username');
         avatarInitials = username ? username.slice(0, 2).toUpperCase() : '?';
         avatarWidget.queue_repaint();
     }
@@ -635,9 +697,9 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                     const latestYear = yearKeys.length ? yearKeys[yearKeys.length - 1] : null;
                     const sumAll = [...cached.values()].reduce((a, b) => a + b, 0);
                     const yearTotal = latestYear !== null ? (savedData.total[latestYear] ?? sumAll) : sumAll;
-                    badgeLabel.text = `${formatCount(yearTotal)} commits`;
+                    badgeLabel.text = _('%s commits').format(formatCount(yearTotal));
                     lastSyncTime = null;
-                    setStatus(isMini ? 'Cached' : 'Cached offline');
+                    setStatus(isMini ? _('Cached') : _('Cached offline'));
 
                     if (isLarge) {
                         computeStats(cached);

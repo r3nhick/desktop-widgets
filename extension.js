@@ -9,6 +9,7 @@ import St from 'gi://St';
 import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
+import * as AppLauncherWidget from './widgets/applauncher/widget.js';
 import * as BatteryWidget from './widgets/battery/widget.js';
 import * as BinaryClockWidget from './widgets/binaryclock/widget.js';
 import * as CalendarWidget from './widgets/calendar/widget.js';
@@ -19,6 +20,7 @@ import * as PhotosWidget from './widgets/photos/widget.js';
 import * as WeatherWidget from './widgets/weather/widget.js';
 import * as TodoWidget from './widgets/todo/widget.js';
 import * as GithubWidget from './widgets/github/widget.js';
+import * as ScreenTimeWidget from './widgets/screentime/widget.js';
 import { configureLogger, resetLogger, warn } from './logger.js';
 import { assetPath } from './paths.js';
 import { clamp } from './utils.js';
@@ -38,6 +40,7 @@ const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
 const EDIT_MODE_BINDING_KEY = 'edit-mode-binding';
 
 const WIDGET_MODULES = [
+  AppLauncherWidget,
   ClockWidget,
   DigitalClockWidget,
   BinaryClockWidget,
@@ -48,6 +51,7 @@ const WIDGET_MODULES = [
   MusicWidget,
   TodoWidget,
   GithubWidget,
+  ScreenTimeWidget,
 ];
 const WIDGETS = new Map(WIDGET_MODULES.map(widgetModule => [widgetModule.type, widgetModule]));
 
@@ -1238,6 +1242,11 @@ class WidgetController {
       this._layer.add_child(sizeMenu);
       sizeMenu.hide();
 
+      let sizeMenuDestroyed = false;
+      sizeMenu.connect('destroy', () => {
+        sizeMenuDestroyed = true;
+      });
+
       const sizeItems = orderedSizes(supportedSizes).map(sizeKey => {
         const item = new St.Button({
           style_class: 'widget-size-menu-item',
@@ -1282,7 +1291,11 @@ class WidgetController {
         raiseActor(sizeMenu);
       }, this);
 
-      sizeButton.connectObject('destroy', () => sizeMenu.destroy(), this);
+      sizeButton.connectObject('destroy', () => {
+        if (!sizeMenuDestroyed) {
+          sizeMenu.destroy();
+        };
+      }, this);
     };
 
     let photoButton = null;

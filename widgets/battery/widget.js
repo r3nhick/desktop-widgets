@@ -5,6 +5,7 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import { warn } from '../../logger.js';
+import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 export const type = 'battery';
 export const label = 'Battery';
@@ -110,16 +111,16 @@ function deviceName(props, kind) {
 		return vendor;
 	};
 	if (kind === DEVICE_TYPE.BATTERY) {
-		return 'Computer';
+		return _('Computer');
 	};
 	if (kind === DEVICE_TYPE.MOUSE) {
-		return 'Mouse';
+		return _('Mouse');
 	};
 	if (kind === DEVICE_TYPE.KEYBOARD) {
-		return 'Keyboard';
+		return _('Keyboard');
 	};
 
-	return 'Device';
+	return _('Device');
 };
 
 function isBatteryLike(props) {
@@ -234,7 +235,7 @@ function readBlueZDevices() {
 
 			devices.push({
 				source: 'bluez',
-				name: String(variantValue(deviceProps, 'Alias', '') || variantValue(deviceProps, 'Name', '') || 'Bluetooth'),
+				name: String(variantValue(deviceProps, 'Alias', '') || variantValue(deviceProps, 'Name', '') || _('Bluetooth')),
 				percentage: Math.round(Math.max(0, Math.min(100, percentage))),
 				powerSupply: false,
 				iconName,

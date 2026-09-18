@@ -8,7 +8,6 @@ import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.j
 
 import { clamp } from '../../utils.js';
 import { warn } from '../../logger.js';
-import { lang } from '../../locale.js';
 
 export const type = 'calendar';
 export const label = 'Calendar';
@@ -307,14 +306,6 @@ function fitWeekdayFontSize(weekdays, cellWidth, desiredFont, minFont = 9) {
 };
 
 function noEventsToday() {
-	if (lang() === 'uk') {
-		return 'Немає подій';
-	};
-
-	if (lang() === 'ru') {
-		return 'Нет событий';
-	};
-
 	return _('No events today');
 };
 
@@ -497,7 +488,7 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
 
 	if (todayEvents.length > 2) {
 		container.add_child(eventLabel(
-			`+${todayEvents.length - 2} ${lang() === 'uk' ? 'ще' : lang() === 'ru' ? 'ещё' : 'more'}`,
+			`+${todayEvents.length - 2} ${_('more')}`,
 			`font-size: 13px; font-weight: 500; color: ${secondary};`));
 	};
 };

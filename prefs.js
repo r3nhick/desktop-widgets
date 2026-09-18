@@ -10,19 +10,37 @@ import {ExtensionPreferences, gettext as _}
     from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const WIDGET_TYPES = [
-    {type: 'clock', label: 'Clock'},
-    {type: 'digitalclock', label: 'Digital Clock'},
-    {type: 'binaryclock', label: 'Binary Clock'},
-    {type: 'calendar', label: 'Calendar'},
-    {type: 'weather', label: 'Weather'},
-    {type: 'photos', label: 'Photos'},
-    {type: 'battery', label: 'Battery'},
-    {type: 'music', label: 'Music'},
-    {type: 'todo', label: 'Task'},
-    {type: 'github', label: 'GitHub Activity'},
+    {type: 'applauncher'},
+    {type: 'clock'},
+    {type: 'digitalclock'},
+    {type: 'binaryclock'},
+    {type: 'calendar'},
+    {type: 'weather'},
+    {type: 'photos'},
+    {type: 'battery'},
+    {type: 'music'},
+    {type: 'todo'},
+    {type: 'github'},
+    {type: 'screentime'},
 ];
 
+const widgetTypeLabel = (type) => ({
+    applauncher: _('App Launcher'),
+    clock: _('Clock'),
+    digitalclock: _('Digital Clock'),
+    binaryclock: _('Binary Clock'),
+    calendar: _('Calendar'),
+    weather: _('Weather'),
+    photos: _('Photos'),
+    battery: _('Battery'),
+    music: _('Music'),
+    todo: _('Task'),
+    github: _('GitHub Activity'),
+    screentime: _('Screen Time'),
+}[type] ?? type);
+
 const DEFAULT_SIZES = {
+    applauncher: 'medium',
     clock: 'small',
     digitalclock: 'small',
     binaryclock: 'medium',
@@ -33,15 +51,25 @@ const DEFAULT_SIZES = {
     music: 'medium',
     todo: 'medium',
     github: 'medium',
+    screentime: 'medium',
 };
 
 const PHOTO_SIZES = ['cover', 'contain', 'fill', 'small'];
-const PHOTO_SIZE_LABELS = ['Cover', 'Contain', 'Stretch', 'Small'];
+const PHOTO_SIZE_LABELS = () => [_('Cover'), _('Contain'), _('Stretch'), _('Small')];
 
 const BATTERY_ICON_SIZES = ['small', 'medium', 'large'];
-const BATTERY_ICON_SIZE_LABELS = ['Small', 'Medium', 'Large'];
+const BATTERY_ICON_SIZE_LABELS = () => [_('Small'), _('Medium'), _('Large')];
 
 const MUSIC_GIFS = ['pushy.gif', 'pushy2.gif', 'pushy3.gif', 'pushy4.gif', 'pushy5.gif'];
+
+const DEFAULT_LAUNCHER_APPS = [
+    {id: 'org.gnome.Nautilus.desktop', name: 'Files'},
+    {id: 'org.gnome.Terminal.desktop', name: 'Terminal'},
+    {id: 'firefox.desktop', name: 'Firefox'},
+    {id: 'org.gnome.Settings.desktop', name: 'Settings'},
+];
+
+const LAUNCHER_MAX_APPS = 16;
 
 function layoutWidgets(settings) {
     try {
@@ -140,6 +168,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         batteryPage.set_icon_name('battery-symbolic');
         this._addSidebarPage(batteryPage);
 
+        // Screen Time page
+        const screentimePage = this._createScreentimePage(settings);
+        screentimePage.set_title(_('Screen Time Widget'));
+        screentimePage.set_icon_name('alarm-symbolic');
+        this._addSidebarPage(screentimePage);
+
         // Music page
         const musicPage = this._createMusicPage(settings);
         musicPage.set_title(_('Music Widget'));
@@ -163,6 +197,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         githubPage.set_title(_('GitHub Widget'));
         githubPage.set_icon_name('folder-publicshare-symbolic');
         this._addSidebarPage(githubPage);
+
+        // App Launcher page
+        const appLauncherPage = this._createAppLauncherPage(settings);
+        appLauncherPage.set_title(_('App Launcher Widget'));
+        appLauncherPage.set_icon_name('view-grid-symbolic');
+        this._addSidebarPage(appLauncherPage);
 
         // Appearance page
         const appearancePage = this._createAppearancePage(settings);
@@ -329,7 +369,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             title: _('Select widget to add'),
         });
 
-        const widgetTypesModel = Gtk.StringList.new(WIDGET_TYPES.map(w => _(w.label)));
+        const widgetTypesModel = Gtk.StringList.new(WIDGET_TYPES.map(w => widgetTypeLabel(w.type)));
         const addCombo = new Gtk.DropDown({
             model: widgetTypesModel,
             valign: Gtk.Align.CENTER,
@@ -794,7 +834,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             margin_top: 12,
         });
 
-        const photoSizeModel = Gtk.StringList.new(PHOTO_SIZE_LABELS);
+        const photoSizeModel = Gtk.StringList.new(PHOTO_SIZE_LABELS());
         const photoSizeRow = new Adw.ComboRow({
             title: _('Photo size'),
             subtitle: _('How the photo fits the widget bounds'),
@@ -818,7 +858,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             margin_top: 12,
         });
 
-        const iconSizeModel = Gtk.StringList.new(BATTERY_ICON_SIZE_LABELS);
+        const iconSizeModel = Gtk.StringList.new(BATTERY_ICON_SIZE_LABELS());
         const iconSizeRow = new Adw.ComboRow({
             title: _('Battery icon size'),
             subtitle: _('How large the device icon is inside the charging ring'),
@@ -855,6 +895,34 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         showPercentRow.connect('notify::active', () => {
             settings.set_boolean('battery-show-percent', showPercentRow.get_active());
         });
+
+        page.add(group);
+        return page;
+    }
+
+    _createScreentimePage(settings) {
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            title: _('Screen Time Widget'),
+            description: _('Per-app screen time is tracked automatically while the widget is on your desktop.'),
+            margin_top: 12,
+        });
+
+        const retentionRow = new Adw.SpinRow({
+            title: _('Keep history for'),
+            subtitle: _('Days of data to keep before older days are deleted'),
+            adjustment: new Gtk.Adjustment({
+                lower: 1,
+                upper: 365,
+                step_increment: 1,
+                page_increment: 7,
+            }),
+        });
+        retentionRow.set_value(settings.get_int('screentime-retention-days'));
+        retentionRow.connect('notify::value', () => {
+            settings.set_int('screentime-retention-days', Math.round(retentionRow.get_value()));
+        });
+        group.add(retentionRow);
 
         page.add(group);
         return page;
@@ -986,6 +1054,398 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         });
 
         page.add(group);
+        return page;
+    }
+
+    _launcherAppsFilePath(widgetId) {
+        const dataDir = GLib.build_filenamev([GLib.get_user_data_dir(), 'desktop-widgets@r3nhick', 'applauncher']);
+        GLib.mkdir_with_parents(dataDir, 0o755);
+        return GLib.build_filenamev([dataDir, `applauncher-${widgetId}.json`]);
+    }
+
+    _loadLauncherApps(dataFilePath) {
+        const selectedApps = new Map();
+        try {
+            if (GLib.file_test(dataFilePath, GLib.FileTest.EXISTS)) {
+                const [success, contents] = GLib.file_get_contents(dataFilePath);
+                if (success) {
+                    const data = JSON.parse(new TextDecoder().decode(contents));
+                    if (Array.isArray(data.apps)) {
+                        for (const app of data.apps) {
+                            if (!app.id) continue;
+                            selectedApps.set(app.id, app);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load apps:', e);
+        }
+        return selectedApps;
+    }
+
+    _allInstalledApps() {
+        const seenIds = new Set();
+        const apps = [];
+        for (const appInfo of Gio.AppInfo.get_all()) {
+            const appId = appInfo.get_id();
+            if (!appId || seenIds.has(appId) || !appInfo.should_show()) continue;
+            seenIds.add(appId);
+            apps.push({
+                id: appId,
+                name: appInfo.get_display_name() || appInfo.get_name() || appId,
+                description: appInfo.get_description() || '',
+                icon: appInfo.get_icon() || null,
+            });
+        }
+        apps.sort((a, b) => a.name.localeCompare(b.name));
+        return apps;
+    }
+
+    _launcherAppIcon(appId) {
+        try {
+            const appInfo = Gio.DesktopAppInfo.new(appId);
+            return appInfo ? appInfo.get_icon() : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    _openLauncherAppPicker({allApps, selectedApps, onAdded}) {
+        const dialog = new Adw.Window({
+            title: _('Add Applications'),
+            modal: true,
+            transient_for: this._window,
+            default_width: 520,
+            default_height: 620,
+        });
+
+        const toolbar = new Adw.ToolbarView();
+        const headerBar = new Adw.HeaderBar();
+        const closeButton = new Gtk.Button({
+            icon_name: 'window-close-symbolic',
+        });
+        closeButton.connect('clicked', () => dialog.close());
+        headerBar.pack_end(closeButton);
+        toolbar.add_top_bar(headerBar);
+
+        const content = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+        });
+
+        const searchEntry = new Gtk.SearchEntry({
+            placeholder_text: _('Search applications...'),
+            margin_start: 12,
+            margin_end: 12,
+            margin_top: 12,
+            margin_bottom: 12,
+        });
+
+        const listBox = new Gtk.ListBox({
+            selection_mode: Gtk.SelectionMode.NONE,
+        });
+        listBox.add_css_class('boxed-list');
+
+        const scrolled = new Gtk.ScrolledWindow({
+            vexpand: true,
+            hscrollbar_policy: Gtk.PolicyType.NEVER,
+            vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+            margin_start: 12,
+            margin_end: 12,
+            margin_bottom: 12,
+        });
+        scrolled.set_child(listBox);
+
+        const renderAvailableApps = () => {
+            let child = listBox.get_first_child();
+            while (child) {
+                const next = child.get_next_sibling();
+                listBox.remove(child);
+                child = next;
+            }
+
+            const query = searchEntry.get_text().trim().toLowerCase();
+            const filtered = allApps.filter(app => {
+                if (selectedApps.has(app.id)) return false;
+                if (!query) return true;
+                return app.name.toLowerCase().includes(query) ||
+                       app.description.toLowerCase().includes(query) ||
+                       app.id.toLowerCase().includes(query);
+            }).slice(0, 50);
+
+            if (filtered.length === 0) {
+                const row = new Gtk.ListBoxRow({selectable: false, activatable: false});
+                const label = new Gtk.Label({
+                    label: selectedApps.size >= LAUNCHER_MAX_APPS
+                        ? _('Maximum apps reached')
+                        : _('No matching applications'),
+                    margin_top: 20,
+                    margin_bottom: 20,
+                });
+                row.set_child(label);
+                listBox.append(row);
+                return;
+            }
+
+            for (const app of filtered) {
+                const row = new Gtk.ListBoxRow({
+                    selectable: false,
+                    activatable: true,
+                });
+                const box = new Gtk.Box({
+                    orientation: Gtk.Orientation.HORIZONTAL,
+                    spacing: 10,
+                    margin_top: 8,
+                    margin_bottom: 8,
+                    margin_start: 10,
+                    margin_end: 10,
+                });
+
+                const icon = new Gtk.Image({
+                    gicon: app.icon,
+                    pixel_size: 32,
+                    valign: Gtk.Align.CENTER,
+                });
+
+                const textBox = new Gtk.Box({
+                    orientation: Gtk.Orientation.VERTICAL,
+                    spacing: 2,
+                    hexpand: true,
+                    valign: Gtk.Align.CENTER,
+                });
+
+                const nameLabel = new Gtk.Label({
+                    label: app.name,
+                    xalign: 0,
+                    hexpand: true,
+                });
+
+                const detailLabel = new Gtk.Label({
+                    xalign: 0,
+                    wrap: true,
+                    max_width_chars: 30,
+                    use_markup: true,
+                });
+                const detail = app.description || app.id;
+                detailLabel.set_markup(`<small><span alpha='65%'>${GLib.markup_escape_text(detail, -1)}</span></small>`);
+
+                textBox.append(nameLabel);
+                textBox.append(detailLabel);
+
+                const addButton = new Gtk.Button({
+                    icon_name: 'list-add-symbolic',
+                    valign: Gtk.Align.CENTER,
+                    css_classes: ['flat', 'suggested-action'],
+                    tooltip_text: _('Add'),
+                });
+
+                addButton.connect('clicked', () => {
+                    if (selectedApps.size >= LAUNCHER_MAX_APPS) return;
+                    selectedApps.set(app.id, app);
+                    onAdded();
+                    renderAvailableApps();
+                });
+
+                box.append(icon);
+                box.append(textBox);
+                box.append(addButton);
+                row.set_child(box);
+                listBox.append(row);
+            }
+        };
+
+        searchEntry.connect('search-changed', renderAvailableApps);
+
+        content.append(searchEntry);
+        content.append(scrolled);
+        toolbar.set_content(content);
+        dialog.set_content(toolbar);
+
+        renderAvailableApps();
+        dialog.present();
+    }
+
+    _createAppLauncherPage(settings) {
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            title: _('App Launcher Widget'),
+            description: _('Manage apps for each widget. Changes apply instantly.'),
+            margin_top: 12,
+        });
+
+        const widgets = layoutWidgets(settings);
+        const appLauncherWidgets = widgets.filter(w => w.type === 'applauncher');
+
+        if (appLauncherWidgets.length === 0) {
+            const noWidgetsLabel = new Adw.ActionRow({
+                title: _('No App Launcher widgets found'),
+                subtitle: _('Add an App Launcher widget from the General page first'),
+            });
+            group.add(noWidgetsLabel);
+            page.add(group);
+            return page;
+        }
+
+        // Create expander row for each App Launcher widget
+        for (const widget of appLauncherWidgets) {
+            const widgetGroup = new Adw.PreferencesGroup({
+                title: `${_('Widget')}: ${widget.id}`,
+                margin_top: 12,
+            });
+
+            const appsExpander = new Adw.ExpanderRow({
+                title: _('Pinned Apps'),
+                subtitle: _('Apps shown on this widget, in grid order'),
+            });
+
+            const dataFilePath = this._launcherAppsFilePath(widget.id);
+            const selectedApps = this._loadLauncherApps(dataFilePath);
+
+            // Defaults only apply when the widget was never saved; once the file
+            // exists (even with no apps) respect what the user actually configured.
+            if (selectedApps.size === 0
+                && !GLib.file_test(dataFilePath, GLib.FileTest.EXISTS)) {
+                for (const app of DEFAULT_LAUNCHER_APPS) {
+                    selectedApps.set(app.id, app);
+                }
+            }
+
+            const saveApps = () => {
+                const data = {apps: Array.from(selectedApps.values())};
+                try {
+                    GLib.file_set_contents(dataFilePath, JSON.stringify(data, null, 2));
+                } catch (e) {
+                    console.error('Failed to save apps:', e);
+                }
+            };
+
+            const reorderApp = (appId, delta) => {
+                const order = Array.from(selectedApps.keys());
+                const from = order.indexOf(appId);
+                const to = from + delta;
+                if (from < 0 || to < 0 || to >= order.length) return;
+                [order[from], order[to]] = [order[to], order[from]];
+                const reordered = new Map(order.map(id => [id, selectedApps.get(id)]));
+                selectedApps.clear();
+                for (const [id, app] of reordered) {
+                    selectedApps.set(id, app);
+                }
+                saveApps();
+                renderPinnedApps();
+            };
+
+            // Build app selection UI when expanded
+            let uiBuilt = false;
+            let allApps = [];
+            let builtRows = [];
+
+            const renderPinnedApps = () => {
+                for (const row of builtRows) {
+                    if (row && row.get_parent())
+                        appsExpander.remove(row);
+                }
+                builtRows.length = 0;
+
+                appsExpander.set_subtitle(`${_('Apps')}: ${selectedApps.size}`);
+                const apps = Array.from(selectedApps.values());
+                const lastIndex = apps.length - 1;
+
+                for (let index = 0; index < apps.length; index++) {
+                    const app = apps[index];
+                    const appRow = new Adw.ActionRow({
+                        title: app.name || app.id,
+                    });
+
+                    const icon = new Gtk.Image({
+                        gicon: this._launcherAppIcon(app.id),
+                        pixel_size: 32,
+                    });
+                    appRow.add_prefix(icon);
+
+                    const reorderBox = new Gtk.Box({
+                        orientation: Gtk.Orientation.HORIZONTAL,
+                        spacing: 2,
+                    });
+
+                    if (index > 0) {
+                        const upButton = new Gtk.Button({
+                            icon_name: 'go-up-symbolic',
+                            valign: Gtk.Align.CENTER,
+                            css_classes: ['flat'],
+                            tooltip_text: _('Move up'),
+                        });
+                        upButton.connect('clicked', () => reorderApp(app.id, -1));
+                        reorderBox.append(upButton);
+                    }
+
+                    if (index < lastIndex) {
+                        const downButton = new Gtk.Button({
+                            icon_name: 'go-down-symbolic',
+                            valign: Gtk.Align.CENTER,
+                            css_classes: ['flat'],
+                            tooltip_text: _('Move down'),
+                        });
+                        downButton.connect('clicked', () => reorderApp(app.id, 1));
+                        reorderBox.append(downButton);
+                    }
+
+                    appRow.add_suffix(reorderBox);
+
+                    const removeButton = new Gtk.Button({
+                        icon_name: 'user-trash-symbolic',
+                        valign: Gtk.Align.CENTER,
+                        css_classes: ['flat', 'destructive-action'],
+                        tooltip_text: _('Remove'),
+                    });
+
+                    removeButton.connect('clicked', () => {
+                        selectedApps.delete(app.id);
+                        saveApps();
+                        renderPinnedApps();
+                    });
+
+                    appRow.add_suffix(removeButton);
+                    appsExpander.add_row(appRow);
+                    builtRows.push(appRow);
+                }
+
+                // Add "Add Apps" row at the end
+                const addAppsRow = new Adw.ActionRow({
+                    title: _('Add Apps'),
+                });
+
+                const addIcon = new Gtk.Image({
+                    icon_name: 'list-add-symbolic',
+                    pixel_size: 24,
+                });
+                addAppsRow.add_prefix(addIcon);
+                addAppsRow.activatable = true;
+                appsExpander.add_row(addAppsRow);
+                builtRows.push(addAppsRow);
+
+                addAppsRow.connect('activated', () => {
+                    this._openLauncherAppPicker({
+                        allApps,
+                        selectedApps,
+                        onAdded: () => {
+                            saveApps();
+                            renderPinnedApps();
+                        },
+                    });
+                });
+            };
+
+            appsExpander.connect('notify::expanded', () => {
+                if (!appsExpander.get_expanded() || uiBuilt) return;
+                uiBuilt = true;
+                allApps = this._allInstalledApps();
+                renderPinnedApps();
+            });
+
+            widgetGroup.add(appsExpander);
+            page.add(widgetGroup);
+        }
+
         return page;
     }
 

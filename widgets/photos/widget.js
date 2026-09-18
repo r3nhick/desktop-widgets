@@ -86,7 +86,7 @@ function openFileChooser(widget, onPhotoChange) {
 		};
 	};
 
-	const params = new GLib.Variant('(ssa{sv})', ['', 'Select a photo', options]);
+	const params = new GLib.Variant('(ssa{sv})', ['', _('Select a photo'), options]);
 
 	Gio.DBus.session.call(
 		PORTAL_NAME,
