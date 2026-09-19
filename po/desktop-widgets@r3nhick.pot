@@ -6,6 +6,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language-Team: r3nhick\n"
 
+#: widgets/github/widget.js:596
 #: widgets/github/widget.js:728
 msgid "%s commits"
 msgstr ""

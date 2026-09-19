@@ -593,7 +593,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                 const latestYear = yearKeys.length ? yearKeys[yearKeys.length - 1] : null;
                 const sumAll = [...byDate.values()].reduce((a, b) => a + b, 0);
                 const yearTotal = latestYear !== null ? (data.total[latestYear] ?? sumAll) : sumAll;
-                badgeLabel.text = `${formatCount(yearTotal)} commits`;
+                badgeLabel.text = _('%s commits').format(formatCount(yearTotal));
                 lastSyncTime = GLib.DateTime.new_now_local();
                 setStatus(isMini
                     ? lastSyncTime.format('%H:%M')
