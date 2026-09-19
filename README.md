@@ -70,6 +70,16 @@ git pull
 
 Then log out and log back in to restart GNOME Shell.
 
+If `git pull` fails because of local changes, the installed copy was
+modified on this machine. To reset it to the latest version:
+
+```bash
+git reset --hard origin/main
+git clean -fd
+```
+
+**Note:** this discards any changes made directly in the installed folder.
+
 ### Uninstalling
 
 ```bash
