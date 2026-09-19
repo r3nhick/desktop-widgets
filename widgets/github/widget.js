@@ -185,39 +185,20 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         style: `spacing: ${isMini ? 5 : 8}px;`,
     });
 
-    const avatarWidget = new St.DrawingArea({
+    const avatarInitialsLabel = new St.Label({
+        text: '',
+        x_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.CENTER,
+        style: `font-size: ${Math.max(6, Math.round(avatarSize * 0.4))}px; font-weight: 700; color: ${textColor};`,
+    });
+
+    const avatarWidget = new St.Bin({
+        child: avatarInitialsLabel,
         style: `background-color: ${textRgba(0.15)}; border-radius: 999px; width: ${avatarSize}px; height: ${avatarSize}px;`,
         y_align: Clutter.ActorAlign.CENTER,
         x_expand: false,
     });
 
-    avatarWidget.connect('repaint', canvas => {
-        if (isActorDestroyed(body)) return;
-        const ctx = canvas.get_context();
-        const [w, h] = canvas.get_surface_size();
-        const radius = Math.min(w, h) / 2;
-        ctx.newPath();
-        ctx.arc(w / 2, h / 2, radius - 0.5, 0, 2 * Math.PI);
-        ctx.clip();
-
-        const bg = parseCssColor(textRgba(0.15));
-        ctx.setSourceRGBA(bg.r, bg.g, bg.b, bg.a ?? 1);
-        ctx.paint();
-
-        if (avatarInitials) {
-            const layout = PangoCairo.create_layout(ctx);
-            layout.set_text(avatarInitials, -1);
-            const fontDesc = Pango.FontDescription.from_string(`700 ${Math.max(6, Math.round(avatarSize * 0.4))}px sans-serif`);
-            layout.set_font_description(fontDesc);
-            PangoCairo.update_layout(ctx, layout);
-            const [tw, th] = layout.get_pixel_size();
-            const textC = parseCssColor(textColor);
-            ctx.moveTo((w - tw) / 2, (h - th) / 2);
-            ctx.setSourceRGBA(textC.r, textC.g, textC.b, 1);
-            PangoCairo.show_layout(ctx, layout);
-        }
-        ctx.$dispose();
-    });
 
     const usernameLabel = new St.Label({
         text: _('Click to set username'),
@@ -578,21 +559,54 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
     function fetchContributions() {
         if (!username) return;
         setStatus(isMini ? '…' : _('Fetching…'));
-        const url = `https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}`;
+        
+        const url = `https://github.com/users/${encodeURIComponent(username)}/contributions`;
         const message = Soup.Message.new('GET', url);
         session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, state.cancellable, (s, res) => {
             if (isActorDestroyed(body) || mainBox.get_parent() !== body) return;
             try {
                 const bytes = s.send_and_read_finish(res);
                 if (message.get_status() !== HTTP_OK) throw new Error(`HTTP ${message.get_status()}`);
-                const data = JSON.parse(decoder.decode(bytes.get_data()));
-                if (!data || !Array.isArray(data.contributions)) throw new Error('bad data');
+                
+                const html = decoder.decode(bytes.get_data());
+                
                 const byDate = new Map();
-                data.contributions.forEach(d => byDate.set(d.date, d.count || 0));
-                const yearKeys = Object.keys(data.total || {});
-                const latestYear = yearKeys.length ? yearKeys[yearKeys.length - 1] : null;
+                const tdRegex = /<td([^>]+)>/g;
+                let match;
+                const idToDate = new Map();
+                while ((match = tdRegex.exec(html)) !== null) {
+                    const attr = match[1];
+                    const idM = attr.match(/id="([^"]+)"/);
+                    const dateM = attr.match(/data-date="([^"]+)"/);
+                    if (idM && dateM) {
+                        idToDate.set(idM[1], dateM[1]);
+                    }
+                }
+
+                const tooltipRegex = /<tool-tip([^>]+)>([^<]+)<\/tool-tip>/g;
+                while ((match = tooltipRegex.exec(html)) !== null) {
+                    const attr = match[1];
+                    const text = match[2].trim();
+                    const forM = attr.match(/for="([^"]+)"/);
+                    if (!forM) continue;
+                    
+                    const countMatch = text.match(/^([\d,]+|No)\s+contribution/);
+                    if (!countMatch) continue;
+                    
+                    const count = countMatch[1] === "No" ? 0 : parseInt(countMatch[1].replace(/,/g, ''), 10);
+                    const dateStr = idToDate.get(forM[1]);
+                    if (dateStr) {
+                        byDate.set(dateStr, count);
+                    }
+                }
+
+                if (byDate.size === 0) throw new Error('parse failed');
+
+                const h2Regex = /<h2[^>]*js-contribution-activity-description[^>]*>\s*([\d,]+)\s+contributions/i;
+                const h2Match = html.match(h2Regex);
                 const sumAll = [...byDate.values()].reduce((a, b) => a + b, 0);
-                const yearTotal = latestYear !== null ? (data.total[latestYear] ?? sumAll) : sumAll;
+                const yearTotal = h2Match ? parseInt(h2Match[1].replace(/,/g, ''), 10) : sumAll;
+                
                 badgeLabel.text = _('%s commits').format(formatCount(yearTotal));
                 lastSyncTime = GLib.DateTime.new_now_local();
                 setStatus(isMini
@@ -604,8 +618,8 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
                 saveJsonToFile(dataFilePath, {
                     username,
-                    total: data.total || {},
-                    contributions: data.contributions.map(d => ({ date: d.date, count: d.count || 0 })),
+                    total: { "parsed": yearTotal },
+                    contributions: [...byDate.entries()].map(([date, count]) => ({ date, count })),
                 });
 
                 if (isLarge) {
@@ -625,10 +639,58 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         });
     }
 
+    function loadAvatar() {
+        if (!username) {
+            avatarInitialsLabel.text = '?';
+            avatarInitialsLabel.show();
+            avatarWidget.set_style(`background-image: none; background-color: ${textRgba(0.15)}; border-radius: 999px; width: ${avatarSize}px; height: ${avatarSize}px;`);
+            return;
+        }
+
+        const avatarPath = GLib.build_filenamev([getDataDir('github'), `avatar-${username}.png`]);
+        const avatarFile = Gio.File.new_for_path(avatarPath);
+
+        const applyAvatar = () => {
+            avatarInitialsLabel.hide();
+            const uri = avatarFile.get_uri();
+            avatarWidget.set_style(`background-image: url("${uri}"); background-size: cover; border-radius: 999px; width: ${avatarSize}px; height: ${avatarSize}px;`);
+        };
+
+        if (avatarFile.query_exists(null)) {
+            applyAvatar();
+        } else {
+            avatarInitialsLabel.text = username.slice(0, 2).toUpperCase();
+            avatarInitialsLabel.show();
+            avatarWidget.set_style(`background-image: none; background-color: ${textRgba(0.15)}; border-radius: 999px; width: ${avatarSize}px; height: ${avatarSize}px;`);
+        }
+
+        const url = `https://github.com/${encodeURIComponent(username)}.png`;
+        const message = Soup.Message.new('GET', url);
+        session.send_and_read_async(message, GLib.PRIORITY_LOW, state.cancellable, (s, res) => {
+            if (isActorDestroyed(body)) return;
+            try {
+                const bytes = s.send_and_read_finish(res);
+                if (message.get_status() === HTTP_OK) {
+                    avatarFile.replace_contents_bytes_async(
+                        bytes, null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, state.cancellable,
+                        (f, res2) => {
+                            if (isActorDestroyed(body)) return;
+                            try {
+                                f.replace_contents_finish(res2);
+                                applyAvatar();
+                            } catch (err) {}
+                        }
+                    );
+                }
+            } catch (err) {
+                // Ignore cancel errors
+            }
+        });
+    }
+
     function updateHeader() {
         usernameLabel.text = username || _('Click to set username');
-        avatarInitials = username ? username.slice(0, 2).toUpperCase() : '?';
-        avatarWidget.queue_repaint();
+        loadAvatar();
     }
 
     // --- USERNAME EDITING ---
@@ -668,7 +730,6 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
             todayCount = 0;
         }
         saveJsonToFile(dataFilePath, { username });
-        avatarWidget.queue_repaint();
         updateHeader();
         renderMatrix(new Map());
         if (isLarge) renderStats();
