@@ -6,7 +6,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language-Team: r3nhick\n"
 
-#: widgets/github/widget.js:698
+#: widgets/github/widget.js:728
 msgid "%s commits"
 msgstr ""
 
@@ -30,7 +30,7 @@ msgstr ""
 msgid "About"
 msgstr ""
 
-#: prefs.js:1643
+#: prefs.js:1663
 msgid "Accent Color"
 msgstr ""
 
@@ -43,7 +43,7 @@ msgstr ""
 msgid "Add a new widget to your desktop."
 msgstr ""
 
-#: prefs.js:1398
+#: prefs.js:1407
 msgid "Add an App Launcher widget from the General page first"
 msgstr ""
 
@@ -51,7 +51,7 @@ msgstr ""
 msgid "Add Applications"
 msgstr ""
 
-#: prefs.js:1530
+#: prefs.js:1553
 msgid "Add Apps"
 msgstr ""
 
@@ -67,7 +67,7 @@ msgstr ""
 msgid "Align all widgets into a grid of columns and rows"
 msgstr ""
 
-#: widgets/digitalclock/widget.js:133
+#: widgets/digitalclock/widget.js:134
 msgid "AM"
 msgstr ""
 
@@ -86,7 +86,7 @@ msgid "App Launcher"
 msgstr ""
 
 #: prefs.js:206
-#: prefs.js:1387
+#: prefs.js:1400
 msgid "App Launcher Widget"
 msgstr ""
 
@@ -102,15 +102,15 @@ msgstr ""
 msgid "Applied to all GitHub widgets. Empty to set a username per widget"
 msgstr ""
 
-#: prefs.js:1465
+#: prefs.js:1488
 msgid "Apps"
 msgstr ""
 
-#: prefs.js:1414
+#: prefs.js:1437
 msgid "Apps shown on this widget, in grid order"
 msgstr ""
 
-#: widgets/github/widget.js:32
+#: widgets/github/widget.js:42
 #: widgets/screentime/widget.js:49
 msgid "Apr"
 msgstr ""
@@ -119,7 +119,7 @@ msgstr ""
 msgid "Arrange widgets"
 msgstr ""
 
-#: widgets/github/widget.js:33
+#: widgets/github/widget.js:43
 #: widgets/screentime/widget.js:50
 msgid "Aug"
 msgstr ""
@@ -128,7 +128,7 @@ msgstr ""
 msgid "Available with the 12-hour format"
 msgstr ""
 
-#: prefs.js:1616
+#: prefs.js:1636
 msgid "Background Color"
 msgstr ""
 
@@ -157,32 +157,32 @@ msgstr ""
 msgid "Bluetooth"
 msgstr ""
 
-#: prefs.js:1665
+#: prefs.js:1685
 msgid "Blur radius of the shadow"
 msgstr ""
 
-#: prefs.js:1626
+#: prefs.js:1646
 msgid "Border Color"
 msgstr ""
 
-#: prefs.js:1578
+#: prefs.js:1598
 msgid "Border Radius"
 msgstr ""
 
-#: prefs.js:1597
+#: prefs.js:1617
 msgid "Border Width"
 msgstr ""
 
-#: prefs.js:1659
+#: prefs.js:1679
 msgid "Box Shadow"
 msgstr ""
 
-#: widgets/github/widget.js:597
-#: widgets/github/widget.js:700
+#: widgets/github/widget.js:621
+#: widgets/github/widget.js:730
 msgid "Cached"
 msgstr ""
 
-#: widgets/github/widget.js:700
+#: widgets/github/widget.js:730
 msgid "Cached offline"
 msgstr ""
 
@@ -202,8 +202,8 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
-#: extension.js:1329
-#: extension.js:1795
+#: extension.js:1340
+#: extension.js:1855
 msgid "Change photo"
 msgstr ""
 
@@ -211,15 +211,15 @@ msgstr ""
 msgid "Choose application"
 msgstr ""
 
-#: prefs.js:1617
+#: prefs.js:1637
 msgid "Choose background color"
 msgstr ""
 
-#: prefs.js:1627
+#: prefs.js:1647
 msgid "Choose border color"
 msgstr ""
 
-#: prefs.js:1660
+#: prefs.js:1680
 msgid "Choose shadow color. Leave unset for default."
 msgstr ""
 
@@ -227,12 +227,12 @@ msgstr ""
 msgid "Clear"
 msgstr ""
 
-#: widgets/github/widget.js:201
-#: widgets/github/widget.js:605
+#: widgets/github/widget.js:223
+#: widgets/github/widget.js:629
 msgid "Click to set username"
 msgstr ""
 
-#: widgets/github/widget.js:224
+#: widgets/github/widget.js:246
 msgid "Click username to configure"
 msgstr ""
 
@@ -260,7 +260,7 @@ msgstr ""
 msgid "Contain"
 msgstr ""
 
-#: prefs.js:1579
+#: prefs.js:1599
 msgid "Corner roundness of widgets"
 msgstr ""
 
@@ -301,11 +301,11 @@ msgstr ""
 msgid "Cover"
 msgstr ""
 
-#: widgets/github/widget.js:517
+#: widgets/github/widget.js:539
 msgid "Current streak"
 msgstr ""
 
-#: prefs.js:1644
+#: prefs.js:1664
 msgid "Custom accent color used by all widgets"
 msgstr ""
 
@@ -313,7 +313,7 @@ msgstr ""
 msgid "Custom app"
 msgstr ""
 
-#: prefs.js:1572
+#: prefs.js:1592
 msgid "Customize the appearance of all widgets."
 msgstr ""
 
@@ -325,7 +325,7 @@ msgstr ""
 msgid "Days of data to keep before older days are deleted"
 msgstr ""
 
-#: widgets/github/widget.js:33
+#: widgets/github/widget.js:43
 #: widgets/screentime/widget.js:50
 msgid "Dec"
 msgstr ""
@@ -378,11 +378,11 @@ msgstr ""
 msgid "Enable to move and remove widgets on the desktop"
 msgstr ""
 
-#: widgets/github/widget.js:597
+#: widgets/github/widget.js:621
 msgid "Error"
 msgstr ""
 
-#: widgets/github/widget.js:598
+#: widgets/github/widget.js:622
 msgid "Error loading"
 msgstr ""
 
@@ -395,20 +395,20 @@ msgstr ""
 msgid "Export layout"
 msgstr ""
 
-#: widgets/github/widget.js:42
+#: widgets/github/widget.js:52
 msgid "F"
 msgstr ""
 
-#: widgets/github/widget.js:32
+#: widgets/github/widget.js:42
 #: widgets/screentime/widget.js:49
 msgid "Feb"
 msgstr ""
 
-#: widgets/github/widget.js:558
+#: widgets/github/widget.js:580
 msgid "Fetching…"
 msgstr ""
 
-#: widgets/github/widget.js:39
+#: widgets/github/widget.js:49
 msgid "Fri"
 msgstr ""
 
@@ -437,7 +437,7 @@ msgstr ""
 msgid "GNOME Weather"
 msgstr ""
 
-#: prefs.js:1827
+#: prefs.js:1847
 msgid "GNU General Public License, version 3 or later"
 msgstr ""
 
@@ -482,17 +482,17 @@ msgstr ""
 msgid "It feels like"
 msgstr ""
 
-#: widgets/github/widget.js:32
+#: widgets/github/widget.js:42
 #: widgets/screentime/widget.js:49
 msgid "Jan"
 msgstr ""
 
-#: widgets/github/widget.js:33
+#: widgets/github/widget.js:43
 #: widgets/screentime/widget.js:50
 msgid "Jul"
 msgstr ""
 
-#: widgets/github/widget.js:32
+#: widgets/github/widget.js:42
 #: widgets/screentime/widget.js:49
 msgid "Jun"
 msgstr ""
@@ -513,11 +513,11 @@ msgstr ""
 msgid "Launched when the widget is clicked: %s"
 msgstr ""
 
-#: widgets/github/widget.js:298
+#: widgets/github/widget.js:320
 msgid "Less"
 msgstr ""
 
-#: prefs.js:1824
+#: prefs.js:1844
 msgid "License"
 msgstr ""
 
@@ -529,11 +529,11 @@ msgstr ""
 msgid "Load a widget layout from a JSON file"
 msgstr ""
 
-#: widgets/github/widget.js:518
+#: widgets/github/widget.js:540
 msgid "Longest streak"
 msgstr ""
 
-#: widgets/github/widget.js:40
+#: widgets/github/widget.js:50
 msgid "M"
 msgstr ""
 
@@ -545,11 +545,11 @@ msgstr ""
 msgid "Make tea"
 msgstr ""
 
-#: prefs.js:1388
+#: prefs.js:1401
 msgid "Manage apps for each widget. Changes apply instantly."
 msgstr ""
 
-#: widgets/github/widget.js:32
+#: widgets/github/widget.js:42
 #: widgets/screentime/widget.js:49
 msgid "Mar"
 msgstr ""
@@ -562,7 +562,7 @@ msgstr ""
 msgid "Maximum number of devices shown"
 msgstr ""
 
-#: widgets/github/widget.js:32
+#: widgets/github/widget.js:42
 #: widgets/screentime/widget.js:49
 msgid "May"
 msgstr ""
@@ -571,7 +571,7 @@ msgstr ""
 msgid "Medium"
 msgstr ""
 
-#: widgets/github/widget.js:37
+#: widgets/github/widget.js:47
 msgid "Mon"
 msgstr ""
 
@@ -579,7 +579,7 @@ msgstr ""
 msgid "more"
 msgstr ""
 
-#: widgets/github/widget.js:314
+#: widgets/github/widget.js:336
 msgid "More"
 msgstr ""
 
@@ -587,11 +587,11 @@ msgstr ""
 msgid "Mouse"
 msgstr ""
 
-#: prefs.js:1502
+#: prefs.js:1525
 msgid "Move down"
 msgstr ""
 
-#: prefs.js:1491
+#: prefs.js:1514
 msgid "Move up"
 msgstr ""
 
@@ -617,7 +617,7 @@ msgstr ""
 msgid "No activity recorded"
 msgstr ""
 
-#: prefs.js:1397
+#: prefs.js:1406
 msgid "No App Launcher widgets found"
 msgstr ""
 
@@ -641,17 +641,17 @@ msgstr ""
 msgid "Not a valid widget layout"
 msgstr ""
 
-#: widgets/github/widget.js:33
+#: widgets/github/widget.js:43
 #: widgets/screentime/widget.js:50
 msgid "Nov"
 msgstr ""
 
-#: widgets/github/widget.js:33
+#: widgets/github/widget.js:43
 #: widgets/screentime/widget.js:50
 msgid "Oct"
 msgstr ""
 
-#: widgets/github/widget.js:598
+#: widgets/github/widget.js:622
 msgid "Offline — cached"
 msgstr ""
 
@@ -663,7 +663,7 @@ msgstr ""
 msgid "Open Weather to set a location"
 msgstr ""
 
-#: prefs.js:1637
+#: prefs.js:1657
 msgid "Override the system accent color for all widgets"
 msgstr ""
 
@@ -696,12 +696,12 @@ msgstr ""
 msgid "Pick a saved layout to restore or delete"
 msgstr ""
 
-#: extension.js:1229
-#: extension.js:1800
+#: extension.js:1233
+#: extension.js:1860
 msgid "Pin widget"
 msgstr ""
 
-#: prefs.js:1413
+#: prefs.js:1436
 msgid "Pinned Apps"
 msgstr ""
 
@@ -709,7 +709,7 @@ msgstr ""
 msgid "Play something to get going"
 msgstr ""
 
-#: widgets/digitalclock/widget.js:133
+#: widgets/digitalclock/widget.js:134
 msgid "PM"
 msgstr ""
 
@@ -729,16 +729,16 @@ msgstr ""
 msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
 msgstr ""
 
-#: prefs.js:1514
+#: prefs.js:1537
 msgid "Remove"
 msgstr ""
 
-#: extension.js:1215
-#: extension.js:1805
+#: extension.js:1219
+#: extension.js:1865
 msgid "Remove widget"
 msgstr ""
 
-#: prefs.js:1814
+#: prefs.js:1834
 msgid "Report an Issue"
 msgstr ""
 
@@ -746,7 +746,7 @@ msgstr ""
 msgid "Reset default widgets"
 msgstr ""
 
-#: prefs.js:1730
+#: prefs.js:1750
 msgid "Reset Style"
 msgstr ""
 
@@ -754,7 +754,7 @@ msgstr ""
 msgid "Restore"
 msgstr ""
 
-#: prefs.js:1731
+#: prefs.js:1751
 msgid "Restore default widget appearance"
 msgstr ""
 
@@ -811,16 +811,16 @@ msgstr ""
 msgid "Select widget to add"
 msgstr ""
 
-#: widgets/github/widget.js:33
+#: widgets/github/widget.js:43
 #: widgets/screentime/widget.js:50
 msgid "Sep"
 msgstr ""
 
-#: widgets/github/widget.js:224
+#: widgets/github/widget.js:246
 msgid "Set user"
 msgstr ""
 
-#: prefs.js:1664
+#: prefs.js:1684
 msgid "Shadow Size"
 msgstr ""
 
@@ -849,7 +849,7 @@ msgstr ""
 msgid "Stretch"
 msgstr ""
 
-#: widgets/github/widget.js:578
+#: widgets/github/widget.js:600
 msgid "Synced %s"
 msgstr ""
 
@@ -861,7 +861,7 @@ msgstr ""
 msgid "Tasks"
 msgstr ""
 
-#: prefs.js:1598
+#: prefs.js:1618
 msgid "Thickness of widget borders"
 msgstr ""
 
@@ -873,12 +873,12 @@ msgstr ""
 msgid "Time format"
 msgstr ""
 
-#: widgets/github/widget.js:516
+#: widgets/github/widget.js:538
 #: widgets/weather/widget.js:158
 msgid "Today"
 msgstr ""
 
-#: prefs.js:1703
+#: prefs.js:1723
 msgid "Transparency of all desktop widgets"
 msgstr ""
 
@@ -894,7 +894,7 @@ msgstr ""
 msgid "Unknown artist"
 msgstr ""
 
-#: extension.js:1823
+#: extension.js:1885
 msgid "Unknown widget"
 msgstr ""
 
@@ -902,11 +902,11 @@ msgstr ""
 msgid "Unknown widget type"
 msgstr ""
 
-#: extension.js:1800
+#: extension.js:1860
 msgid "Unpin widget"
 msgstr ""
 
-#: prefs.js:1636
+#: prefs.js:1656
 msgid "Use Custom Accent Color"
 msgstr ""
 
@@ -918,15 +918,15 @@ msgstr ""
 msgid "Use GitHub's default green color scheme instead of the theme accent color"
 msgstr ""
 
-#: prefs.js:1804
+#: prefs.js:1824
 msgid "Version %s"
 msgstr ""
 
-#: prefs.js:1819
+#: prefs.js:1839
 msgid "View sources on GitHub"
 msgstr ""
 
-#: widgets/github/widget.js:41
+#: widgets/github/widget.js:51
 msgid "W"
 msgstr ""
 
@@ -939,7 +939,7 @@ msgstr ""
 msgid "Weather unavailable"
 msgstr ""
 
-#: widgets/github/widget.js:38
+#: widgets/github/widget.js:48
 msgid "Wed"
 msgstr ""
 
@@ -947,20 +947,20 @@ msgstr ""
 msgid "Weekday format"
 msgstr ""
 
-#: prefs.js:1408
+#: prefs.js:1431
 msgid "Widget"
 msgstr ""
 
-#: prefs.js:1702
+#: prefs.js:1722
 msgid "Widget opacity"
 msgstr ""
 
-#: extension.js:1251
-#: extension.js:1776
+#: extension.js:1255
+#: extension.js:1836
 msgid "Widget size"
 msgstr ""
 
-#: prefs.js:1571
+#: prefs.js:1591
 msgid "Widget Styling"
 msgstr ""
 

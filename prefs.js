@@ -1383,186 +1383,206 @@ export default class WidgetsPrefs extends ExtensionPreferences {
 
     _createAppLauncherPage(settings) {
         const page = new Adw.PreferencesPage();
-        const group = new Adw.PreferencesGroup({
-            title: _('App Launcher Widget'),
-            description: _('Manage apps for each widget. Changes apply instantly.'),
+        const groups = [];
+
+        const rebuild = () => {
+            for (const group of groups) {
+                if (group.get_parent())
+                    page.remove(group);
+            }
+            groups.length = 0;
+
+            const widgets = layoutWidgets(settings);
+            const appLauncherWidgets = widgets.filter(w => w.type === 'applauncher');
+
+            if (appLauncherWidgets.length === 0) {
+                const group = new Adw.PreferencesGroup({
+                    title: _('App Launcher Widget'),
+                    description: _('Manage apps for each widget. Changes apply instantly.'),
+                    margin_top: 12,
+                });
+
+                group.add(new Adw.ActionRow({
+                    title: _('No App Launcher widgets found'),
+                    subtitle: _('Add an App Launcher widget from the General page first'),
+                }));
+                groups.push(group);
+                page.add(group);
+                return;
+            }
+
+            for (const widget of appLauncherWidgets) {
+                const group = this._buildAppLauncherWidgetGroup(widget);
+                groups.push(group);
+                page.add(group);
+            }
+        };
+
+        rebuild();
+
+        const signalId = settings.connect('changed::layout-json', rebuild);
+        page.connect('destroy', () => settings.disconnect(signalId));
+
+        return page;
+    }
+
+    _buildAppLauncherWidgetGroup(widget) {
+        const widgetGroup = new Adw.PreferencesGroup({
+            title: `${_('Widget')}: ${widget.id}`,
             margin_top: 12,
         });
 
-        const widgets = layoutWidgets(settings);
-        const appLauncherWidgets = widgets.filter(w => w.type === 'applauncher');
+        const appsExpander = new Adw.ExpanderRow({
+            title: _('Pinned Apps'),
+            subtitle: _('Apps shown on this widget, in grid order'),
+        });
 
-        if (appLauncherWidgets.length === 0) {
-            const noWidgetsLabel = new Adw.ActionRow({
-                title: _('No App Launcher widgets found'),
-                subtitle: _('Add an App Launcher widget from the General page first'),
-            });
-            group.add(noWidgetsLabel);
-            page.add(group);
-            return page;
+        const dataFilePath = this._launcherAppsFilePath(widget.id);
+        const selectedApps = this._loadLauncherApps(dataFilePath);
+
+        // Defaults only apply when the widget was never saved; once the file
+        // exists (even with no apps) respect what the user actually configured.
+        if (selectedApps.size === 0
+            && !GLib.file_test(dataFilePath, GLib.FileTest.EXISTS)) {
+            for (const app of DEFAULT_LAUNCHER_APPS) {
+                selectedApps.set(app.id, app);
+            }
         }
 
-        // Create expander row for each App Launcher widget
-        for (const widget of appLauncherWidgets) {
-            const widgetGroup = new Adw.PreferencesGroup({
-                title: `${_('Widget')}: ${widget.id}`,
-                margin_top: 12,
-            });
+        const saveApps = () => {
+            const data = {apps: Array.from(selectedApps.values())};
+            try {
+                GLib.file_set_contents(dataFilePath, JSON.stringify(data, null, 2));
+            } catch (e) {
+                console.error('Failed to save apps:', e);
+            }
+        };
 
-            const appsExpander = new Adw.ExpanderRow({
-                title: _('Pinned Apps'),
-                subtitle: _('Apps shown on this widget, in grid order'),
-            });
+        const reorderApp = (appId, delta) => {
+            const order = Array.from(selectedApps.keys());
+            const from = order.indexOf(appId);
+            const to = from + delta;
+            if (from < 0 || to < 0 || to >= order.length) return;
+            [order[from], order[to]] = [order[to], order[from]];
+            const reordered = new Map(order.map(id => [id, selectedApps.get(id)]));
+            selectedApps.clear();
+            for (const [id, app] of reordered) {
+                selectedApps.set(id, app);
+            }
+            saveApps();
+            renderPinnedApps();
+        };
 
-            const dataFilePath = this._launcherAppsFilePath(widget.id);
-            const selectedApps = this._loadLauncherApps(dataFilePath);
+        // Build app selection UI when expanded
+        let uiBuilt = false;
+        let allApps = [];
+        let builtRows = [];
 
-            // Defaults only apply when the widget was never saved; once the file
-            // exists (even with no apps) respect what the user actually configured.
-            if (selectedApps.size === 0
-                && !GLib.file_test(dataFilePath, GLib.FileTest.EXISTS)) {
-                for (const app of DEFAULT_LAUNCHER_APPS) {
-                    selectedApps.set(app.id, app);
+        const renderPinnedApps = () => {
+            for (const row of builtRows) {
+                if (row && row.get_parent())
+                    appsExpander.remove(row);
+            }
+            builtRows.length = 0;
+
+            appsExpander.set_subtitle(`${_('Apps')}: ${selectedApps.size}`);
+            const apps = Array.from(selectedApps.values());
+            const lastIndex = apps.length - 1;
+
+            for (let index = 0; index < apps.length; index++) {
+                const app = apps[index];
+                const appRow = new Adw.ActionRow({
+                    title: app.name || app.id,
+                });
+
+                const icon = new Gtk.Image({
+                    gicon: this._launcherAppIcon(app.id),
+                    pixel_size: 32,
+                });
+                appRow.add_prefix(icon);
+
+                const reorderBox = new Gtk.Box({
+                    orientation: Gtk.Orientation.HORIZONTAL,
+                    spacing: 2,
+                });
+
+                if (index > 0) {
+                    const upButton = new Gtk.Button({
+                        icon_name: 'go-up-symbolic',
+                        valign: Gtk.Align.CENTER,
+                        css_classes: ['flat'],
+                        tooltip_text: _('Move up'),
+                    });
+                    upButton.connect('clicked', () => reorderApp(app.id, -1));
+                    reorderBox.append(upButton);
                 }
+
+                if (index < lastIndex) {
+                    const downButton = new Gtk.Button({
+                        icon_name: 'go-down-symbolic',
+                        valign: Gtk.Align.CENTER,
+                        css_classes: ['flat'],
+                        tooltip_text: _('Move down'),
+                    });
+                    downButton.connect('clicked', () => reorderApp(app.id, 1));
+                    reorderBox.append(downButton);
+                }
+
+                appRow.add_suffix(reorderBox);
+
+                const removeButton = new Gtk.Button({
+                    icon_name: 'user-trash-symbolic',
+                    valign: Gtk.Align.CENTER,
+                    css_classes: ['flat', 'destructive-action'],
+                    tooltip_text: _('Remove'),
+                });
+
+                removeButton.connect('clicked', () => {
+                    selectedApps.delete(app.id);
+                    saveApps();
+                    renderPinnedApps();
+                });
+
+                appRow.add_suffix(removeButton);
+                appsExpander.add_row(appRow);
+                builtRows.push(appRow);
             }
 
-            const saveApps = () => {
-                const data = {apps: Array.from(selectedApps.values())};
-                try {
-                    GLib.file_set_contents(dataFilePath, JSON.stringify(data, null, 2));
-                } catch (e) {
-                    console.error('Failed to save apps:', e);
-                }
-            };
-
-            const reorderApp = (appId, delta) => {
-                const order = Array.from(selectedApps.keys());
-                const from = order.indexOf(appId);
-                const to = from + delta;
-                if (from < 0 || to < 0 || to >= order.length) return;
-                [order[from], order[to]] = [order[to], order[from]];
-                const reordered = new Map(order.map(id => [id, selectedApps.get(id)]));
-                selectedApps.clear();
-                for (const [id, app] of reordered) {
-                    selectedApps.set(id, app);
-                }
-                saveApps();
-                renderPinnedApps();
-            };
-
-            // Build app selection UI when expanded
-            let uiBuilt = false;
-            let allApps = [];
-            let builtRows = [];
-
-            const renderPinnedApps = () => {
-                for (const row of builtRows) {
-                    if (row && row.get_parent())
-                        appsExpander.remove(row);
-                }
-                builtRows.length = 0;
-
-                appsExpander.set_subtitle(`${_('Apps')}: ${selectedApps.size}`);
-                const apps = Array.from(selectedApps.values());
-                const lastIndex = apps.length - 1;
-
-                for (let index = 0; index < apps.length; index++) {
-                    const app = apps[index];
-                    const appRow = new Adw.ActionRow({
-                        title: app.name || app.id,
-                    });
-
-                    const icon = new Gtk.Image({
-                        gicon: this._launcherAppIcon(app.id),
-                        pixel_size: 32,
-                    });
-                    appRow.add_prefix(icon);
-
-                    const reorderBox = new Gtk.Box({
-                        orientation: Gtk.Orientation.HORIZONTAL,
-                        spacing: 2,
-                    });
-
-                    if (index > 0) {
-                        const upButton = new Gtk.Button({
-                            icon_name: 'go-up-symbolic',
-                            valign: Gtk.Align.CENTER,
-                            css_classes: ['flat'],
-                            tooltip_text: _('Move up'),
-                        });
-                        upButton.connect('clicked', () => reorderApp(app.id, -1));
-                        reorderBox.append(upButton);
-                    }
-
-                    if (index < lastIndex) {
-                        const downButton = new Gtk.Button({
-                            icon_name: 'go-down-symbolic',
-                            valign: Gtk.Align.CENTER,
-                            css_classes: ['flat'],
-                            tooltip_text: _('Move down'),
-                        });
-                        downButton.connect('clicked', () => reorderApp(app.id, 1));
-                        reorderBox.append(downButton);
-                    }
-
-                    appRow.add_suffix(reorderBox);
-
-                    const removeButton = new Gtk.Button({
-                        icon_name: 'user-trash-symbolic',
-                        valign: Gtk.Align.CENTER,
-                        css_classes: ['flat', 'destructive-action'],
-                        tooltip_text: _('Remove'),
-                    });
-
-                    removeButton.connect('clicked', () => {
-                        selectedApps.delete(app.id);
-                        saveApps();
-                        renderPinnedApps();
-                    });
-
-                    appRow.add_suffix(removeButton);
-                    appsExpander.add_row(appRow);
-                    builtRows.push(appRow);
-                }
-
-                // Add "Add Apps" row at the end
-                const addAppsRow = new Adw.ActionRow({
-                    title: _('Add Apps'),
-                });
-
-                const addIcon = new Gtk.Image({
-                    icon_name: 'list-add-symbolic',
-                    pixel_size: 24,
-                });
-                addAppsRow.add_prefix(addIcon);
-                addAppsRow.activatable = true;
-                appsExpander.add_row(addAppsRow);
-                builtRows.push(addAppsRow);
-
-                addAppsRow.connect('activated', () => {
-                    this._openLauncherAppPicker({
-                        allApps,
-                        selectedApps,
-                        onAdded: () => {
-                            saveApps();
-                            renderPinnedApps();
-                        },
-                    });
-                });
-            };
-
-            appsExpander.connect('notify::expanded', () => {
-                if (!appsExpander.get_expanded() || uiBuilt) return;
-                uiBuilt = true;
-                allApps = this._allInstalledApps();
-                renderPinnedApps();
+            // Add "Add Apps" row at the end
+            const addAppsRow = new Adw.ActionRow({
+                title: _('Add Apps'),
             });
 
-            widgetGroup.add(appsExpander);
-            page.add(widgetGroup);
-        }
+            const addIcon = new Gtk.Image({
+                icon_name: 'list-add-symbolic',
+                pixel_size: 24,
+            });
+            addAppsRow.add_prefix(addIcon);
+            addAppsRow.activatable = true;
+            appsExpander.add_row(addAppsRow);
+            builtRows.push(addAppsRow);
 
-        return page;
+            addAppsRow.connect('activated', () => {
+                this._openLauncherAppPicker({
+                    allApps,
+                    selectedApps,
+                    onAdded: () => {
+                        saveApps();
+                        renderPinnedApps();
+                    },
+                });
+            });
+        };
+
+        appsExpander.connect('notify::expanded', () => {
+            if (!appsExpander.get_expanded() || uiBuilt) return;
+            uiBuilt = true;
+            allApps = this._allInstalledApps();
+            renderPinnedApps();
+        });
+
+        widgetGroup.add(appsExpander);
+        return widgetGroup;
     }
 
     _createAppearancePage(settings) {

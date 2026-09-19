@@ -10,10 +10,9 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: widgets/github/widget.js:698
+#: widgets/github/widget.js:728
 msgid "%s commits"
 msgstr "%s коммітів"
 
@@ -35,9 +34,9 @@ msgstr "24-годинний"
 
 #: prefs.js:218
 msgid "About"
-msgstr "Про"
+msgstr "Про розширення"
 
-#: prefs.js:1643
+#: prefs.js:1663
 msgid "Accent Color"
 msgstr "Акцентний колір"
 
@@ -49,7 +48,7 @@ msgstr "Додати"
 msgid "Add a new widget to your desktop."
 msgstr "Додати новий віджет на робочий стіл."
 
-#: prefs.js:1398
+#: prefs.js:1407
 msgid "Add an App Launcher widget from the General page first"
 msgstr "Спершу додайте віджет запуску програм зі сторінки «Загальні»"
 
@@ -57,7 +56,7 @@ msgstr "Спершу додайте віджет запуску програм �
 msgid "Add Applications"
 msgstr "Додати програми"
 
-#: prefs.js:1530
+#: prefs.js:1553
 msgid "Add Apps"
 msgstr "Додати застосунки"
 
@@ -66,16 +65,14 @@ msgid "Add Widget"
 msgstr "Додати віджет"
 
 #: prefs.js:866
-msgid ""
-"Adjust the visual size of the device indicators displayed inside the battery "
-"charge rings."
+msgid "Adjust the visual size of the device indicators displayed inside the battery charge rings."
 msgstr "Налаштувати розмір індикаторів пристроїв усередині кілець заряду."
 
 #: prefs.js:421
 msgid "Align all widgets into a grid of columns and rows"
 msgstr "Вирівняти всі віджети в сітку стовпців і рядків"
 
-#: widgets/digitalclock/widget.js:133
+#: widgets/digitalclock/widget.js:134
 msgid "AM"
 msgstr "AM"
 
@@ -84,17 +81,14 @@ msgid "Animation shown when no track is playing"
 msgstr "Анімація, коли нічого не грає"
 
 #: prefs.js:973 prefs.js:1031
-msgid ""
-"App launched when the widget is clicked. Takes priority over built-in players"
-msgstr ""
-"Застосунок, що запускається при натисканні на віджет. Має пріоритет над "
-"вбудованими плеєрами"
+msgid "App launched when the widget is clicked. Takes priority over built-in players"
+msgstr "Застосунок, що запускається при натисканні на віджет. Має пріоритет над вбудованими плеєрами"
 
 #: prefs.js:28 widgets/applauncher/widget.js:175
 msgid "App Launcher"
 msgstr "Панель програм"
 
-#: prefs.js:206 prefs.js:1387
+#: prefs.js:206 prefs.js:1400
 msgid "App Launcher Widget"
 msgstr "Віджет запуску програм"
 
@@ -108,19 +102,17 @@ msgstr "Вигляд годинника на вашому робочому ст�
 
 #: prefs.js:1159
 msgid "Applied to all GitHub widgets. Empty to set a username per widget"
-msgstr ""
-"Застосовується до всіх віджетів GitHub. Порожнє — щоб задавати ім’я окремо "
-"для кожного віджета"
+msgstr "Застосовується до всіх віджетів GitHub. Порожнє — щоб задавати ім’я окремо для кожного віджета"
 
-#: prefs.js:1465
+#: prefs.js:1488
 msgid "Apps"
 msgstr "Додатки"
 
-#: prefs.js:1414
+#: prefs.js:1437
 msgid "Apps shown on this widget, in grid order"
 msgstr "Застосунки, що показуються на цьому віджеті, у порядку сітки"
 
-#: widgets/github/widget.js:32 widgets/screentime/widget.js:49
+#: widgets/github/widget.js:42 widgets/screentime/widget.js:49
 msgid "Apr"
 msgstr "Кві"
 
@@ -128,7 +120,7 @@ msgstr "Кві"
 msgid "Arrange widgets"
 msgstr "Вирівняти віджети"
 
-#: widgets/github/widget.js:33 widgets/screentime/widget.js:50
+#: widgets/github/widget.js:43 widgets/screentime/widget.js:50
 msgid "Aug"
 msgstr "Сер"
 
@@ -136,7 +128,7 @@ msgstr "Сер"
 msgid "Available with the 12-hour format"
 msgstr "Доступно з 12-годинним форматом"
 
-#: prefs.js:1616
+#: prefs.js:1636
 msgid "Background Color"
 msgstr "Колір фону"
 
@@ -164,31 +156,31 @@ msgstr "Бінарний годинник"
 msgid "Bluetooth"
 msgstr "Bluetooth"
 
-#: prefs.js:1665
+#: prefs.js:1685
 msgid "Blur radius of the shadow"
 msgstr "Радіус розмиття тіні"
 
-#: prefs.js:1626
+#: prefs.js:1646
 msgid "Border Color"
 msgstr "Колір рамки"
 
-#: prefs.js:1578
+#: prefs.js:1598
 msgid "Border Radius"
 msgstr "Радіус скруглення"
 
-#: prefs.js:1597
+#: prefs.js:1617
 msgid "Border Width"
 msgstr "Товщина рамки"
 
-#: prefs.js:1659
+#: prefs.js:1679
 msgid "Box Shadow"
 msgstr "Тінь"
 
-#: widgets/github/widget.js:597 widgets/github/widget.js:700
+#: widgets/github/widget.js:621 widgets/github/widget.js:730
 msgid "Cached"
 msgstr "Кеш"
 
-#: widgets/github/widget.js:700
+#: widgets/github/widget.js:730
 msgid "Cached offline"
 msgstr "Кеш офлайн"
 
@@ -204,7 +196,7 @@ msgstr "Віджет календаря"
 msgid "Cancel"
 msgstr "Скасувати"
 
-#: extension.js:1329 extension.js:1795
+#: extension.js:1340 extension.js:1855
 msgid "Change photo"
 msgstr "Змінити фото"
 
@@ -212,15 +204,15 @@ msgstr "Змінити фото"
 msgid "Choose application"
 msgstr "Обрати застосунок"
 
-#: prefs.js:1617
+#: prefs.js:1637
 msgid "Choose background color"
 msgstr "Обрати колір фону"
 
-#: prefs.js:1627
+#: prefs.js:1647
 msgid "Choose border color"
 msgstr "Обрати колір рамки"
 
-#: prefs.js:1660
+#: prefs.js:1680
 msgid "Choose shadow color. Leave unset for default."
 msgstr "Обрати колір тіні. Залиште порожнім для стандартного."
 
@@ -228,11 +220,11 @@ msgstr "Обрати колір тіні. Залиште порожнім для
 msgid "Clear"
 msgstr "Очистити"
 
-#: widgets/github/widget.js:201 widgets/github/widget.js:605
+#: widgets/github/widget.js:223 widgets/github/widget.js:629
 msgid "Click to set username"
 msgstr "Натисніть, щоб вказати ім’я користувача"
 
-#: widgets/github/widget.js:224
+#: widgets/github/widget.js:246
 msgid "Click username to configure"
 msgstr "Натисніть ім’я, щоб налаштувати"
 
@@ -253,16 +245,14 @@ msgid "Configure desktop widgets. Changes apply immediately."
 msgstr "Налаштуйте віджети. Зміни застосовуються одразу."
 
 #: prefs.js:842
-msgid ""
-"Configure how your pictures are scaled and cropped inside the Photos widget "
-"bounds."
+msgid "Configure how your pictures are scaled and cropped inside the Photos widget bounds."
 msgstr "Налаштуйте масштабування та обрізку світлин."
 
 #: prefs.js:58
 msgid "Contain"
 msgstr "За розміром"
 
-#: prefs.js:1579
+#: prefs.js:1599
 msgid "Corner roundness of widgets"
 msgstr "Скруглення кутів віджетів"
 
@@ -302,11 +292,11 @@ msgstr "Не вдалося записати файл"
 msgid "Cover"
 msgstr "Заповнення"
 
-#: widgets/github/widget.js:517
+#: widgets/github/widget.js:539
 msgid "Current streak"
 msgstr "Поточна серія"
 
-#: prefs.js:1644
+#: prefs.js:1664
 msgid "Custom accent color used by all widgets"
 msgstr "Власний акцентний колір для всіх віджетів"
 
@@ -314,7 +304,7 @@ msgstr "Власний акцентний колір для всіх відже�
 msgid "Custom app"
 msgstr "Власний застосунок"
 
-#: prefs.js:1572
+#: prefs.js:1592
 msgid "Customize the appearance of all widgets."
 msgstr "Налаштуйте зовнішній вигляд віджетів."
 
@@ -326,7 +316,7 @@ msgstr "Налаштування вигляду віджета активнос�
 msgid "Days of data to keep before older days are deleted"
 msgstr "Скільки днів даних зберігати, перш ніж старіші дні буде видалено"
 
-#: widgets/github/widget.js:33 widgets/screentime/widget.js:50
+#: widgets/github/widget.js:43 widgets/screentime/widget.js:50
 msgid "Dec"
 msgstr "Гру"
 
@@ -374,11 +364,11 @@ msgstr "Анімація для порожнього стану"
 msgid "Enable to move and remove widgets on the desktop"
 msgstr "Увімкніть, щоб переміщати та видаляти віджети"
 
-#: widgets/github/widget.js:597
+#: widgets/github/widget.js:621
 msgid "Error"
 msgstr "Помилка"
 
-#: widgets/github/widget.js:598
+#: widgets/github/widget.js:622
 msgid "Error loading"
 msgstr "Помилка завантаження"
 
@@ -390,19 +380,19 @@ msgstr "Експорт"
 msgid "Export layout"
 msgstr "Експорт розкладки"
 
-#: widgets/github/widget.js:42
+#: widgets/github/widget.js:52
 msgid "F"
 msgstr "П"
 
-#: widgets/github/widget.js:32 widgets/screentime/widget.js:49
+#: widgets/github/widget.js:42 widgets/screentime/widget.js:49
 msgid "Feb"
 msgstr "Лют"
 
-#: widgets/github/widget.js:558
+#: widgets/github/widget.js:580
 msgid "Fetching…"
 msgstr "Отримання…"
 
-#: widgets/github/widget.js:39
+#: widgets/github/widget.js:49
 msgid "Fri"
 msgstr "Пт"
 
@@ -424,15 +414,13 @@ msgstr "Віджет GitHub"
 
 #: prefs.js:756
 msgid "Global shortcut to toggle edit mode. Press Backspace to clear."
-msgstr ""
-"Глобальна гаряча клавіша для увімкнення режиму редагування. Backspace — "
-"очистити."
+msgstr "Глобальна гаряча клавіша для увімкнення режиму редагування. Backspace — очистити."
 
 #: widgets/weather/widget.js:637
 msgid "GNOME Weather"
 msgstr "Погода GNOME"
 
-#: prefs.js:1827
+#: prefs.js:1847
 msgid "GNU General Public License, version 3 or later"
 msgstr "GNU General Public License, версія 3 або новіша"
 
@@ -476,15 +464,15 @@ msgstr "Імпорт розкладки"
 msgid "It feels like"
 msgstr "Відчувається як"
 
-#: widgets/github/widget.js:32 widgets/screentime/widget.js:49
+#: widgets/github/widget.js:42 widgets/screentime/widget.js:49
 msgid "Jan"
 msgstr "Січ"
 
-#: widgets/github/widget.js:33 widgets/screentime/widget.js:50
+#: widgets/github/widget.js:43 widgets/screentime/widget.js:50
 msgid "Jul"
 msgstr "Лип"
 
-#: widgets/github/widget.js:32 widgets/screentime/widget.js:49
+#: widgets/github/widget.js:42 widgets/screentime/widget.js:49
 msgid "Jun"
 msgstr "Чер"
 
@@ -504,11 +492,11 @@ msgstr "Велика"
 msgid "Launched when the widget is clicked: %s"
 msgstr "Запускається при натисканні на віджет: %s"
 
-#: widgets/github/widget.js:298
+#: widgets/github/widget.js:320
 msgid "Less"
 msgstr "Менше"
 
-#: prefs.js:1824
+#: prefs.js:1844
 msgid "License"
 msgstr "Ліцензія"
 
@@ -520,11 +508,11 @@ msgstr "ОС Linux"
 msgid "Load a widget layout from a JSON file"
 msgstr "Завантажити розкладку з JSON-файлу"
 
-#: widgets/github/widget.js:518
+#: widgets/github/widget.js:540
 msgid "Longest streak"
 msgstr "Найдовша серія"
 
-#: widgets/github/widget.js:40
+#: widgets/github/widget.js:50
 msgid "M"
 msgstr "П"
 
@@ -536,11 +524,11 @@ msgstr "Приготувати торт"
 msgid "Make tea"
 msgstr "Приготувати чай"
 
-#: prefs.js:1388
+#: prefs.js:1401
 msgid "Manage apps for each widget. Changes apply instantly."
 msgstr "Налаштуйте віджети. Зміни застосовуються одразу."
 
-#: widgets/github/widget.js:32 widgets/screentime/widget.js:49
+#: widgets/github/widget.js:42 widgets/screentime/widget.js:49
 msgid "Mar"
 msgstr "Бер"
 
@@ -552,7 +540,7 @@ msgstr "Досягнуто максимуму застосунків"
 msgid "Maximum number of devices shown"
 msgstr "Максимальна кількість показуваних пристроїв"
 
-#: widgets/github/widget.js:32 widgets/screentime/widget.js:49
+#: widgets/github/widget.js:42 widgets/screentime/widget.js:49
 msgid "May"
 msgstr "Тра"
 
@@ -560,7 +548,7 @@ msgstr "Тра"
 msgid "Medium"
 msgstr "Середня"
 
-#: widgets/github/widget.js:37
+#: widgets/github/widget.js:47
 msgid "Mon"
 msgstr "Пн"
 
@@ -568,7 +556,7 @@ msgstr "Пн"
 msgid "more"
 msgstr "ще"
 
-#: widgets/github/widget.js:314
+#: widgets/github/widget.js:336
 msgid "More"
 msgstr "Більше"
 
@@ -576,11 +564,11 @@ msgstr "Більше"
 msgid "Mouse"
 msgstr "Миша"
 
-#: prefs.js:1502
+#: prefs.js:1525
 msgid "Move down"
 msgstr "Вниз"
 
-#: prefs.js:1491
+#: prefs.js:1514
 msgid "Move up"
 msgstr "Вгору"
 
@@ -604,7 +592,7 @@ msgstr "Нове завдання…"
 msgid "No activity recorded"
 msgstr "Активності не зафіксовано"
 
-#: prefs.js:1397
+#: prefs.js:1406
 msgid "No App Launcher widgets found"
 msgstr "Віджети панелі програм не знайдено"
 
@@ -628,15 +616,15 @@ msgstr "Поки немає завдань"
 msgid "Not a valid widget layout"
 msgstr "Файл розкладки пошкоджений"
 
-#: widgets/github/widget.js:33 widgets/screentime/widget.js:50
+#: widgets/github/widget.js:43 widgets/screentime/widget.js:50
 msgid "Nov"
 msgstr "Лис"
 
-#: widgets/github/widget.js:33 widgets/screentime/widget.js:50
+#: widgets/github/widget.js:43 widgets/screentime/widget.js:50
 msgid "Oct"
 msgstr "Жов"
 
-#: widgets/github/widget.js:598
+#: widgets/github/widget.js:622
 msgid "Offline — cached"
 msgstr "Офлайн — кеш"
 
@@ -648,7 +636,7 @@ msgstr "Доступно лише в розмірах 2×1 та 2×1 mini"
 msgid "Open Weather to set a location"
 msgstr "Відкрийте «Погоду» та оберіть місто"
 
-#: prefs.js:1637
+#: prefs.js:1657
 msgid "Override the system accent color for all widgets"
 msgstr "Замінити системний акцентний колір для всіх віджетів"
 
@@ -661,12 +649,8 @@ msgid "Overwrite existing layout?"
 msgstr "Замінити наявну розкладку?"
 
 #: prefs.js:916
-msgid ""
-"Per-app screen time is tracked automatically while the widget is on your "
-"desktop."
-msgstr ""
-"Час екрана за окремими застосунками відстежується автоматично, поки віджет "
-"на робочому столі."
+msgid "Per-app screen time is tracked automatically while the widget is on your desktop."
+msgstr "Час екрана за окремими застосунками відстежується автоматично, поки віджет на робочому столі."
 
 #: prefs.js:848
 msgid "Photo size"
@@ -684,11 +668,11 @@ msgstr "Віджет світлин"
 msgid "Pick a saved layout to restore or delete"
 msgstr "Оберіть збережену розкладку для відновлення або видалення"
 
-#: extension.js:1229 extension.js:1800
+#: extension.js:1233 extension.js:1860
 msgid "Pin widget"
 msgstr "Закріпити віджет"
 
-#: prefs.js:1413
+#: prefs.js:1436
 msgid "Pinned Apps"
 msgstr "Закріплені програми"
 
@@ -696,7 +680,7 @@ msgstr "Закріплені програми"
 msgid "Play something to get going"
 msgstr "Увімкни щось, щоб почати"
 
-#: widgets/digitalclock/widget.js:133
+#: widgets/digitalclock/widget.js:134
 msgid "PM"
 msgstr "PM"
 
@@ -713,19 +697,18 @@ msgid "Preset name"
 msgstr "Назва пресету"
 
 #: prefs.js:950
-msgid ""
-"Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
+msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
 msgstr "Не дозволяти браузерам перехоплювати віджет музики."
 
-#: prefs.js:1514
+#: prefs.js:1537
 msgid "Remove"
 msgstr "Видалити"
 
-#: extension.js:1215 extension.js:1805
+#: extension.js:1219 extension.js:1865
 msgid "Remove widget"
 msgstr "Видалити віджет"
 
-#: prefs.js:1814
+#: prefs.js:1834
 msgid "Report an Issue"
 msgstr "Повідомити про проблему"
 
@@ -733,7 +716,7 @@ msgstr "Повідомити про проблему"
 msgid "Reset default widgets"
 msgstr "Скинути віджети за замовчуванням"
 
-#: prefs.js:1730
+#: prefs.js:1750
 msgid "Reset Style"
 msgstr "Скинути стиль"
 
@@ -741,7 +724,7 @@ msgstr "Скинути стиль"
 msgid "Restore"
 msgstr "Відновити"
 
-#: prefs.js:1731
+#: prefs.js:1751
 msgid "Restore default widget appearance"
 msgstr "Відновити типовий вигляд віджетів"
 
@@ -797,15 +780,15 @@ msgstr "Обрати зображення"
 msgid "Select widget to add"
 msgstr "Оберіть віджет для додавання"
 
-#: widgets/github/widget.js:33 widgets/screentime/widget.js:50
+#: widgets/github/widget.js:43 widgets/screentime/widget.js:50
 msgid "Sep"
 msgstr "Вер"
 
-#: widgets/github/widget.js:224
+#: widgets/github/widget.js:246
 msgid "Set user"
 msgstr "Вказати користувача"
 
-#: prefs.js:1664
+#: prefs.js:1684
 msgid "Shadow Size"
 msgstr "Розмір тіні"
 
@@ -833,7 +816,7 @@ msgstr "Маленька"
 msgid "Stretch"
 msgstr "Розтягнути"
 
-#: widgets/github/widget.js:578
+#: widgets/github/widget.js:600
 msgid "Synced %s"
 msgstr "Синхронізовано %s"
 
@@ -845,7 +828,7 @@ msgstr "Завдання"
 msgid "Tasks"
 msgstr "Завдання"
 
-#: prefs.js:1598
+#: prefs.js:1618
 msgid "Thickness of widget borders"
 msgstr "Товщина рамок віджетів"
 
@@ -857,11 +840,11 @@ msgstr "Файл не є розкладкою"
 msgid "Time format"
 msgstr "Формат часу"
 
-#: widgets/github/widget.js:516 widgets/weather/widget.js:158
+#: widgets/github/widget.js:538 widgets/weather/widget.js:158
 msgid "Today"
 msgstr "Сьогодні"
 
-#: prefs.js:1703
+#: prefs.js:1723
 msgid "Transparency of all desktop widgets"
 msgstr "Прозорість усіх віджетів"
 
@@ -877,7 +860,7 @@ msgstr "Введіть поєднання клавіш. Backspace — очист
 msgid "Unknown artist"
 msgstr "Невідомий виконавець"
 
-#: extension.js:1823
+#: extension.js:1885
 msgid "Unknown widget"
 msgstr "Невідомий віджет"
 
@@ -885,11 +868,11 @@ msgstr "Невідомий віджет"
 msgid "Unknown widget type"
 msgstr "Невідомий тип віджету"
 
-#: extension.js:1800
+#: extension.js:1860
 msgid "Unpin widget"
 msgstr "Відкріпити віджет"
 
-#: prefs.js:1636
+#: prefs.js:1656
 msgid "Use Custom Accent Color"
 msgstr "Використовувати власний акцентний колір"
 
@@ -898,21 +881,18 @@ msgid "Use GitHub Green Colors"
 msgstr "Використовувати зелені кольори GitHub"
 
 #: prefs.js:1146
-msgid ""
-"Use GitHub's default green color scheme instead of the theme accent color"
-msgstr ""
-"Використовувати фірмову зелену кольорову схему GitHub замість акцентного "
-"кольору теми"
+msgid "Use GitHub's default green color scheme instead of the theme accent color"
+msgstr "Використовувати фірмову зелену кольорову схему GitHub замість акцентного кольору теми"
 
-#: prefs.js:1804
+#: prefs.js:1824
 msgid "Version %s"
 msgstr "Версія %s"
 
-#: prefs.js:1819
+#: prefs.js:1839
 msgid "View sources on GitHub"
 msgstr "Переглянути код на GitHub"
 
-#: widgets/github/widget.js:41
+#: widgets/github/widget.js:51
 msgid "W"
 msgstr "С"
 
@@ -924,7 +904,7 @@ msgstr "Погода"
 msgid "Weather unavailable"
 msgstr "Погода недоступна"
 
-#: widgets/github/widget.js:38
+#: widgets/github/widget.js:48
 msgid "Wed"
 msgstr "Ср"
 
@@ -932,19 +912,19 @@ msgstr "Ср"
 msgid "Weekday format"
 msgstr "Формат днів тижня"
 
-#: prefs.js:1408
+#: prefs.js:1431
 msgid "Widget"
 msgstr "Віджет"
 
-#: prefs.js:1702
+#: prefs.js:1722
 msgid "Widget opacity"
 msgstr "Прозорість віджету"
 
-#: extension.js:1251 extension.js:1776
+#: extension.js:1255 extension.js:1836
 msgid "Widget size"
 msgstr "Розмір віджету"
 
-#: prefs.js:1571
+#: prefs.js:1591
 msgid "Widget Styling"
 msgstr "Оформлення"
 
