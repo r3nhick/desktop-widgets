@@ -254,7 +254,7 @@ msgstr "По размеру"
 
 #: prefs.js:1205
 msgid "Content font size"
-msgstr ""
+msgstr "Размер шрифта контента"
 
 #: prefs.js:1652
 msgid "Corner roundness of widgets"
@@ -317,9 +317,8 @@ msgid "Customize the GitHub Activity widget appearance."
 msgstr "Настройка внешнего вида виджета активности GitHub"
 
 #: prefs.js:1184
-#, fuzzy
 msgid "Customize the Notes widget font sizes."
-msgstr "Настройте внешний вид виджетов."
+msgstr "Настройка размера шрифта виджета заметок."
 
 #: prefs.js:931
 msgid "Days of data to keep before older days are deleted"
@@ -403,11 +402,11 @@ msgstr "Загрузка…"
 
 #: prefs.js:1206
 msgid "Font size in pixels for the notes content text"
-msgstr ""
+msgstr "Размер шрифта в пикселях для текста заметок"
 
 #: prefs.js:1190
 msgid "Font size in pixels for the notes title"
-msgstr ""
+msgstr "Размер шрифта в пикселях для заголовка заметок"
 
 #: widgets/github/widget.js:49
 msgid "Fri"
@@ -638,9 +637,8 @@ msgid "Notes"
 msgstr "Заметки"
 
 #: prefs.js:215 prefs.js:1183
-#, fuzzy
 msgid "Notes Widget"
-msgstr "Виджет фотографий"
+msgstr "Виджет заметок"
 
 #: widgets/github/widget.js:43 widgets/screentime/widget.js:50
 msgid "Nov"
@@ -867,9 +865,8 @@ msgid "Time format"
 msgstr "Формат времени"
 
 #: prefs.js:1189
-#, fuzzy
 msgid "Title font size"
-msgstr "Размер иконки батареи"
+msgstr "Размер шрифта заголовка"
 
 #: widgets/github/widget.js:519 widgets/weather/widget.js:158
 msgid "Today"

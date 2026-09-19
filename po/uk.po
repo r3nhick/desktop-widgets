@@ -317,9 +317,8 @@ msgid "Customize the GitHub Activity widget appearance."
 msgstr "Налаштування вигляду віджета активності GitHub"
 
 #: prefs.js:1184
-#, fuzzy
 msgid "Customize the Notes widget font sizes."
-msgstr "Налаштуйте зовнішній вигляд віджетів."
+msgstr "Налаштування розміру шрифту віджета нотаток."
 
 #: prefs.js:931
 msgid "Days of data to keep before older days are deleted"
@@ -635,7 +634,7 @@ msgstr "Файл розкладки пошкоджений"
 
 #: prefs.js:41
 msgid "Notes"
-msgstr ""
+msgstr "Нотатки"
 
 #: prefs.js:215 prefs.js:1183
 msgid "Notes Widget"
