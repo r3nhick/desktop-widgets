@@ -12,7 +12,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: widgets/github/widget.js:596 widgets/github/widget.js:728
+#: widgets/github/widget.js:610 widgets/github/widget.js:789
 msgid "%s commits"
 msgstr "%s коммитов"
 
@@ -24,51 +24,51 @@ msgstr "%sч %sм"
 msgid "%sm"
 msgstr "%sм"
 
-#: prefs.js:1098
+#: prefs.js:1107
 msgid "12-hour"
 msgstr "12-часовой"
 
-#: prefs.js:1098
+#: prefs.js:1107
 msgid "24-hour"
 msgstr "24-часовой"
 
-#: prefs.js:218
+#: prefs.js:227
 msgid "About"
 msgstr "О расширении"
 
-#: prefs.js:1663
+#: prefs.js:1716
 msgid "Accent Color"
 msgstr "Акцентный цвет"
 
-#: prefs.js:389 prefs.js:1350
+#: prefs.js:398 prefs.js:1403
 msgid "Add"
 msgstr "Добавить"
 
-#: prefs.js:373
+#: prefs.js:382
 msgid "Add a new widget to your desktop."
 msgstr "Добавить новый виджет на рабочий стол."
 
-#: prefs.js:1407
+#: prefs.js:1460
 msgid "Add an App Launcher widget from the General page first"
 msgstr "Сначала добавьте виджет запуска приложений со страницы «Основные»"
 
-#: prefs.js:1227
+#: prefs.js:1280
 msgid "Add Applications"
 msgstr "Добавить приложения"
 
-#: prefs.js:1553
+#: prefs.js:1606
 msgid "Add Apps"
 msgstr "Добавить программы"
 
-#: prefs.js:372
+#: prefs.js:381
 msgid "Add Widget"
 msgstr "Добавить виджет"
 
-#: prefs.js:866
+#: prefs.js:875
 msgid "Adjust the visual size of the device indicators displayed inside the battery charge rings."
 msgstr "Настроить размер индикаторов устройств внутри колец заряда."
 
-#: prefs.js:421
+#: prefs.js:430
 msgid "Align all widgets into a grid of columns and rows"
 msgstr "Выровнять все виджеты в сетку колонок и строк"
 
@@ -76,39 +76,39 @@ msgstr "Выровнять все виджеты в сетку колонок и
 msgid "AM"
 msgstr "AM"
 
-#: prefs.js:959
+#: prefs.js:968
 msgid "Animation shown when no track is playing"
 msgstr "Анимация, когда ничего не играет"
 
-#: prefs.js:973 prefs.js:1031
+#: prefs.js:982 prefs.js:1040
 msgid "App launched when the widget is clicked. Takes priority over built-in players"
 msgstr "Приложение, запускаемое при нажатии на виджет. Имеет приоритет над встроенными плеерами"
 
-#: prefs.js:28 widgets/applauncher/widget.js:175
+#: prefs.js:29 widgets/applauncher/widget.js:175
 msgid "App Launcher"
 msgstr "Панель приложений"
 
-#: prefs.js:206 prefs.js:1400
+#: prefs.js:209 prefs.js:1453
 msgid "App Launcher Widget"
 msgstr "Виджет запуска приложений"
 
-#: prefs.js:212
+#: prefs.js:221
 msgid "Appearance"
 msgstr "Внешний вид"
 
-#: prefs.js:1094
+#: prefs.js:1103
 msgid "Appearance of the clock on your desktop."
 msgstr "Внешний вид часов на вашем рабочем столе."
 
-#: prefs.js:1159
+#: prefs.js:1168
 msgid "Applied to all GitHub widgets. Empty to set a username per widget"
 msgstr "Применяется ко всем виджетам GitHub. Пусто — чтобы задавать имя отдельно для каждого виджета"
 
-#: prefs.js:1488
+#: prefs.js:1541
 msgid "Apps"
 msgstr "Приложения"
 
-#: prefs.js:1437
+#: prefs.js:1490
 msgid "Apps shown on this widget, in grid order"
 msgstr "Приложения, отображаемые на этом виджете, в порядке сетки"
 
@@ -116,7 +116,7 @@ msgstr "Приложения, отображаемые на этом видже�
 msgid "Apr"
 msgstr "Апр"
 
-#: prefs.js:420
+#: prefs.js:429
 msgid "Arrange widgets"
 msgstr "Выровнять виджеты"
 
@@ -124,31 +124,31 @@ msgstr "Выровнять виджеты"
 msgid "Aug"
 msgstr "Авг"
 
-#: prefs.js:1124
+#: prefs.js:1133
 msgid "Available with the 12-hour format"
 msgstr "Доступно с 12-часовым форматом"
 
-#: prefs.js:1636
+#: prefs.js:1689
 msgid "Background Color"
 msgstr "Цвет фона"
 
-#: prefs.js:35
+#: prefs.js:36
 msgid "Battery"
 msgstr "Батарея"
 
-#: prefs.js:872
+#: prefs.js:881
 msgid "Battery icon size"
 msgstr "Размер иконки батареи"
 
-#: prefs.js:883
+#: prefs.js:892
 msgid "Battery slot count"
 msgstr "Количество слотов"
 
-#: prefs.js:170 prefs.js:865
+#: prefs.js:173 prefs.js:874
 msgid "Battery Widget"
 msgstr "Виджет батареи"
 
-#: prefs.js:31
+#: prefs.js:32
 msgid "Binary Clock"
 msgstr "Бинарные часы"
 
@@ -156,83 +156,83 @@ msgstr "Бинарные часы"
 msgid "Bluetooth"
 msgstr "Bluetooth"
 
-#: prefs.js:1685
+#: prefs.js:1738
 msgid "Blur radius of the shadow"
 msgstr "Радиус размытия тени"
 
-#: prefs.js:1646
+#: prefs.js:1699
 msgid "Border Color"
 msgstr "Цвет рамки"
 
-#: prefs.js:1598
+#: prefs.js:1651
 msgid "Border Radius"
 msgstr "Радиус скругления"
 
-#: prefs.js:1617
+#: prefs.js:1670
 msgid "Border Width"
 msgstr "Толщина рамки"
 
-#: prefs.js:1679
+#: prefs.js:1732
 msgid "Box Shadow"
 msgstr "Тень"
 
-#: widgets/github/widget.js:621 widgets/github/widget.js:730
+#: widgets/github/widget.js:635 widgets/github/widget.js:791
 msgid "Cached"
 msgstr "Кэш"
 
-#: widgets/github/widget.js:730
+#: widgets/github/widget.js:791
 msgid "Cached offline"
 msgstr "Кэш офлайн"
 
-#: prefs.js:32
+#: prefs.js:33
 msgid "Calendar"
 msgstr "Календарь"
 
-#: prefs.js:188 prefs.js:1067
+#: prefs.js:191 prefs.js:1076
 msgid "Calendar Widget"
 msgstr "Виджет календаря"
 
-#: prefs.js:537 prefs.js:564 prefs.js:657 prefs.js:725
+#: prefs.js:546 prefs.js:573 prefs.js:666 prefs.js:734
 msgid "Cancel"
 msgstr "Отмена"
 
-#: extension.js:1340 extension.js:1855
+#: extension.js:1342 extension.js:1857
 msgid "Change photo"
 msgstr "Сменить фото"
 
-#: prefs.js:993
+#: prefs.js:1002
 msgid "Choose application"
 msgstr "Выбрать приложение"
 
-#: prefs.js:1637
+#: prefs.js:1690
 msgid "Choose background color"
 msgstr "Выбрать цвет фона"
 
-#: prefs.js:1647
+#: prefs.js:1700
 msgid "Choose border color"
 msgstr "Выбрать цвет рамки"
 
-#: prefs.js:1680
+#: prefs.js:1733
 msgid "Choose shadow color. Leave unset for default."
 msgstr "Выбрать цвет тени. Оставьте пустым для темы по умолчанию."
 
-#: prefs.js:1000
+#: prefs.js:1009
 msgid "Clear"
 msgstr "Очистить"
 
-#: widgets/github/widget.js:223 widgets/github/widget.js:629
+#: widgets/github/widget.js:204 widgets/github/widget.js:692
 msgid "Click to set username"
 msgstr "Нажмите, чтобы указать имя пользователя"
 
-#: widgets/github/widget.js:246
+#: widgets/github/widget.js:227
 msgid "Click username to configure"
 msgstr "Нажмите на имя, чтобы настроить"
 
-#: prefs.js:29
+#: prefs.js:30
 msgid "Clock"
 msgstr "Часы"
 
-#: prefs.js:748
+#: prefs.js:757
 msgid "Close"
 msgstr "Закрыть"
 
@@ -240,31 +240,35 @@ msgstr "Закрыть"
 msgid "Computer"
 msgstr "Компьютер"
 
-#: prefs.js:328
+#: prefs.js:337
 msgid "Configure desktop widgets. Changes apply immediately."
 msgstr "Настройте виджеты. Изменения применяются сразу."
 
-#: prefs.js:842
+#: prefs.js:851
 msgid "Configure how your pictures are scaled and cropped inside the Photos widget bounds."
 msgstr "Настройте масштабирование и обрезку фотографий."
 
-#: prefs.js:58
+#: prefs.js:61
 msgid "Contain"
 msgstr "По размеру"
 
-#: prefs.js:1599
+#: prefs.js:1205
+msgid "Content font size"
+msgstr ""
+
+#: prefs.js:1652
 msgid "Corner roundness of widgets"
 msgstr "Скругление углов виджетов"
 
-#: prefs.js:739
+#: prefs.js:748
 msgid "Could not delete the layout"
 msgstr "Не удалось удалить раскладку"
 
-#: prefs.js:551
+#: prefs.js:560
 msgid "Could not export the layout"
 msgstr "Не удалось экспортировать раскладку"
 
-#: prefs.js:598
+#: prefs.js:607
 msgid "Could not import the layout"
 msgstr "Не удалось импортировать раскладку"
 
@@ -272,47 +276,52 @@ msgstr "Не удалось импортировать раскладку"
 msgid "Could not launch %s"
 msgstr "Не удалось запустить %s"
 
-#: prefs.js:578 prefs.js:703
+#: prefs.js:587 prefs.js:712
 msgid "Could not read the file"
 msgstr "Не удалось прочитать файл"
 
-#: prefs.js:716
+#: prefs.js:725
 msgid "Could not restore the layout"
 msgstr "Не удалось восстановить раскладку"
 
-#: prefs.js:692
+#: prefs.js:701
 msgid "Could not save the layout"
 msgstr "Не удалось сохранить раскладку"
 
-#: prefs.js:687
+#: prefs.js:696
 msgid "Could not write the file"
 msgstr "Не удалось записать файл"
 
-#: prefs.js:58
+#: prefs.js:61
 msgid "Cover"
 msgstr "Заполнение"
 
-#: widgets/github/widget.js:539
+#: widgets/github/widget.js:520
 msgid "Current streak"
 msgstr "Текущая серия"
 
-#: prefs.js:1664
+#: prefs.js:1717
 msgid "Custom accent color used by all widgets"
 msgstr "Свой акцентный цвет для всех виджетов"
 
-#: prefs.js:972
+#: prefs.js:981
 msgid "Custom app"
 msgstr "Своё приложение"
 
-#: prefs.js:1592
+#: prefs.js:1645
 msgid "Customize the appearance of all widgets."
 msgstr "Настройте внешний вид виджетов."
 
-#: prefs.js:1140
+#: prefs.js:1149
 msgid "Customize the GitHub Activity widget appearance."
 msgstr "Настройка внешнего вида виджета активности GitHub"
 
-#: prefs.js:922
+#: prefs.js:1184
+#, fuzzy
+msgid "Customize the Notes widget font sizes."
+msgstr "Настройте внешний вид виджетов."
+
+#: prefs.js:931
 msgid "Days of data to keep before older days are deleted"
 msgstr "Сколько дней данных хранить, пока старые дни не будут удалены"
 
@@ -320,15 +329,15 @@ msgstr "Сколько дней данных хранить, пока стары
 msgid "Dec"
 msgstr "Дек"
 
-#: prefs.js:483 prefs.js:725
+#: prefs.js:492 prefs.js:734
 msgid "Delete"
 msgstr "Удалить"
 
-#: prefs.js:723
+#: prefs.js:732
 msgid "Delete saved layout?"
 msgstr "Удалить сохранённую раскладку?"
 
-#: prefs.js:145 prefs.js:254
+#: prefs.js:148 prefs.js:263
 msgid "Desktop Widgets"
 msgstr "Виджеты рабочего стола"
 
@@ -336,47 +345,47 @@ msgstr "Виджеты рабочего стола"
 msgid "Device"
 msgstr "Устройство"
 
-#: prefs.js:30
+#: prefs.js:31
 msgid "Digital Clock"
 msgstr "Цифровые часы"
 
-#: prefs.js:194 prefs.js:1093
+#: prefs.js:197 prefs.js:1102
 msgid "Digital Clock Widget"
 msgstr "Виджет цифровых часов"
 
-#: prefs.js:900
+#: prefs.js:909
 msgid "Display the charge percentage below each ring"
 msgstr "Показывать процент заряда под каждым кольцом"
 
-#: prefs.js:333
+#: prefs.js:342
 msgid "Edit mode"
 msgstr "Режим редактирования"
 
-#: prefs.js:349 prefs.js:755
+#: prefs.js:358 prefs.js:764
 msgid "Edit Mode Shortcut"
 msgstr "Горячая клавиша"
 
-#: prefs.js:958
+#: prefs.js:967
 msgid "Empty state GIF"
 msgstr "Анимация для пустого состояния"
 
-#: prefs.js:334
+#: prefs.js:343
 msgid "Enable to move and remove widgets on the desktop"
 msgstr "Включите, чтобы перемещать и удалять виджеты"
 
-#: widgets/github/widget.js:621
+#: widgets/github/widget.js:635
 msgid "Error"
 msgstr "Ошибка"
 
-#: widgets/github/widget.js:622
+#: widgets/github/widget.js:636
 msgid "Error loading"
 msgstr "Ошибка загрузки"
 
-#: prefs.js:536
+#: prefs.js:545
 msgid "Export"
 msgstr "Экспорт"
 
-#: prefs.js:430 prefs.js:533
+#: prefs.js:439 prefs.js:542
 msgid "Export layout"
 msgstr "Экспорт раскладки"
 
@@ -388,31 +397,39 @@ msgstr "П"
 msgid "Feb"
 msgstr "Фев"
 
-#: widgets/github/widget.js:580
+#: widgets/github/widget.js:561
 msgid "Fetching…"
 msgstr "Загрузка…"
+
+#: prefs.js:1206
+msgid "Font size in pixels for the notes content text"
+msgstr ""
+
+#: prefs.js:1190
+msgid "Font size in pixels for the notes title"
+msgstr ""
 
 #: widgets/github/widget.js:49
 msgid "Fri"
 msgstr "Пт"
 
-#: prefs.js:157
+#: prefs.js:160
 msgid "General"
 msgstr "Основные"
 
-#: prefs.js:38
+#: prefs.js:39
 msgid "GitHub Activity"
 msgstr "Активность GitHub"
 
-#: prefs.js:1155
+#: prefs.js:1164
 msgid "GitHub username"
 msgstr "Имя пользователя GitHub"
 
-#: prefs.js:200 prefs.js:1139
+#: prefs.js:203 prefs.js:1148
 msgid "GitHub Widget"
 msgstr "Виджет GitHub"
 
-#: prefs.js:756
+#: prefs.js:765
 msgid "Global shortcut to toggle edit mode. Press Backspace to clear."
 msgstr "Глобальная горячая клавиша для режима редактирования. Backspace — очистить."
 
@@ -420,7 +437,7 @@ msgstr "Глобальная горячая клавиша для режима �
 msgid "GNOME Weather"
 msgstr "Погода GNOME"
 
-#: prefs.js:1847
+#: prefs.js:1900
 msgid "GNU General Public License, version 3 or later"
 msgstr "GNU General Public License, версия 3 или новее"
 
@@ -428,19 +445,19 @@ msgstr "GNU General Public License, версия 3 или новее"
 msgid "H:%s L:%s"
 msgstr "В:%s Н:%s"
 
-#: prefs.js:873
+#: prefs.js:882
 msgid "How large the device icon is inside the charging ring"
 msgstr "Размер иконки устройства внутри кольца заряда"
 
-#: prefs.js:1103
+#: prefs.js:1112
 msgid "How the clock shows the hour"
 msgstr "Как часы показывают час"
 
-#: prefs.js:849
+#: prefs.js:858
 msgid "How the photo fits the widget bounds"
 msgstr "Как фото вписывается в виджет"
 
-#: prefs.js:1077
+#: prefs.js:1086
 msgid "How weekday labels appear in the calendar header"
 msgstr "Как дни недели отображаются в шапке календаря"
 
@@ -448,15 +465,15 @@ msgstr "Как дни недели отображаются в шапке кал
 msgid "I'm waiting 🐾"
 msgstr "Я жду 🐾"
 
-#: prefs.js:949
+#: prefs.js:958
 msgid "Ignore Web Browsers"
 msgstr "Игнорировать браузеры"
 
-#: prefs.js:563
+#: prefs.js:572
 msgid "Import"
 msgstr "Импорт"
 
-#: prefs.js:440 prefs.js:560
+#: prefs.js:449 prefs.js:569
 msgid "Import layout"
 msgstr "Импорт раскладки"
 
@@ -476,7 +493,7 @@ msgstr "Июл"
 msgid "Jun"
 msgstr "Июн"
 
-#: prefs.js:921
+#: prefs.js:930
 msgid "Keep history for"
 msgstr "Хранить историю"
 
@@ -484,19 +501,19 @@ msgstr "Хранить историю"
 msgid "Keyboard"
 msgstr "Клавиатура"
 
-#: prefs.js:61
+#: prefs.js:64
 msgid "Large"
 msgstr "Большая"
 
-#: prefs.js:1030
+#: prefs.js:1039
 msgid "Launched when the widget is clicked: %s"
 msgstr "Запускается при нажатии на виджет: %s"
 
-#: widgets/github/widget.js:320
+#: widgets/github/widget.js:301
 msgid "Less"
 msgstr "Меньше"
 
-#: prefs.js:1844
+#: prefs.js:1897
 msgid "License"
 msgstr "Лицензия"
 
@@ -504,11 +521,11 @@ msgstr "Лицензия"
 msgid "Linux os"
 msgstr "ОС Linux"
 
-#: prefs.js:441
+#: prefs.js:450
 msgid "Load a widget layout from a JSON file"
 msgstr "Загрузить раскладку из JSON-файла"
 
-#: widgets/github/widget.js:540
+#: widgets/github/widget.js:521
 msgid "Longest streak"
 msgstr "Самая длинная серия"
 
@@ -524,7 +541,7 @@ msgstr "Приготовить торт"
 msgid "Make tea"
 msgstr "Приготовить чай"
 
-#: prefs.js:1401
+#: prefs.js:1454
 msgid "Manage apps for each widget. Changes apply instantly."
 msgstr "Настройте виджеты. Изменения применяются сразу."
 
@@ -532,11 +549,11 @@ msgstr "Настройте виджеты. Изменения применяют
 msgid "Mar"
 msgstr "Мар"
 
-#: prefs.js:1291
+#: prefs.js:1344
 msgid "Maximum apps reached"
 msgstr "Достигнут максимум приложений"
 
-#: prefs.js:884
+#: prefs.js:893
 msgid "Maximum number of devices shown"
 msgstr "Максимальное количество отображаемых устройств"
 
@@ -544,7 +561,7 @@ msgstr "Максимальное количество отображаемых �
 msgid "May"
 msgstr "Май"
 
-#: prefs.js:61
+#: prefs.js:64
 msgid "Medium"
 msgstr "Средняя"
 
@@ -556,7 +573,7 @@ msgstr "Пн"
 msgid "more"
 msgstr "ещё"
 
-#: widgets/github/widget.js:336
+#: widgets/github/widget.js:317
 msgid "More"
 msgstr "Больше"
 
@@ -564,23 +581,23 @@ msgstr "Больше"
 msgid "Mouse"
 msgstr "Мышь"
 
-#: prefs.js:1525
+#: prefs.js:1578
 msgid "Move down"
 msgstr "Вниз"
 
-#: prefs.js:1514
+#: prefs.js:1567
 msgid "Move up"
 msgstr "Вверх"
 
-#: prefs.js:36
+#: prefs.js:37
 msgid "Music"
 msgstr "Музыка"
 
-#: prefs.js:182 prefs.js:943
+#: prefs.js:185 prefs.js:952
 msgid "Music Widget"
 msgstr "Виджет музыки"
 
-#: prefs.js:761 prefs.js:788
+#: prefs.js:770 prefs.js:797
 msgid "New accelerator…"
 msgstr "Новое сочетание клавиш…"
 
@@ -592,7 +609,7 @@ msgstr "Новая задача…"
 msgid "No activity recorded"
 msgstr "Активность не записана"
 
-#: prefs.js:1406
+#: prefs.js:1459
 msgid "No App Launcher widgets found"
 msgstr "Виджеты панели приложений не найдены"
 
@@ -604,7 +621,7 @@ msgstr "Приложения не настроены"
 msgid "No events today"
 msgstr "Сегодня без событий"
 
-#: prefs.js:1292
+#: prefs.js:1345
 msgid "No matching applications"
 msgstr "Нет подходящих приложений"
 
@@ -612,9 +629,18 @@ msgstr "Нет подходящих приложений"
 msgid "No tasks yet"
 msgstr "Задач пока нет"
 
-#: prefs.js:710
+#: prefs.js:719
 msgid "Not a valid widget layout"
 msgstr "Файл раскладки повреждён"
+
+#: prefs.js:41
+msgid "Notes"
+msgstr "Заметки"
+
+#: prefs.js:215 prefs.js:1183
+#, fuzzy
+msgid "Notes Widget"
+msgstr "Виджет фотографий"
 
 #: widgets/github/widget.js:43 widgets/screentime/widget.js:50
 msgid "Nov"
@@ -624,11 +650,11 @@ msgstr "Ноя"
 msgid "Oct"
 msgstr "Окт"
 
-#: widgets/github/widget.js:622
+#: widgets/github/widget.js:636
 msgid "Offline — cached"
 msgstr "Офлайн — кэш"
 
-#: prefs.js:1114
+#: prefs.js:1123
 msgid "Only available in the 2×1 and 2×1 mini sizes"
 msgstr "Доступно только в размерах 2×1 и 2×1 mini"
 
@@ -636,43 +662,43 @@ msgstr "Доступно только в размерах 2×1 и 2×1 mini"
 msgid "Open Weather to set a location"
 msgstr "Откройте «Погоду» и выберите город"
 
-#: prefs.js:1657
+#: prefs.js:1710
 msgid "Override the system accent color for all widgets"
 msgstr "Заменить системный акцентный цвет для всех виджетов"
 
-#: prefs.js:657
+#: prefs.js:666
 msgid "Overwrite"
 msgstr "Заменить"
 
-#: prefs.js:655
+#: prefs.js:664
 msgid "Overwrite existing layout?"
 msgstr "Заменить существующую раскладку?"
 
-#: prefs.js:916
+#: prefs.js:925
 msgid "Per-app screen time is tracked automatically while the widget is on your desktop."
 msgstr "Время экрана по приложениям отслеживается автоматически, пока виджет находится на рабочем столе."
 
-#: prefs.js:848
+#: prefs.js:857
 msgid "Photo size"
 msgstr "Размер фото"
 
-#: prefs.js:34
+#: prefs.js:35
 msgid "Photos"
 msgstr "Фотографии"
 
-#: prefs.js:164 prefs.js:841
+#: prefs.js:167 prefs.js:850
 msgid "Photos Widget"
 msgstr "Виджет фотографий"
 
-#: prefs.js:476
+#: prefs.js:485
 msgid "Pick a saved layout to restore or delete"
 msgstr "Выберите сохранённую раскладку для восстановления или удаления"
 
-#: extension.js:1233 extension.js:1860
+#: extension.js:1235 extension.js:1862
 msgid "Pin widget"
 msgstr "Закрепить виджет"
 
-#: prefs.js:1436
+#: prefs.js:1489
 msgid "Pinned Apps"
 msgstr "Закреплённые приложения"
 
@@ -684,87 +710,87 @@ msgstr "Включи что-нибудь, чтобы начать"
 msgid "PM"
 msgstr "PM"
 
-#: prefs.js:1068
+#: prefs.js:1077
 msgid "Preferences for the date widget on your desktop."
 msgstr "Настройки виджета даты на вашем рабочем столе."
 
-#: prefs.js:944
+#: prefs.js:953
 msgid "Preferences for the media player widget on your desktop."
 msgstr "Настройки виджета музыкального проигрывателя."
 
-#: prefs.js:458
+#: prefs.js:467
 msgid "Preset name"
 msgstr "Название пресета"
 
-#: prefs.js:950
+#: prefs.js:959
 msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
 msgstr "Не давать браузерам перехватывать виджет музыки."
 
-#: prefs.js:1537
+#: prefs.js:1590
 msgid "Remove"
 msgstr "Удалить"
 
-#: extension.js:1219 extension.js:1865
+#: extension.js:1221 extension.js:1867
 msgid "Remove widget"
 msgstr "Удалить виджет"
 
-#: prefs.js:1834
+#: prefs.js:1887
 msgid "Report an Issue"
 msgstr "Сообщить о проблеме"
 
-#: prefs.js:410
+#: prefs.js:419
 msgid "Reset default widgets"
 msgstr "Сбросить виджеты по умолчанию"
 
-#: prefs.js:1750
+#: prefs.js:1803
 msgid "Reset Style"
 msgstr "Сбросить стиль"
 
-#: prefs.js:481
+#: prefs.js:490
 msgid "Restore"
 msgstr "Восстановить"
 
-#: prefs.js:1751
+#: prefs.js:1804
 msgid "Restore default widget appearance"
 msgstr "Восстановить виджеты по умолчанию"
 
-#: prefs.js:495
+#: prefs.js:504
 msgid "Restore or delete the selected preset"
 msgstr "Восстановить или удалить выбранный пресет"
 
-#: prefs.js:411
+#: prefs.js:420
 msgid "Restore the default widget layout"
 msgstr "Восстановить раскладку по умолчанию"
 
-#: prefs.js:460
+#: prefs.js:469
 msgid "Save layout"
 msgstr "Сохранить раскладку"
 
-#: prefs.js:431
+#: prefs.js:440
 msgid "Save the current widget layout to a JSON file"
 msgstr "Сохранить текущую раскладку в JSON-файл"
 
-#: prefs.js:454
+#: prefs.js:463
 msgid "Save the current widget positions under a name and restore them later."
 msgstr "Сохраните расположение виджетов под именем для последующего восстановления."
 
-#: prefs.js:453
+#: prefs.js:462
 msgid "Saved Layouts"
 msgstr "Сохранённые раскладки"
 
-#: prefs.js:475
+#: prefs.js:484
 msgid "Saved presets"
 msgstr "Сохранённые пресеты"
 
-#: prefs.js:39
+#: prefs.js:40
 msgid "Screen Time"
 msgstr "Экранное время"
 
-#: prefs.js:176 prefs.js:915
+#: prefs.js:179 prefs.js:924
 msgid "Screen Time Widget"
 msgstr "Виджет экранного времени"
 
-#: prefs.js:1248
+#: prefs.js:1301
 msgid "Search applications..."
 msgstr "Поиск приложений…"
 
@@ -776,7 +802,7 @@ msgstr "Выбрать фото"
 msgid "Select image"
 msgstr "Выбрать изображение"
 
-#: prefs.js:378
+#: prefs.js:387
 msgid "Select widget to add"
 msgstr "Выберите виджет для добавления"
 
@@ -784,43 +810,43 @@ msgstr "Выберите виджет для добавления"
 msgid "Sep"
 msgstr "Сен"
 
-#: widgets/github/widget.js:246
+#: widgets/github/widget.js:227
 msgid "Set user"
 msgstr "Указать пользователя"
 
-#: prefs.js:1684
+#: prefs.js:1737
 msgid "Shadow Size"
 msgstr "Размер тени"
 
-#: prefs.js:1123
+#: prefs.js:1132
 msgid "Show AM/PM"
 msgstr "Показывать AM/PM"
 
-#: prefs.js:899
+#: prefs.js:908
 msgid "Show battery percentage"
 msgstr "Показывать процент заряда"
 
-#: prefs.js:1113
+#: prefs.js:1122
 msgid "Show seconds"
 msgstr "Показывать секунды"
 
-#: prefs.js:1072
+#: prefs.js:1081
 msgid "Single letter (M T W)"
 msgstr "Одна буква (П В С)"
 
-#: prefs.js:58 prefs.js:61
+#: prefs.js:61 prefs.js:64
 msgid "Small"
 msgstr "Маленькая"
 
-#: prefs.js:58
+#: prefs.js:61
 msgid "Stretch"
 msgstr "Растянуть"
 
-#: widgets/github/widget.js:600
+#: widgets/github/widget.js:614
 msgid "Synced %s"
 msgstr "Синхронизировано %s"
 
-#: prefs.js:37
+#: prefs.js:38
 msgid "Task"
 msgstr "Задача"
 
@@ -828,31 +854,36 @@ msgstr "Задача"
 msgid "Tasks"
 msgstr "Задачи"
 
-#: prefs.js:1618
+#: prefs.js:1671
 msgid "Thickness of widget borders"
 msgstr "Толщина рамок виджетов"
 
-#: prefs.js:585
+#: prefs.js:594
 msgid "This file is not a valid layout"
 msgstr "Файл не является раскладкой"
 
-#: prefs.js:1102
+#: prefs.js:1111
 msgid "Time format"
 msgstr "Формат времени"
 
-#: widgets/github/widget.js:538 widgets/weather/widget.js:158
+#: prefs.js:1189
+#, fuzzy
+msgid "Title font size"
+msgstr "Размер иконки батареи"
+
+#: widgets/github/widget.js:519 widgets/weather/widget.js:158
 msgid "Today"
 msgstr "Сегодня"
 
-#: prefs.js:1723
+#: prefs.js:1776
 msgid "Transparency of all desktop widgets"
 msgstr "Прозрачность всех виджетов"
 
-#: prefs.js:1072
+#: prefs.js:1081
 msgid "Two letters (Mo Tu We)"
 msgstr "Две буквы (Пн Вт Ср)"
 
-#: prefs.js:789
+#: prefs.js:798
 msgid "Type the shortcut to toggle edit mode. Press Backspace to clear."
 msgstr "Введите сочетание клавиш. Backspace — очистить."
 
@@ -860,35 +891,35 @@ msgstr "Введите сочетание клавиш. Backspace — очист
 msgid "Unknown artist"
 msgstr "Неизвестный исполнитель"
 
-#: extension.js:1885
+#: extension.js:1887
 msgid "Unknown widget"
 msgstr "Неизвестный виджет"
 
-#: prefs.js:592
+#: prefs.js:601
 msgid "Unknown widget type"
 msgstr "Неизвестный тип виджета"
 
-#: extension.js:1860
+#: extension.js:1862
 msgid "Unpin widget"
 msgstr "Открепить виджет"
 
-#: prefs.js:1656
+#: prefs.js:1709
 msgid "Use Custom Accent Color"
 msgstr "Использовать свой акцентный цвет"
 
-#: prefs.js:1145
+#: prefs.js:1154
 msgid "Use GitHub Green Colors"
 msgstr "Использовать зелёные цвета GitHub"
 
-#: prefs.js:1146
+#: prefs.js:1155
 msgid "Use GitHub's default green color scheme instead of the theme accent color"
 msgstr "Использовать фирменную зелёную цветовую схему GitHub вместо акцентного цвета темы"
 
-#: prefs.js:1824
+#: prefs.js:1877
 msgid "Version %s"
 msgstr "Версия %s"
 
-#: prefs.js:1839
+#: prefs.js:1892
 msgid "View sources on GitHub"
 msgstr "Посмотреть исходники на GitHub"
 
@@ -896,7 +927,7 @@ msgstr "Посмотреть исходники на GitHub"
 msgid "W"
 msgstr "С"
 
-#: prefs.js:33
+#: prefs.js:34
 msgid "Weather"
 msgstr "Погода"
 
@@ -908,26 +939,29 @@ msgstr "Погода недоступна"
 msgid "Wed"
 msgstr "Ср"
 
-#: prefs.js:1076
+#: prefs.js:1085
 msgid "Weekday format"
 msgstr "Формат дней недели"
 
-#: prefs.js:1431
+#: prefs.js:1484
 msgid "Widget"
 msgstr "Виджет"
 
-#: prefs.js:1722
+#: prefs.js:1775
 msgid "Widget opacity"
 msgstr "Прозрачность виджета"
 
-#: extension.js:1255 extension.js:1836
+#: extension.js:1257 extension.js:1838
 msgid "Widget size"
 msgstr "Размер виджета"
 
-#: prefs.js:1591
+#: prefs.js:1644
 msgid "Widget Styling"
 msgstr "Оформление"
 
-#: prefs.js:327
+#: prefs.js:336
 msgid "Widgets"
 msgstr "Виджеты"
+
+#~ msgid "Quick Notes"
+#~ msgstr "Быстрые заметки"

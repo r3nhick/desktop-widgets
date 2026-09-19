@@ -22,6 +22,7 @@ const WIDGET_TYPES = [
     {type: 'todo'},
     {type: 'github'},
     {type: 'screentime'},
+    {type: 'notes'},
 ];
 
 const widgetTypeLabel = (type) => ({
@@ -37,6 +38,7 @@ const widgetTypeLabel = (type) => ({
     todo: _('Task'),
     github: _('GitHub Activity'),
     screentime: _('Screen Time'),
+    notes: _('Notes'),
 }[type] ?? type);
 
 const DEFAULT_SIZES = {
@@ -52,6 +54,7 @@ const DEFAULT_SIZES = {
     todo: 'medium',
     github: 'medium',
     screentime: 'medium',
+    notes: 'medium',
 };
 
 const PHOTO_SIZES = ['cover', 'contain', 'fill', 'small'];
@@ -206,6 +209,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         appLauncherPage.set_title(_('App Launcher Widget'));
         appLauncherPage.set_icon_name('view-grid-symbolic');
         this._addSidebarPage(appLauncherPage);
+
+        // Notes page
+        const notesPage = this._createNotesPage(settings);
+        notesPage.set_title(_('Notes Widget'));
+        notesPage.set_icon_name('document-edit-symbolic');
+        this._addSidebarPage(notesPage);
 
         // Appearance page
         const appearancePage = this._createAppearancePage(settings);
@@ -1162,6 +1171,50 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             const value = usernameRow.get_text().trim().replace(/^@/, '');
             if (value === settings.get_string('github-username')) return;
             settings.set_string('github-username', value);
+        });
+
+        page.add(group);
+        return page;
+    }
+
+    _createNotesPage(settings) {
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            title: _('Notes Widget'),
+            description: _('Customize the Notes widget font sizes.'),
+            margin_top: 12,
+        });
+
+        const titleFontSizeRow = new Adw.SpinRow({
+            title: _('Title font size'),
+            subtitle: _('Font size in pixels for the notes title'),
+            adjustment: new Gtk.Adjustment({
+                lower: 10,
+                upper: 32,
+                step_increment: 1,
+                page_increment: 5,
+                value: settings.get_int('notes-title-font-size'),
+            }),
+        });
+        group.add(titleFontSizeRow);
+        titleFontSizeRow.connect('notify::value', () => {
+            settings.set_int('notes-title-font-size', titleFontSizeRow.get_value());
+        });
+
+        const contentFontSizeRow = new Adw.SpinRow({
+            title: _('Content font size'),
+            subtitle: _('Font size in pixels for the notes content text'),
+            adjustment: new Gtk.Adjustment({
+                lower: 10,
+                upper: 32,
+                step_increment: 1,
+                page_increment: 5,
+                value: settings.get_int('notes-content-font-size'),
+            }),
+        });
+        group.add(contentFontSizeRow);
+        contentFontSizeRow.connect('notify::value', () => {
+            settings.set_int('notes-content-font-size', contentFontSizeRow.get_value());
         });
 
         page.add(group);

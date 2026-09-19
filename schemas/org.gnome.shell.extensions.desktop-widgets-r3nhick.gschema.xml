@@ -141,5 +141,15 @@
       <summary>Custom accent color</summary>
       <description>Custom CSS accent color used by all widgets when custom accent color is enabled. Leave empty to use the system accent color.</description>
     </key>
+    <key name="notes-title-font-size" type="i">
+      <default>16</default>
+      <summary>Notes title font size</summary>
+      <description>Font size in pixels for the Notes widget title.</description>
+    </key>
+    <key name="notes-content-font-size" type="i">
+      <default>18</default>
+      <summary>Notes content font size</summary>
+      <description>Font size in pixels for the Notes widget content text.</description>
+    </key>
   </schema>
 </schemalist>
