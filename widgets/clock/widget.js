@@ -3,14 +3,18 @@ import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
+import { parseCssColor } from '../../utils/ported.js';
+
 export const type = 'clock';
 export const label = 'Clock';
 export const stylesheet = 'widgets/clock/stylesheet.css';
+export const appIds = ['org.gnome.clocks'];
 export const defaultSize = 'small';
 export const supportedSizes = ['small', 'large', 'minismall', 'minilarge'];
 
 const CLOCK_RADIUS = 16;
 const TICK_INSET = 16;
+const DEFAULT_ACCENT = '#db1a1f';
 
 function roundedRectangle(cr, x, y, width, height, radius) {
 	const r = Math.min(radius, width / 2, height / 2);
@@ -27,22 +31,6 @@ function roundedRectangle(cr, x, y, width, height, radius) {
 	cr.closePath();
 };
 
-function colorFromHex(hex, fallback) {
-	const match = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
-
-	if (!match) {
-		return fallback;
-	};
-
-	const value = Number.parseInt(match[1], 16);
-
-	return [
-		((value >> 16) & 0xff) / 255,
-		((value >> 8) & 0xff) / 255,
-		(value & 0xff) / 255,
-	];
-};
-
 const AnalogClockFace = GObject.registerClass(
 	class AnalogClockFace extends St.DrawingArea {
 		_init(theme) {
@@ -54,7 +42,8 @@ const AnalogClockFace = GObject.registerClass(
 			});
 
 			this._dark = theme?.dark ?? false;
-			this._accent = colorFromHex(theme?.accent, [0.86, 0.1, 0.12]);
+			const accent = parseCssColor(theme?.accent || DEFAULT_ACCENT);
+			this._accent = [accent.r, accent.g, accent.b];
 
 			this._repaintTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
 				if (!this.get_parent()) {

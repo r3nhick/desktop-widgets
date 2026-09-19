@@ -122,8 +122,7 @@ function buildTileStyle(tileRgba, padding) {
 }
 
 export function style(theme) {
-    const textRgba = (a) => cssColorToRgba(theme.text, a);
-    return `background-color: ${theme.background}; border-color: ${textRgba(BORDER_ALPHA)}; color: ${theme.text};`;
+    return `background-color: ${theme.background}; border-color: ${theme.border}; color: ${theme.text};`;
 }
 
 export function render({ body, widget, theme, sizeForWidget }) {

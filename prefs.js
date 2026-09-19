@@ -145,6 +145,9 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         window.set_title(_('Desktop Widgets'));
         window.set_search_enabled(false);
 
+        const iconTheme = Gtk.IconTheme.get_for_display(window.get_display());
+        iconTheme.add_search_path(this.dir.get_child('icons').get_path());
+
         const settings = this.getSettings();
 
         this._switchToSidebar(window);
@@ -209,6 +212,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         appearancePage.set_title(_('Appearance'));
         appearancePage.set_icon_name('preferences-color-symbolic');
         this._addSidebarPage(appearancePage);
+
+        // About page
+        const aboutPage = this._createAboutPage();
+        aboutPage.set_title(_('About'));
+        aboutPage.set_icon_name('help-about-symbolic');
+        this._addSidebarPage(aboutPage);
 
         // Handle window close
         window.connect('close-request', () => {
@@ -959,6 +968,95 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         });
         group.add(gifRow);
 
+        const customAppRow = new Adw.ActionRow({
+            title: _('Custom app'),
+            subtitle: _('App launched when the widget is clicked. Takes priority over built-in players'),
+            activatable: true,
+        });
+
+        const customAppIcon = new Gtk.Image({
+            pixel_size: 24,
+            valign: Gtk.Align.CENTER,
+        });
+        customAppRow.add_prefix(customAppIcon);
+
+        const customAppButtons = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 6,
+            valign: Gtk.Align.CENTER,
+        });
+
+        const pickCustomAppButton = new Gtk.Button({
+            icon_name: 'list-add-symbolic',
+            valign: Gtk.Align.CENTER,
+            css_classes: ['flat'],
+            tooltip_text: _('Choose application'),
+        });
+
+        const clearCustomAppButton = new Gtk.Button({
+            icon_name: 'user-trash-symbolic',
+            valign: Gtk.Align.CENTER,
+            css_classes: ['flat', 'destructive-action'],
+            tooltip_text: _('Clear'),
+        });
+
+        customAppButtons.append(pickCustomAppButton);
+        customAppButtons.append(clearCustomAppButton);
+        customAppRow.add_suffix(customAppButtons);
+        group.add(customAppRow);
+
+        const updateCustomAppRow = () => {
+            const appId = settings.get_string('music-custom-app');
+            let icon = null;
+            let name = '';
+
+            if (appId) {
+                try {
+                    const appInfo = Gio.DesktopAppInfo.new(appId);
+                    if (appInfo) {
+                        icon = appInfo.get_icon();
+                        name = appInfo.get_display_name() || appInfo.get_name() || appId;
+                    } else {
+                        name = appId;
+                    }
+                } catch (e) {
+                    name = appId;
+                }
+            }
+
+            customAppIcon.visible = Boolean(icon);
+            if (icon) customAppIcon.set_from_gicon(icon);
+            customAppRow.set_subtitle(appId
+                ? _('Launched when the widget is clicked: %s').format(name)
+                : _('App launched when the widget is clicked. Takes priority over built-in players'));
+            clearCustomAppButton.visible = Boolean(appId);
+        };
+
+        const openCustomAppPicker = () => {
+            const current = settings.get_string('music-custom-app');
+            const selectedApps = new Map();
+            if (current) selectedApps.set(current, {id: current});
+
+            this._openLauncherAppPicker({
+                allApps: this._allInstalledApps(),
+                selectedApps,
+                onPicked: app => {
+                    settings.set_string('music-custom-app', app.id);
+                    updateCustomAppRow();
+                },
+                closeOnPick: true,
+            });
+        };
+
+        pickCustomAppButton.connect('clicked', openCustomAppPicker);
+        customAppRow.connect('activated', openCustomAppPicker);
+        clearCustomAppButton.connect('clicked', () => {
+            settings.set_string('music-custom-app', '');
+            updateCustomAppRow();
+        });
+
+        updateCustomAppRow();
+
         page.add(group);
         return page;
     }
@@ -1053,6 +1151,19 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             settings.set_boolean('github-use-green', useGreenRow.get_active());
         });
 
+        const usernameRow = new Adw.EntryRow({
+            title: _('GitHub username'),
+            text: settings.get_string('github-username'),
+            show_apply_button: true,
+        });
+        usernameRow.set_tooltip_text(_('Applied to all GitHub widgets. Empty to set a username per widget'));
+        group.add(usernameRow);
+        usernameRow.connect('apply', () => {
+            const value = usernameRow.get_text().trim().replace(/^@/, '');
+            if (value === settings.get_string('github-username')) return;
+            settings.set_string('github-username', value);
+        });
+
         page.add(group);
         return page;
     }
@@ -1111,7 +1222,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         }
     }
 
-    _openLauncherAppPicker({allApps, selectedApps, onAdded}) {
+    _openLauncherAppPicker({allApps, selectedApps, onAdded, onPicked = null, closeOnPick = false}) {
         const dialog = new Adw.Window({
             title: _('Add Applications'),
             modal: true,
@@ -1242,7 +1353,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
                 addButton.connect('clicked', () => {
                     if (selectedApps.size >= LAUNCHER_MAX_APPS) return;
                     selectedApps.set(app.id, app);
-                    onAdded();
+                    onAdded?.();
+                    onPicked?.(app);
+                    if (closeOnPick) {
+                        dialog.close();
+                        return;
+                    }
                     renderAvailableApps();
                 });
 
@@ -1515,6 +1631,29 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         );
         group.add(borderColorRow);
 
+        // Custom Accent Color
+        const customAccentRow = new Adw.SwitchRow({
+            title: _('Use Custom Accent Color'),
+            subtitle: _('Override the system accent color for all widgets'),
+        });
+        customAccentRow.set_active(settings.get_boolean('style-use-custom-accent'));
+        group.add(customAccentRow);
+
+        const accentColorRow = this._createColorRow(
+            _('Accent Color'),
+            _('Custom accent color used by all widgets'),
+            settings,
+            'style-accent-color',
+            '#3584e4'
+        );
+        accentColorRow.sensitive = customAccentRow.get_active();
+        group.add(accentColorRow);
+
+        customAccentRow.connect('notify::active', () => {
+            settings.set_boolean('style-use-custom-accent', customAccentRow.get_active());
+            accentColorRow.sensitive = customAccentRow.get_active();
+        });
+
         // Shadow
         const shadowRow = new Adw.ActionRow({
             title: _('Box Shadow'),
@@ -1604,15 +1743,19 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             settings.set_string('style-background', '');
             settings.set_string('style-border-color', '');
             settings.set_string('style-shadow', '');
+            settings.set_boolean('style-use-custom-accent', false);
+            settings.set_string('style-accent-color', '');
 
             // Reset UI controls
             radiusRow.set_value(16);
             borderWidthRow.set_value(1);
             shadowSizeRow.set_value(24);
             opacityScale.set_value(1.0);
+            customAccentRow.set_active(false);
+            accentColorRow.sensitive = false;
 
             // Reset color buttons back to their fallbacks (skips writing via _resetting flag)
-            for (const colorRow of [bgColorRow, borderColorRow, shadowRow]) {
+            for (const colorRow of [bgColorRow, borderColorRow, accentColorRow, shadowRow]) {
                 const rgba = new Gdk.RGBA();
                 rgba.parse(colorRow._fallbackColor);
                 colorRow._colorButton.set_rgba(rgba);
@@ -1624,6 +1767,94 @@ export default class WidgetsPrefs extends ExtensionPreferences {
 
         page.add(group);
         return page;
+    }
+
+    _createAboutPage() {
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            margin_top: 12,
+        });
+
+        const headerBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 6,
+            margin_top: 18,
+            margin_bottom: 18,
+            halign: Gtk.Align.CENTER,
+        });
+        headerBox.append(new Gtk.Image({
+            icon_name: 'view-grid-symbolic',
+            pixel_size: 96,
+            margin_bottom: 6,
+        }));
+        headerBox.append(new Gtk.Label({
+            label: this.metadata.name,
+            css_classes: ['title-1'],
+            wrap: true,
+            justify: Gtk.Justification.CENTER,
+        }));
+        headerBox.append(new Gtk.Label({
+            label: 'r3nhick',
+            css_classes: ['title-5'],
+            margin_top: 4,
+        }));
+
+        const version = this.metadata['version-name'] ?? String(this.metadata.version ?? '');
+        headerBox.append(new Gtk.Label({
+            label: _('Version %s').format(version),
+            css_classes: ['dim-label'],
+            margin_top: 4,
+        }));
+
+        const headerRow = new Adw.ActionRow({activatable: false});
+        headerRow.set_child(headerBox);
+        group.add(headerRow);
+
+        group.add(this._aboutLinkRow(
+            _('Report an Issue'),
+            'desktop-widgets-bug-symbolic',
+            'https://github.com/r3nhick/desktop-widgets/issues'
+        ));
+        group.add(this._aboutLinkRow(
+            _('View sources on GitHub'),
+            'folder-publicshare-symbolic',
+            'https://github.com/r3nhick/desktop-widgets'
+        ));
+        group.add(this._aboutLinkRow(
+            _('License'),
+            'text-x-generic-symbolic',
+            'https://github.com/r3nhick/desktop-widgets/blob/main/LICENSE',
+            _('GNU General Public License, version 3 or later')
+        ));
+
+        page.add(group);
+        return page;
+    }
+
+    _aboutLinkRow(title, iconName, url, subtitle) {
+        const row = new Adw.ActionRow({
+            title: title,
+            activatable: true,
+        });
+
+        if (subtitle) {
+            row.set_subtitle(subtitle);
+        }
+
+        row.add_prefix(new Gtk.Image({
+            icon_name: iconName,
+            valign: Gtk.Align.CENTER,
+        }));
+        row.add_suffix(new Gtk.Image({
+            icon_name: 'adw-external-link-symbolic',
+            valign: Gtk.Align.CENTER,
+        }));
+        row.set_tooltip_text(url);
+        row.connect('activated', () => {
+            Gio.AppInfo.launch_default_for_uri_async(url, null, null, null);
+        });
+
+        return row;
     }
 
     _createColorRow(title, subtitle, settings, key, fallbackColor) {

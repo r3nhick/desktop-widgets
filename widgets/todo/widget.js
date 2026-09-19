@@ -55,8 +55,7 @@ function textOnAccentColor(hex) {
 }
 
 export function style(theme) {
-    const textRgba = (alpha) => cssColorToRgba(theme.text, alpha);
-    return `background-color: ${theme.background}; border-color: ${textRgba(BORDER_ALPHA)}; color: ${theme.text};`;
+    return `background-color: ${theme.background}; border-color: ${theme.border}; color: ${theme.text};`;
 }
 
 export function render({ body, widget, theme, sizeForWidget }) {

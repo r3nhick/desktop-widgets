@@ -50,7 +50,7 @@ const monthNames = () =>
      _('Jul'), _('Aug'), _('Sep'), _('Oct'), _('Nov'), _('Dec')];
 
 export function style(theme) {
-	return `background-color: ${theme.background}; border: 1px solid ${hexToRgba(theme.text, BORDER_ALPHA)}; color: ${theme.text}; border-radius: ${theme.radius ?? 16}px;`;
+	return `background-color: ${theme.background}; border: 1px solid ${theme.border}; color: ${theme.text}; border-radius: ${theme.radius ?? 16}px;`;
 }
 
 function hexToRgba(hex, alpha) {

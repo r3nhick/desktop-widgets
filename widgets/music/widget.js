@@ -14,6 +14,7 @@ export const stylesheet = 'widgets/music/stylesheet.css';
 export const defaultSize = 'medium';
 export const supportedSizes = ['mini', 'medium'];
 export const appIds = ['org.gnome.Music', 'io.bassi.Amberol', 'org.videolan.VLC'];
+export const customAppKey = 'music-custom-app';
 
 const PLAYER_IFACE = 'org.mpris.MediaPlayer2.Player';
 const PLAYER_PATH = '/org/mpris/MediaPlayer2';

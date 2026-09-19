@@ -19,6 +19,16 @@ export const label = 'GitHub Activity';
 export const defaultSize = 'medium';
 export const supportedSizes = ['mini', 'medium', 'large'];
 
+const profileUrls = new Map();
+
+export function getProfileUrl(widgetId) {
+    return profileUrls.get(widgetId) ?? null;
+}
+
+const profileUrlFor = username => username
+    ? `https://github.com/${encodeURIComponent(username)}`
+    : null;
+
 const SECONDARY_OPACITY = 0.55;
 const DAY_LABEL_ROWS = { 1: 'Mon', 3: 'Wed', 5: 'Fri' };
 const DAY_LABEL_ROWS_MINI = { 1: 'M', 3: 'W', 5: 'F' };
@@ -62,8 +72,7 @@ function formatCount(n) {
 }
 
 export function style(theme) {
-    const textRgba = (a) => cssColorToRgba(theme.text, a);
-    return `background-color: ${theme.background}; border-color: ${textRgba(0.14)}; color: ${theme.text};`;
+    return `background-color: ${theme.background}; border-color: ${theme.border}; color: ${theme.text};`;
 }
 
 export function render({ body, widget, theme, sizeForWidget, settings }) {
@@ -131,7 +140,8 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
     const dataFilePath = GLib.build_filenamev([getDataDir('github'), `github-${widget?.id}.json`]);
 
-    let username = '';
+    const settingsUsername = (settings?.get_string('github-username') ?? '').trim().replace(/^@/, '');
+    let username = settingsUsername;
     let avatarInitials = '?';
     const state = { timerId: null, editing: false, cancellable: new Gio.Cancellable() };
     const session = new Soup.Session();
@@ -140,6 +150,18 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
     let currentStreak = 0;
     let longestStreak = 0;
     let todayCount = 0;
+
+    const setProfileUrl = valid => {
+        const url = valid ? profileUrlFor(username) : null;
+
+        if (url) {
+            profileUrls.set(widget.id, url);
+        } else {
+            profileUrls.delete(widget.id);
+        }
+    };
+
+    profileUrls.delete(widget.id);
 
     body.set_clip_to_allocation(true);
 
@@ -578,6 +600,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                     : _('Synced %s').format(lastSyncTime.format('%H:%M')));
                 latestByDate = byDate;
                 renderMatrix(byDate);
+                setProfileUrl(true);
 
                 saveJsonToFile(dataFilePath, {
                     username,
@@ -592,6 +615,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
             } catch (err) {
                 const cancelled = err.matches && err.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED);
                 if (!cancelled) {
+                    setProfileUrl(false);
                     const cached = latestByDate.size > 0;
                     setStatus(isMini
                         ? (cached ? _('Cached') : _('Error'))
@@ -621,11 +645,19 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         if (!state.editing) return;
         state.editing = false;
         const submitted = usernameEntry.get_text().trim().replace(/^@/, '');
-        usernameEntry.hide();
+    usernameEntry.hide();
+
+    usernameLabel._desktopWidgetsSelfClick = true;
+    usernameEntry._desktopWidgetsSelfClick = true;
+
         usernameLabel.show();
         if (global.stage.get_key_focus() === usernameEntry)
             global.stage.set_key_focus(null);
         if (!commit || submitted === '' || submitted === username) return;
+        if (settings) {
+            settings.set_string('github-username', submitted);
+            return;
+        }
         username = submitted;
         latestByDate = new Map();
         badgeLabel.text = '';
@@ -666,6 +698,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
     // --- CLEANUP ---
     body.connect('destroy', () => {
+        profileUrls.delete(widget.id);
         state.cancellable.cancel();
         if (state.timerId) { GLib.source_remove(state.timerId); state.timerId = null; }
         session.abort();
@@ -673,44 +706,52 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
             global.stage.set_key_focus(null);
     });
 
+    // --- CACHED CONTRIBUTIONS ---
+    const loadContributionsCache = (data) => {
+        if (!data || !Array.isArray(data.contributions) || data.username !== username)
+            return;
+        const cached = new Map();
+        data.contributions.forEach(d => {
+            if (d && typeof d.date === 'string')
+                cached.set(d.date, Number(d.count) || 0);
+        });
+        if (cached.size === 0)
+            return;
+        latestByDate = cached;
+        renderMatrix(cached);
+        setProfileUrl(true);
+
+        const yearKeys = Object.keys(data.total || {});
+        const latestYear = yearKeys.length ? yearKeys[yearKeys.length - 1] : null;
+        const sumAll = [...cached.values()].reduce((a, b) => a + b, 0);
+        const yearTotal = latestYear !== null ? (data.total[latestYear] ?? sumAll) : sumAll;
+        badgeLabel.text = _('%s commits').format(formatCount(yearTotal));
+        lastSyncTime = null;
+        setStatus(isMini ? _('Cached') : _('Cached offline'));
+
+        if (isLarge) {
+            computeStats(cached);
+            renderStats();
+        }
+    };
+
     // --- INIT ---
     renderMatrix();
     updateHeader();
 
     loadJsonFromFileAsync(dataFilePath, (savedData, loadError) => {
         if (isActorDestroyed(body) || mainBox.get_parent() !== body) return;
-        if (savedData && typeof savedData.username === 'string') {
+
+        if (!settingsUsername && savedData && typeof savedData.username === 'string') {
             username = savedData.username;
             updateHeader();
+        }
 
-            if (Array.isArray(savedData.contributions)) {
-                const cached = new Map();
-                savedData.contributions.forEach(d => {
-                    if (d && typeof d.date === 'string')
-                        cached.set(d.date, Number(d.count) || 0);
-                });
-                if (cached.size > 0) {
-                    latestByDate = cached;
-                    renderMatrix(cached);
-
-                    const yearKeys = Object.keys(savedData.total || {});
-                    const latestYear = yearKeys.length ? yearKeys[yearKeys.length - 1] : null;
-                    const sumAll = [...cached.values()].reduce((a, b) => a + b, 0);
-                    const yearTotal = latestYear !== null ? (savedData.total[latestYear] ?? sumAll) : sumAll;
-                    badgeLabel.text = _('%s commits').format(formatCount(yearTotal));
-                    lastSyncTime = null;
-                    setStatus(isMini ? _('Cached') : _('Cached offline'));
-
-                    if (isLarge) {
-                        computeStats(cached);
-                        renderStats();
-                    }
-                }
-            }
-
+        if (username) {
+            loadContributionsCache(savedData);
             fetchContributions();
-        } else {
-            if (!loadError) saveJsonToFile(dataFilePath, { username });
+        } else if (!loadError) {
+            saveJsonToFile(dataFilePath, { username });
         }
     });
 }

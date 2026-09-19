@@ -9,6 +9,7 @@ import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.j
 export const type = 'digitalclock';
 export const label = 'Digital Clock';
 export const stylesheet = 'widgets/digitalclock/stylesheet.css';
+export const appIds = ['org.gnome.clocks'];
 export const defaultSize = 'small';
 export const supportedSizes = ['small', 'medium', 'mini', 'minismall', 'portrait', 'portraitmini'];
 

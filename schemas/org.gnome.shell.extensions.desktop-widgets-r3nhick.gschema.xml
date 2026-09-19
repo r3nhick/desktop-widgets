@@ -56,6 +56,11 @@
       <summary>Empty state GIF</summary>
       <description>Animated GIF shown by the music widget when no track is playing. Allowed values: pushy.gif, pushy2.gif, pushy3.gif, pushy4.gif, pushy5.gif.</description>
     </key>
+    <key name="music-custom-app" type="s">
+      <default>''</default>
+      <summary>Custom music app</summary>
+      <description>Desktop app ID launched when the Music widget is clicked. When set, it takes priority over the built-in list of music players. Leave empty for default.</description>
+    </key>
     <key name="calendar-weekday-format" type="s">
       <default>'short'</default>
       <summary>Calendar weekday format</summary>
@@ -85,6 +90,11 @@
       <default>false</default>
       <summary>GitHub use green colors</summary>
       <description>Use GitHub's default green color scheme instead of the theme accent color for contribution cells.</description>
+    </key>
+    <key name="github-username" type="s">
+      <default>''</default>
+      <summary>GitHub username</summary>
+      <description>GitHub nickname used by the GitHub Activity widget. Applies to all GitHub widgets. Empty to set a username per widget by clicking it.</description>
     </key>
     <key name="style-border-radius" type="i">
       <default>16</default>
@@ -120,6 +130,16 @@
       <default>1.0</default>
       <summary>Widget opacity</summary>
       <description>Global opacity of all desktop widgets, from 0.1 (nearly invisible) to 1.0 (fully opaque).</description>
+    </key>
+    <key name="style-use-custom-accent" type="b">
+      <default>false</default>
+      <summary>Use custom accent color</summary>
+      <description>Override the system accent color with a custom color for all widgets.</description>
+    </key>
+    <key name="style-accent-color" type="s">
+      <default>''</default>
+      <summary>Custom accent color</summary>
+      <description>Custom CSS accent color used by all widgets when custom accent color is enabled. Leave empty to use the system accent color.</description>
     </key>
   </schema>
 </schemalist>

@@ -63,6 +63,13 @@ const DEFAULT_WIDGETS = WIDGET_MODULES.map(widgetModule => ({
 const WIDGET_APP_IDS = Object.fromEntries(WIDGET_MODULES
   .filter(widgetModule => widgetModule.appIds)
   .map(widgetModule => [widgetModule.type, widgetModule.appIds]));
+const WIDGET_CUSTOM_APP_KEYS = Object.fromEntries(WIDGET_MODULES
+  .filter(widgetModule => widgetModule.customAppKey)
+  .map(widgetModule => [widgetModule.type, widgetModule.customAppKey]));
+const WIDGET_CLICK_TYPES = new Set([
+  ...Object.keys(WIDGET_APP_IDS),
+  'github',
+]);
 const WIDGET_SIZES = {
   minismall: [MINI_WIDGET_HEIGHT, MINI_WIDGET_HEIGHT], // 1x1 mini
   mini: [MINI_WIDGET_WIDTH, 120], // 2x1 mini
@@ -179,7 +186,19 @@ function accentColor(settings) {
   const accent = settings?.get_string('accent-color') ?? 'blue';
 
   return ACCENT_COLORS[accent] ?? ACCENT_COLORS.blue;
-};
+}
+
+function widgetAccentColor(layoutSettings, interfaceSettings) {
+  if (layoutSettings?.get_boolean('style-use-custom-accent')) {
+    const custom = layoutSettings.get_string('style-accent-color');
+
+    if (custom) {
+      return custom;
+    }
+  }
+
+  return accentColor(interfaceSettings);
+}
 
 function darkStyleEnabled(settings) {
   return settings?.get_string('color-scheme') === 'prefer-dark';
@@ -335,12 +354,15 @@ class WidgetController {
       'changed::digitalclock-show-seconds', () => this._refreshWidgets(),
       'changed::digitalclock-show-ampm', () => this._refreshWidgets(),
       'changed::github-use-green', () => this._refreshWidgets(),
+      'changed::github-username', () => this._refreshWidgets(),
       'changed::style-border-radius', () => this._rebuildWidgets(),
       'changed::style-border-width', () => this._rebuildWidgets(),
       'changed::style-background', () => this._rebuildWidgets(),
       'changed::style-border-color', () => this._rebuildWidgets(),
       'changed::style-shadow', () => this._rebuildWidgets(),
       'changed::style-widget-opacity', () => this._rebuildWidgets(),
+      'changed::style-use-custom-accent', () => this._rebuildWidgets(),
+      'changed::style-accent-color', () => this._rebuildWidgets(),
       this
     );
     this._createLayer();
@@ -581,7 +603,7 @@ class WidgetController {
     
     return {
       dark,
-      accent: accentColor(this._interfaceSettings),
+      accent: widgetAccentColor(this._layoutSettings, this._interfaceSettings),
       background: this._layoutSettings.get_string('style-background') || (dark ? '#242424' : '#ffffff'),
       border: this._layoutSettings.get_string('style-border-color') || (dark ? '#3d3d3d' : '#deddda'),
       text: dark ? '#ffffff' : '#241f31',
@@ -1184,7 +1206,8 @@ class WidgetController {
       reactive: false,
     });
     editBorder.set_style(
-      `border-radius: ${this._layoutSettings.get_int('style-border-radius')}px;`
+      `border-radius: ${this._layoutSettings.get_int('style-border-radius')}px;` +
+      ` border-color: ${this._gnomeTheme().accent};`
     );
 
     const removeButton = new St.Button({
@@ -1286,7 +1309,14 @@ class WidgetController {
         sizeButton.ensure_style();
         const [, buttonHeight] = sizeButton.get_preferred_height(-1);
 
-        sizeMenu.set_position(x, y + buttonHeight + 6);
+        const layerX = this._layerX ?? 0;
+        const layerY = this._layerY ?? 0;
+        const [menuX, menuY] = this._menuStagePosition(
+          sizeMenu,
+          layerX + x,
+          layerY + y + buttonHeight + 6);
+
+        sizeMenu.set_position(menuX - layerX, menuY - layerY);
         sizeMenu.show();
         raiseActor(sizeMenu);
       }, this);
@@ -1326,32 +1356,94 @@ class WidgetController {
     this._syncEditControls(view.widget);
   };
 
-  _openWidgetApp(type) {
-    for (const appId of WIDGET_APP_IDS[type] ?? []) {
-      const desktopId = appId.endsWith('.desktop') ? appId : `${appId}.desktop`;
-      const app = Shell.AppSystem.get_default().lookup_app(desktopId);
+  _openWidgetApp(view) {
+    const type = view.widget.type;
 
-      if (app) {
-        app.activate();
-        return;
+    if (type === 'github') {
+      const url = GithubWidget.getProfileUrl(view.widget.id);
+
+      if (url) {
+        Gio.AppInfo.launch_default_for_uri_async(url, null, null, null);
+        return true;
       };
 
-      try {
-        const appInfo = Gio.DesktopAppInfo.new(appId) ?? Gio.DesktopAppInfo.new(desktopId);
+      return false;
+    };
 
-        if (appInfo) {
-          appInfo.launch([], null);
-          return;
-        };
-      } catch (error) {
-        warn('desktop-widgets: failed to launch', appId, error);
+    const customKey = WIDGET_CUSTOM_APP_KEYS[type];
+    const custom = customKey
+      ? this._layoutSettings.get_string(customKey).trim()
+      : '';
+
+    if (custom && this._launchCustomApp(custom)) {
+      return true;
+    };
+
+    for (const appId of WIDGET_APP_IDS[type] ?? []) {
+      if (this._activateWidgetApp(appId)) {
+        return true;
       };
     };
+
+    return false;
+  };
+
+  _activateWidgetApp(appId) {
+    const desktopId = appId.endsWith('.desktop') ? appId : `${appId}.desktop`;
+    const app = Shell.AppSystem.get_default().lookup_app(desktopId) ??
+      Shell.AppSystem.get_default().lookup_app(appId);
+
+    if (app) {
+      app.activate();
+      return true;
+    };
+
+    try {
+      const appInfo = Gio.DesktopAppInfo.new(appId) ?? Gio.DesktopAppInfo.new(desktopId);
+
+      if (appInfo) {
+        appInfo.launch([], null);
+        return true;
+      };
+    } catch (error) {
+      warn('desktop-widgets: failed to launch', appId, error);
+    };
+
+    return false;
+  };
+
+  _launchCustomApp(value) {
+    if (this._activateWidgetApp(value)) {
+      return true;
+    };
+
+    try {
+      const [ok, argv] = GLib.shell_parse_argv(value);
+
+      if (ok && argv && argv.length > 0) {
+        Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
+        return true;
+      };
+    } catch (error) {
+      warn('desktop-widgets: failed to run custom app', value, error);
+    };
+
+    return false;
   };
 
   _actorIsInteractiveButton(actor) {
     for (let current = actor; current; current = current.get_parent()) {
       if (current instanceof St.Button) {
+        return true;
+      };
+    };
+
+    return false;
+  };
+
+  _actorHandlesOwnClick(actor) {
+    for (let current = actor; current; current = current.get_parent()) {
+      if (current._desktopWidgetsSelfClick) {
         return true;
       };
     };
@@ -1375,7 +1467,7 @@ class WidgetController {
     };
 
     for (const view of this._views.values()) {
-      if (!WIDGET_APP_IDS[view.widget.type]) {
+      if (!WIDGET_CLICK_TYPES.has(view.widget.type)) {
         continue;
       };
 
@@ -1389,7 +1481,7 @@ class WidgetController {
 
   _viewForStagePoint(stageX, stageY) {
     for (const view of this._views.values()) {
-      if (!WIDGET_APP_IDS[view.widget.type]) {
+      if (!WIDGET_CLICK_TYPES.has(view.widget.type)) {
         continue;
       };
 
@@ -1435,6 +1527,10 @@ class WidgetController {
       return Clutter.EVENT_PROPAGATE;
     };
 
+    if (this._actorHandlesOwnClick(pickedActor) || this._actorHandlesOwnClick(sourceActor)) {
+      return Clutter.EVENT_PROPAGATE;
+    };
+
     const view = this._viewForPickedActor(pickedActor) ??
       (this._pickedActorIsOnDesktop(pickedActor) ? this._viewForStagePoint(stageX, stageY) : null);
 
@@ -1450,10 +1546,13 @@ class WidgetController {
 
     if (now - this._lastAppLaunchAt > 500) {
       this._lastAppLaunchAt = now;
-      this._openWidgetApp(view.widget.type);
+
+      if (this._openWidgetApp(view)) {
+        return Clutter.EVENT_STOP;
+      };
     };
 
-    return Clutter.EVENT_STOP;
+    return Clutter.EVENT_PROPAGATE;
   };
 
   _makeDraggable(view) {
@@ -1698,6 +1797,23 @@ class WidgetController {
     });
   };
 
+  _menuStagePosition(menu, stageX, stageY) {
+    menu.ensure_style();
+    const [, menuWidth] = menu.get_preferred_width(-1);
+    const [, menuHeight] = menu.get_preferred_height(-1);
+    const monitor = monitorAtStage(effectiveMonitors(), stageX, stageY);
+    const margin = 8;
+
+    if (!monitor) {
+      return [stageX, stageY];
+    };
+
+    const x = Math.max(monitor.x + margin, Math.min(stageX, monitor.x + monitor.width - menuWidth - margin));
+    const y = Math.max(monitor.y + margin, Math.min(stageY, monitor.y + monitor.height - menuHeight - margin));
+
+    return [x, y];
+  };
+
   _showContextMenu(view, event) {
     view.sizeMenu?.hide();
     this._hideContextMenus();
@@ -1754,7 +1870,9 @@ class WidgetController {
     menu.add_child(removeItem);
 
     const [stageX, stageY] = event.get_coords();
-    menu.set_position(stageX, stageY);
+    const [x, y] = this._menuStagePosition(menu, stageX, stageY);
+
+    menu.set_position(x, y);
     raiseActor(menu);
     view.contextMenu = menu;
   };
