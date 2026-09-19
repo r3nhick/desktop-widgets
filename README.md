@@ -53,10 +53,22 @@ A fork of [Widgets](https://github.com/TheRealSourcer/widgets) by TheRealSourcer
 ```bash
 git clone https://github.com/r3nhick/desktop-widgets.git
 cd desktop-widgets
+mkdir -p ~/.local/share/gnome-shell/extensions
 cp -r . ~/.local/share/gnome-shell/extensions/desktop-widgets@r3nhick
 ```
 
 Log out of your session and log back in to restart GNOME Shell, then enable the extension via the Extensions app.
+
+### Updating
+
+To update to a newer version:
+
+```bash
+cd ~/.local/share/gnome-shell/extensions/desktop-widgets@r3nhick
+git pull
+```
+
+Then log out and log back in to restart GNOME Shell.
 
 ### Installing mpris (music widget)
 
@@ -100,4 +112,4 @@ gnome-extensions pack \
 
 ## License
 
-Released into the public domain under the [Unlicense](https://unlicense.org). See [LICENSE](LICENSE).
+This project is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html). See [LICENSE](LICENSE).
