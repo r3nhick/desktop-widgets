@@ -70,6 +70,21 @@ git pull
 
 Then log out and log back in to restart GNOME Shell.
 
+### Uninstalling
+
+```bash
+rm -rf ~/.local/share/gnome-shell/extensions/desktop-widgets@r3nhick
+```
+
+Then log out and log back in to restart GNOME Shell.
+
+To also remove widget data (pinned apps, tasks, GitHub profiles, screen-time history):
+
+```bash
+rm -rf ~/.local/share/desktop-widgets@r3nhick
+gsettings reset-recursively org.gnome.shell.extensions.desktop-widgets-r3nhick
+```
+
 ### Installing mpris (music widget)
 
 The Music widget picks up any MPRIS player on the bus (GNOME Music, Amberol, VLC, Spotube, …). Browsers with tab media (Chrome, Firefox) are ignored by default; you can disable this in settings.
