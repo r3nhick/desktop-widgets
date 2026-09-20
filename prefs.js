@@ -1727,6 +1727,69 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             accentColorRow.sensitive = customAccentRow.get_active();
         });
 
+        // Light Glass Style
+        const lightGlassRow = new Adw.SwitchRow({
+            title: _('Light Glass Style'),
+            subtitle: _('Apply a light glass effect with transparency and blur to all widgets'),
+        });
+        lightGlassRow.set_active(settings.get_boolean('style-light-glass'));
+
+        // Light Glass Blur
+        const lightGlassBlurRow = new Adw.SpinRow({
+            title: _('Glass Blur'),
+            subtitle: _('Blur radius of the light glass effect'),
+            adjustment: new Gtk.Adjustment({
+                lower: 0,
+                upper: 50,
+                step_increment: 1,
+                page_increment: 1,
+            }),
+        });
+        lightGlassBlurRow.set_value(settings.get_int('style-light-glass-blur'));
+        lightGlassBlurRow.connect('notify::value', () => {
+            this._debounce('style-light-glass-blur', () => {
+                settings.set_int('style-light-glass-blur', Math.round(lightGlassBlurRow.get_value()));
+            }, 150);
+        });
+        lightGlassBlurRow.sensitive = lightGlassRow.get_active();
+
+        // Light Glass Opacity
+        const lightGlassOpacityRow = new Adw.ActionRow({
+            title: _('Glass Opacity'),
+            subtitle: _('Opacity of the light glass background'),
+        });
+        const glassOpacityAdjustment = new Gtk.Adjustment({
+            lower: 0.1,
+            upper: 1.0,
+            step_increment: 0.05,
+            page_increment: 0.1,
+        });
+        glassOpacityAdjustment.value = settings.get_double('style-light-glass-opacity');
+        const glassOpacityScale = new Gtk.Scale({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            adjustment: glassOpacityAdjustment,
+            valign: Gtk.Align.CENTER,
+            hexpand: false,
+            width_request: 220,
+            draw_value: false,
+        });
+        glassOpacityScale.connect('value-changed', () => {
+            this._debounce('style-light-glass-opacity', () => {
+                settings.set_double('style-light-glass-opacity', glassOpacityScale.get_value());
+            }, 150);
+        });
+        lightGlassOpacityRow.add_suffix(glassOpacityScale);
+        lightGlassOpacityRow.sensitive = lightGlassRow.get_active();
+
+        lightGlassRow.connect('notify::active', () => {
+            settings.set_boolean('style-light-glass', lightGlassRow.get_active());
+            lightGlassBlurRow.sensitive = lightGlassRow.get_active();
+            lightGlassOpacityRow.sensitive = lightGlassRow.get_active();
+        });
+        group.add(lightGlassRow);
+        group.add(lightGlassBlurRow);
+        group.add(lightGlassOpacityRow);
+
         // Shadow
         const shadowRow = new Adw.ActionRow({
             title: _('Box Shadow'),
@@ -1818,6 +1881,9 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             settings.set_string('style-shadow', '');
             settings.set_boolean('style-use-custom-accent', false);
             settings.set_string('style-accent-color', '');
+            settings.set_boolean('style-light-glass', false);
+            settings.set_int('style-light-glass-blur', 10);
+            settings.set_double('style-light-glass-opacity', 0.7);
 
             // Reset UI controls
             radiusRow.set_value(16);
@@ -1826,6 +1892,11 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             opacityScale.set_value(1.0);
             customAccentRow.set_active(false);
             accentColorRow.sensitive = false;
+            lightGlassRow.set_active(false);
+            lightGlassBlurRow.set_value(10);
+            glassOpacityScale.set_value(0.7);
+            lightGlassBlurRow.sensitive = false;
+            lightGlassOpacityRow.sensitive = false;
 
             // Reset color buttons back to their fallbacks (skips writing via _resetting flag)
             for (const colorRow of [bgColorRow, borderColorRow, accentColorRow, shadowRow]) {

@@ -206,6 +206,29 @@ function darkStyleEnabled(settings) {
   return settings?.get_string('color-scheme') === 'prefer-dark';
 };
 
+function colorToRgba(color, alpha) {
+  let r = 36, g = 36, b = 36;
+  const hex = String(color ?? '').trim().replace('#', '');
+
+  if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex)) {
+    const expanded = hex.length === 3
+      ? hex.split('').map(ch => ch + ch).join('')
+      : hex;
+    r = parseInt(expanded.slice(0, 2), 16);
+    g = parseInt(expanded.slice(2, 4), 16);
+    b = parseInt(expanded.slice(4, 6), 16);
+  } else if (/^rgba?\(/.test(color)) {
+    const match = color.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+    if (match) {
+      r = Number(match[1]);
+      g = Number(match[2]);
+      b = Number(match[3]);
+    }
+  }
+
+  return `rgba(${r}, ${g}, ${b}, ${Number(alpha).toFixed(3)})`;
+};
+
 function snap(value) {
   return Math.round(value / GRID_SIZE) * GRID_SIZE;
 };
@@ -365,6 +388,9 @@ class WidgetController {
       'changed::style-widget-opacity', () => this._rebuildWidgets(),
       'changed::style-use-custom-accent', () => this._rebuildWidgets(),
       'changed::style-accent-color', () => this._rebuildWidgets(),
+      'changed::style-light-glass', () => this._rebuildWidgets(),
+      'changed::style-light-glass-blur', () => this._rebuildWidgets(),
+      'changed::style-light-glass-opacity', () => this._rebuildWidgets(),
       this
     );
     this._createLayer();
@@ -602,12 +628,22 @@ class WidgetController {
 
   _gnomeTheme() {
     const dark = darkStyleEnabled(this._interfaceSettings);
-    
+    const lightGlass = this._layoutSettings.get_boolean('style-light-glass');
+    const backgroundSetting = this._layoutSettings.get_string('style-background');
+    const borderSetting = this._layoutSettings.get_string('style-border-color');
+    const opacity = this._layoutSettings.get_double('style-light-glass-opacity');
+
+    const background = lightGlass
+      ? colorToRgba(backgroundSetting || (dark ? '#242424' : '#ffffff'), opacity)
+      : (backgroundSetting || (dark ? '#242424' : '#ffffff'));
+    const border = borderSetting || (lightGlass ? 'rgba(255, 255, 255, 0.3)' : (dark ? '#3d3d3d' : '#deddda'));
+
     return {
       dark,
+      lightGlass,
       accent: widgetAccentColor(this._layoutSettings, this._interfaceSettings),
-      background: this._layoutSettings.get_string('style-background') || (dark ? '#242424' : '#ffffff'),
-      border: this._layoutSettings.get_string('style-border-color') || (dark ? '#3d3d3d' : '#deddda'),
+      background,
+      border,
       text: dark ? '#ffffff' : '#241f31',
       muted: dark ? '#c0bfbc' : '#5e5c64',
       radius: this._layoutSettings.get_int('style-border-radius'),
@@ -635,6 +671,10 @@ class WidgetController {
     }
     if (theme.shadow) {
       styleStr += ` box-shadow: ${theme.shadow};`;
+    }
+    if (theme.lightGlass) {
+      styleStr += ` box-shadow: 0 0 30px 0 rgba(0, 0, 0, 0.3);`;
+      styleStr += ` border-color: rgba(255, 255, 255, 0.3); border-width: ${Math.max(1, theme.borderWidth)}px;`;
     }
 
     return styleStr;
@@ -1040,6 +1080,16 @@ class WidgetController {
 
     const opacity = this._layoutSettings.get_double('style-widget-opacity');
     actor.opacity = Math.round(clamp(opacity, 0, 1) * 255);
+
+    if (this._layoutSettings.get_boolean('style-light-glass')) {
+      const glassBlur = this._layoutSettings.get_int('style-light-glass-blur');
+      const blurEffect = new Shell.BlurEffect({
+        radius: glassBlur,
+        brightness: 1.0,
+        mode: Shell.BlurMode.BACKGROUND,
+      });
+      actor.add_effect(blurEffect);
+    }
 
     const body = new St.BoxLayout({
       vertical: true,

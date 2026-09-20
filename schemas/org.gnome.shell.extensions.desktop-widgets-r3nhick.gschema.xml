@@ -141,6 +141,21 @@
       <summary>Custom accent color</summary>
       <description>Custom CSS accent color used by all widgets when custom accent color is enabled. Leave empty to use the system accent color.</description>
     </key>
+    <key name="style-light-glass" type="b">
+      <default>false</default>
+      <summary>Light glass style</summary>
+      <description>Apply a light glass effect to all widgets with transparency and blur.</description>
+    </key>
+    <key name="style-light-glass-blur" type="i">
+      <default>10</default>
+      <summary>Light glass blur</summary>
+      <description>Blur radius of the light glass effect in pixels.</description>
+    </key>
+    <key name="style-light-glass-opacity" type="d">
+      <default>0.7</default>
+      <summary>Light glass opacity</summary>
+      <description>Opacity of the light glass background, from 0.1 (nearly transparent) to 1.0 (fully opaque).</description>
+    </key>
     <key name="notes-title-font-size" type="i">
       <default>16</default>
       <summary>Notes title font size</summary>

@@ -116,6 +116,10 @@ msgstr "Внешний вид часов на вашем рабочем стол
 msgid "Applied to all GitHub widgets. Empty to set a username per widget"
 msgstr "Применяется ко всем виджетам GitHub. Пусто — чтобы задавать имя отдельно для каждого виджета"
 
+#: prefs.js:1733
+msgid "Apply a light glass effect with transparency and blur to all widgets"
+msgstr "Применять к виджетам эффект светлого стекла с прозрачностью и размытием"
+
 #: prefs.js:1541
 msgid "Apps"
 msgstr "Приложения"
@@ -168,7 +172,11 @@ msgstr "Бинарные часы"
 msgid "Bluetooth"
 msgstr "Bluetooth"
 
-#: prefs.js:1738
+#: prefs.js:1740
+msgid "Blur radius of the light glass effect"
+msgstr "Радиус размытия эффекта светлого стекла"
+
+#: prefs.js:1801
 msgid "Blur radius of the shadow"
 msgstr "Радиус размытия тени"
 
@@ -184,7 +192,7 @@ msgstr "Радиус скругления"
 msgid "Border Width"
 msgstr "Толщина рамки"
 
-#: prefs.js:1732
+#: prefs.js:1795
 msgid "Box Shadow"
 msgstr "Тень"
 
@@ -208,7 +216,7 @@ msgstr "Виджет календаря"
 msgid "Cancel"
 msgstr "Отмена"
 
-#: extension.js:1342 extension.js:1857
+#: extension.js:1384 extension.js:1899
 msgid "Change photo"
 msgstr "Сменить фото"
 
@@ -224,7 +232,7 @@ msgstr "Выбрать цвет фона"
 msgid "Choose border color"
 msgstr "Выбрать цвет рамки"
 
-#: prefs.js:1733
+#: prefs.js:1796
 msgid "Choose shadow color. Leave unset for default."
 msgstr "Выбрать цвет тени. Оставьте пустым для темы по умолчанию."
 
@@ -440,6 +448,14 @@ msgstr "Имя пользователя GitHub"
 msgid "GitHub Widget"
 msgstr "Виджет GitHub"
 
+#: prefs.js:1739
+msgid "Glass Blur"
+msgstr "Размытие стекла"
+
+#: prefs.js:1758
+msgid "Glass Opacity"
+msgstr "Прозрачность стекла"
+
 #: prefs.js:765
 msgid "Global shortcut to toggle edit mode. Press Backspace to clear."
 msgstr "Глобальная горячая клавиша для режима редактирования. Backspace — очистить."
@@ -448,7 +464,7 @@ msgstr "Глобальная горячая клавиша для режима �
 msgid "GNOME Weather"
 msgstr "Погода GNOME"
 
-#: prefs.js:1900
+#: prefs.js:1969
 msgid "GNU General Public License, version 3 or later"
 msgstr "GNU General Public License, версия 3 или новее"
 
@@ -524,9 +540,13 @@ msgstr "Запускается при нажатии на виджет: %s"
 msgid "Less"
 msgstr "Меньше"
 
-#: prefs.js:1897
+#: prefs.js:1966
 msgid "License"
 msgstr "Лицензия"
+
+#: prefs.js:1732
+msgid "Light Glass Style"
+msgstr "Стиль «Светлое стекло»"
 
 #: widgets/todo/widget.js:48
 msgid "Linux os"
@@ -668,6 +688,10 @@ msgstr "Офлайн — кэш"
 msgid "Only available in the 2×1 and 2×1 mini sizes"
 msgstr "Доступно только в размерах 2×1 и 2×1 mini"
 
+#: prefs.js:1759
+msgid "Opacity of the light glass background"
+msgstr "Прозрачность фона светлого стекла"
+
 #: widgets/weather/widget.js:636
 msgid "Open Weather to set a location"
 msgstr "Откройте «Погоду» и выберите город"
@@ -704,7 +728,7 @@ msgstr "Виджет фотографий"
 msgid "Pick a saved layout to restore or delete"
 msgstr "Выберите сохранённую раскладку для восстановления или удаления"
 
-#: extension.js:1235 extension.js:1862
+#: extension.js:1277 extension.js:1904
 msgid "Pin widget"
 msgstr "Закрепить виджет"
 
@@ -744,11 +768,11 @@ msgstr "Быстрые заметки"
 msgid "Remove"
 msgstr "Удалить"
 
-#: extension.js:1221 extension.js:1867
+#: extension.js:1263 extension.js:1909
 msgid "Remove widget"
 msgstr "Удалить виджет"
 
-#: prefs.js:1887
+#: prefs.js:1956
 msgid "Report an Issue"
 msgstr "Сообщить о проблеме"
 
@@ -756,7 +780,7 @@ msgstr "Сообщить о проблеме"
 msgid "Reset default widgets"
 msgstr "Сбросить виджеты по умолчанию"
 
-#: prefs.js:1803
+#: prefs.js:1866
 msgid "Reset Style"
 msgstr "Сбросить стиль"
 
@@ -764,7 +788,7 @@ msgstr "Сбросить стиль"
 msgid "Restore"
 msgstr "Восстановить"
 
-#: prefs.js:1804
+#: prefs.js:1867
 msgid "Restore default widget appearance"
 msgstr "Восстановить виджеты по умолчанию"
 
@@ -828,7 +852,7 @@ msgstr "Сен"
 msgid "Set user"
 msgstr "Указать пользователя"
 
-#: prefs.js:1737
+#: prefs.js:1800
 msgid "Shadow Size"
 msgstr "Размер тени"
 
@@ -892,7 +916,7 @@ msgstr "Заголовок…"
 msgid "Today"
 msgstr "Сегодня"
 
-#: prefs.js:1776
+#: prefs.js:1839
 msgid "Transparency of all desktop widgets"
 msgstr "Прозрачность всех виджетов"
 
@@ -908,7 +932,7 @@ msgstr "Введите сочетание клавиш. Backspace — очист
 msgid "Unknown artist"
 msgstr "Неизвестный исполнитель"
 
-#: extension.js:1887
+#: extension.js:1929
 msgid "Unknown widget"
 msgstr "Неизвестный виджет"
 
@@ -916,7 +940,7 @@ msgstr "Неизвестный виджет"
 msgid "Unknown widget type"
 msgstr "Неизвестный тип виджета"
 
-#: extension.js:1862
+#: extension.js:1904
 msgid "Unpin widget"
 msgstr "Открепить виджет"
 
@@ -932,11 +956,11 @@ msgstr "Использовать зелёные цвета GitHub"
 msgid "Use GitHub's default green color scheme instead of the theme accent color"
 msgstr "Использовать фирменную зелёную цветовую схему GitHub вместо акцентного цвета темы"
 
-#: prefs.js:1877
+#: prefs.js:1946
 msgid "Version %s"
 msgstr "Версия %s"
 
-#: prefs.js:1892
+#: prefs.js:1961
 msgid "View sources on GitHub"
 msgstr "Посмотреть исходники на GitHub"
 
@@ -964,11 +988,11 @@ msgstr "Формат дней недели"
 msgid "Widget"
 msgstr "Виджет"
 
-#: prefs.js:1775
+#: prefs.js:1838
 msgid "Widget opacity"
 msgstr "Прозрачность виджета"
 
-#: extension.js:1257 extension.js:1838
+#: extension.js:1299 extension.js:1880
 msgid "Widget size"
 msgstr "Размер виджета"
 

@@ -107,6 +107,10 @@ msgstr ""
 msgid "Applied to all GitHub widgets. Empty to set a username per widget"
 msgstr ""
 
+#: prefs.js:1733
+msgid "Apply a light glass effect with transparency and blur to all widgets"
+msgstr ""
+
 #: prefs.js:1541
 msgid "Apps"
 msgstr ""
@@ -162,7 +166,11 @@ msgstr ""
 msgid "Bluetooth"
 msgstr ""
 
-#: prefs.js:1738
+#: prefs.js:1740
+msgid "Blur radius of the light glass effect"
+msgstr ""
+
+#: prefs.js:1801
 msgid "Blur radius of the shadow"
 msgstr ""
 
@@ -178,7 +186,7 @@ msgstr ""
 msgid "Border Width"
 msgstr ""
 
-#: prefs.js:1732
+#: prefs.js:1795
 msgid "Box Shadow"
 msgstr ""
 
@@ -207,8 +215,8 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
-#: extension.js:1342
-#: extension.js:1857
+#: extension.js:1384
+#: extension.js:1899
 msgid "Change photo"
 msgstr ""
 
@@ -224,7 +232,7 @@ msgstr ""
 msgid "Choose border color"
 msgstr ""
 
-#: prefs.js:1733
+#: prefs.js:1796
 msgid "Choose shadow color. Leave unset for default."
 msgstr ""
 
@@ -450,6 +458,14 @@ msgstr ""
 msgid "GitHub Widget"
 msgstr ""
 
+#: prefs.js:1739
+msgid "Glass Blur"
+msgstr ""
+
+#: prefs.js:1758
+msgid "Glass Opacity"
+msgstr ""
+
 #: prefs.js:765
 msgid "Global shortcut to toggle edit mode. Press Backspace to clear."
 msgstr ""
@@ -458,7 +474,7 @@ msgstr ""
 msgid "GNOME Weather"
 msgstr ""
 
-#: prefs.js:1900
+#: prefs.js:1969
 msgid "GNU General Public License, version 3 or later"
 msgstr ""
 
@@ -538,8 +554,12 @@ msgstr ""
 msgid "Less"
 msgstr ""
 
-#: prefs.js:1897
+#: prefs.js:1966
 msgid "License"
+msgstr ""
+
+#: prefs.js:1732
+msgid "Light Glass Style"
 msgstr ""
 
 #: widgets/todo/widget.js:48
@@ -689,6 +709,10 @@ msgstr ""
 msgid "Only available in the 2×1 and 2×1 mini sizes"
 msgstr ""
 
+#: prefs.js:1759
+msgid "Opacity of the light glass background"
+msgstr ""
+
 #: widgets/weather/widget.js:636
 msgid "Open Weather to set a location"
 msgstr ""
@@ -726,8 +750,8 @@ msgstr ""
 msgid "Pick a saved layout to restore or delete"
 msgstr ""
 
-#: extension.js:1235
-#: extension.js:1862
+#: extension.js:1277
+#: extension.js:1904
 msgid "Pin widget"
 msgstr ""
 
@@ -767,12 +791,12 @@ msgstr ""
 msgid "Remove"
 msgstr ""
 
-#: extension.js:1221
-#: extension.js:1867
+#: extension.js:1263
+#: extension.js:1909
 msgid "Remove widget"
 msgstr ""
 
-#: prefs.js:1887
+#: prefs.js:1956
 msgid "Report an Issue"
 msgstr ""
 
@@ -780,7 +804,7 @@ msgstr ""
 msgid "Reset default widgets"
 msgstr ""
 
-#: prefs.js:1803
+#: prefs.js:1866
 msgid "Reset Style"
 msgstr ""
 
@@ -788,7 +812,7 @@ msgstr ""
 msgid "Restore"
 msgstr ""
 
-#: prefs.js:1804
+#: prefs.js:1867
 msgid "Restore default widget appearance"
 msgstr ""
 
@@ -854,7 +878,7 @@ msgstr ""
 msgid "Set user"
 msgstr ""
 
-#: prefs.js:1737
+#: prefs.js:1800
 msgid "Shadow Size"
 msgstr ""
 
@@ -920,7 +944,7 @@ msgstr ""
 msgid "Today"
 msgstr ""
 
-#: prefs.js:1776
+#: prefs.js:1839
 msgid "Transparency of all desktop widgets"
 msgstr ""
 
@@ -936,7 +960,7 @@ msgstr ""
 msgid "Unknown artist"
 msgstr ""
 
-#: extension.js:1887
+#: extension.js:1929
 msgid "Unknown widget"
 msgstr ""
 
@@ -944,7 +968,7 @@ msgstr ""
 msgid "Unknown widget type"
 msgstr ""
 
-#: extension.js:1862
+#: extension.js:1904
 msgid "Unpin widget"
 msgstr ""
 
@@ -960,11 +984,11 @@ msgstr ""
 msgid "Use GitHub's default green color scheme instead of the theme accent color"
 msgstr ""
 
-#: prefs.js:1877
+#: prefs.js:1946
 msgid "Version %s"
 msgstr ""
 
-#: prefs.js:1892
+#: prefs.js:1961
 msgid "View sources on GitHub"
 msgstr ""
 
@@ -993,12 +1017,12 @@ msgstr ""
 msgid "Widget"
 msgstr ""
 
-#: prefs.js:1775
+#: prefs.js:1838
 msgid "Widget opacity"
 msgstr ""
 
-#: extension.js:1257
-#: extension.js:1838
+#: extension.js:1299
+#: extension.js:1880
 msgid "Widget size"
 msgstr ""
 
