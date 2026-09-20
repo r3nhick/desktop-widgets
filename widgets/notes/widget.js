@@ -17,8 +17,6 @@ export const label = 'Quick Notes';
 export const defaultSize = 'medium';
 export const supportedSizes = ['small', 'medium', 'large', 'portrait', 'mini', 'minilarge'];
 
-const DEFAULT_NOTE_TITLE = 'Quick Notes';
-const DEFAULT_NOTE_TEXT = '- [ ] Task 1\n- [x] Task 2\n\n**Click edit to start**';
 const SECONDARY_OPACITY = 0.55;
 const MAX_TITLE_LENGTH = 50;
 
@@ -52,8 +50,8 @@ export function render({ body, widget, theme, settings }) {
     let titleFontSize = settings?.get_int('notes-title-font-size') ?? 16;
     let contentFontSize = settings?.get_int('notes-content-font-size') ?? 18;
     
-    let noteTitle = DEFAULT_NOTE_TITLE;
-    let noteContent = DEFAULT_NOTE_TEXT;
+    let noteTitle = _('Quick Notes');
+    let noteContent = _('- [ ] Task 1\n- [x] Task 2\n\n**Click edit to start**');
     let isEditing = false;
     const state = { saveTimerId: null, settingsHandlers: [] };
 

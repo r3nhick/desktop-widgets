@@ -6,6 +6,10 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language-Team: r3nhick\n"
 
+#: widgets/notes/widget.js:54
+msgid "- [ ] Task 1\n- [x] Task 2\n\n**Click edit to start**"
+msgstr ""
+
 #: widgets/github/widget.js:610
 #: widgets/github/widget.js:789
 msgid "%s commits"
@@ -755,6 +759,10 @@ msgstr ""
 msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
 msgstr ""
 
+#: widgets/notes/widget.js:53
+msgid "Quick Notes"
+msgstr ""
+
 #: prefs.js:1590
 msgid "Remove"
 msgstr ""
@@ -901,6 +909,10 @@ msgstr ""
 
 #: prefs.js:1189
 msgid "Title font size"
+msgstr ""
+
+#: widgets/notes/widget.js:84
+msgid "Title..."
 msgstr ""
 
 #: widgets/github/widget.js:519

@@ -31,7 +31,7 @@ function collect() {
 
 		let match;
 		while ((match = MSGID_RE.exec(text))) {
-			const msgid = match[2].replace(/\\'/g, "'").replace(/\\"/g, '"');
+			const msgid = decodeJsEscapes(match[2]);
 
 			if (!found.has(msgid)) {
 				found.set(msgid, []);
@@ -74,6 +74,22 @@ for (const [msgid, refs] of [...entries.entries()].sort((a, b) => a[0].localeCom
 fs.writeFileSync(potPath, out.join('\n'));
 console.log(`Extracted ${entries.size} strings -> ${potPath}`);
 
+function decodeJsEscapes(text) {
+	return text.replace(/\\(['"\\ntr])/g, (match, ch) => ({
+		"'": "'",
+		'"': '"',
+		'\\': '\\',
+		n: '\n',
+		t: '\t',
+		r: '\r',
+	}[ch] ?? match));
+};
+
 function escapeC(text) {
-	return text.replace(/\\(?!")/g, '\\\\').replace(/"/g, '\\"');
+	return text
+		.replace(/\\/g, '\\\\')
+		.replace(/"/g, '\\"')
+		.replace(/\n/g, '\\n')
+		.replace(/\t/g, '\\t')
+		.replace(/\r/g, '\\r');
 };

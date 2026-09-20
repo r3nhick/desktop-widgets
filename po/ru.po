@@ -12,6 +12,18 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+#: widgets/notes/widget.js:54
+msgid ""
+"- [ ] Task 1\n"
+"- [x] Task 2\n"
+"\n"
+"**Click edit to start**"
+msgstr ""
+"- [ ] Задача 1\n"
+"- [x] Задача 2\n"
+"\n"
+"**Нажмите «Изменить», чтобы начать**"
+
 #: widgets/github/widget.js:610 widgets/github/widget.js:789
 msgid "%s commits"
 msgstr "%s коммитов"
@@ -724,6 +736,10 @@ msgstr "Название пресета"
 msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
 msgstr "Не давать браузерам перехватывать виджет музыки."
 
+#: widgets/notes/widget.js:53
+msgid "Quick Notes"
+msgstr "Быстрые заметки"
+
 #: prefs.js:1590
 msgid "Remove"
 msgstr "Удалить"
@@ -868,6 +884,10 @@ msgstr "Формат времени"
 msgid "Title font size"
 msgstr "Размер шрифта заголовка"
 
+#: widgets/notes/widget.js:84
+msgid "Title..."
+msgstr "Заголовок…"
+
 #: widgets/github/widget.js:519 widgets/weather/widget.js:158
 msgid "Today"
 msgstr "Сегодня"
@@ -959,6 +979,3 @@ msgstr "Оформление"
 #: prefs.js:336
 msgid "Widgets"
 msgstr "Виджеты"
-
-#~ msgid "Quick Notes"
-#~ msgstr "Быстрые заметки"

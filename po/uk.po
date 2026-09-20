@@ -12,6 +12,18 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+#: widgets/notes/widget.js:54
+msgid ""
+"- [ ] Task 1\n"
+"- [x] Task 2\n"
+"\n"
+"**Click edit to start**"
+msgstr ""
+"- [ ] Завдання 1\n"
+"- [x] Завдання 2\n"
+"\n"
+"**Натисніть «Редагувати», щоб почати**"
+
 #: widgets/github/widget.js:610 widgets/github/widget.js:789
 msgid "%s commits"
 msgstr "%s коммітів"
@@ -724,6 +736,10 @@ msgstr "Назва пресету"
 msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
 msgstr "Не дозволяти браузерам перехоплювати віджет музики."
 
+#: widgets/notes/widget.js:53
+msgid "Quick Notes"
+msgstr "Нотатки"
+
 #: prefs.js:1590
 msgid "Remove"
 msgstr "Видалити"
@@ -867,6 +883,10 @@ msgstr "Формат часу"
 #: prefs.js:1189
 msgid "Title font size"
 msgstr "Розмір шрифту заголовка"
+
+#: widgets/notes/widget.js:84
+msgid "Title..."
+msgstr "Заголовок…"
 
 #: widgets/github/widget.js:519 widgets/weather/widget.js:158
 msgid "Today"
