@@ -674,7 +674,7 @@ class WidgetController {
     }
     if (theme.lightGlass) {
       styleStr += ` box-shadow: 0 0 30px 0 rgba(0, 0, 0, 0.3);`;
-      styleStr += ` border-color: rgba(255, 255, 255, 0.3); border-width: ${Math.max(1, theme.borderWidth)}px;`;
+      styleStr += ` border-color: rgba(255, 255, 255, 0.3); border-width: ${theme.borderWidth}px;`;
     }
 
     return styleStr;
