@@ -15,7 +15,7 @@ import { getDataDir, isActorDestroyed, loadJsonFromFileAsync, saveJsonToFile, pa
 export const type = 'notes';
 export const label = 'Quick Notes';
 export const defaultSize = 'medium';
-export const supportedSizes = ['small', 'medium', 'large', 'portrait', 'mini', 'portraitmini', 'minilarge'];
+export const supportedSizes = ['small', 'medium', 'large', 'portrait', 'mini', 'minilarge'];
 
 const DEFAULT_NOTE_TITLE = 'Quick Notes';
 const DEFAULT_NOTE_TEXT = '- [ ] Task 1\n- [x] Task 2\n\n**Click edit to start**';
