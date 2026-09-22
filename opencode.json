@@ -4,7 +4,8 @@
     "graft": {
       "type": "local",
       "command": [
-        "graft",
+        "/home/user/.local/opt/node-v24.21.0-linux-x64/bin/node",
+        "/home/user/.local/opt/node-v24.21.0-linux-x64/lib/node_modules/@nanonets/graft/dist/cli.js",
         "mcp"
       ],
       "enabled": true
