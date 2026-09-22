@@ -21,6 +21,7 @@ import * as WeatherWidget from './widgets/weather/widget.js';
 import * as TodoWidget from './widgets/todo/widget.js';
 import * as GithubWidget from './widgets/github/widget.js';
 import * as ScreenTimeWidget from './widgets/screentime/widget.js';
+import * as SystemWidget from './widgets/system/widget.js';
 import * as NotesWidget from './widgets/notes/widget.js';
 import { configureLogger, resetLogger, warn } from './logger.js';
 import { assetPath } from './paths.js';
@@ -53,6 +54,7 @@ const WIDGET_MODULES = [
   TodoWidget,
   GithubWidget,
   ScreenTimeWidget,
+  SystemWidget,
   NotesWidget,
 ];
 const WIDGETS = new Map(WIDGET_MODULES.map(widgetModule => [widgetModule.type, widgetModule]));
