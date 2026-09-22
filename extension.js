@@ -368,6 +368,10 @@ class WidgetController {
     this._editMode = this._layoutSettings.get_boolean('edit-mode');
     this._layoutSettings.connectObject(
       'changed::layout-json', () => {
+        if (this._suppressLayoutRebuild) {
+          return;
+        };
+
         if (this._layoutSettings.get_string(LAYOUT_KEY) === this._lastSavedJson) {
           return;
         };
@@ -625,9 +629,14 @@ class WidgetController {
   };
 
   _saveWidgets() {
-    const json = JSON.stringify({version: LAYOUT_VERSION, widgets: this._widgets});
-    this._lastSavedJson = json;
-    this._layoutSettings.set_string(LAYOUT_KEY, json);
+    try {
+      const json = JSON.stringify({version: LAYOUT_VERSION, widgets: this._widgets});
+      this._lastSavedJson = json;
+      this._layoutSettings.set_string(LAYOUT_KEY, json);
+    } catch (e) {
+      logError(e, 'desktop-widgets: _saveWidgets failed');
+      throw e;
+    }
   };
 
   _clearViews() {
@@ -822,10 +831,6 @@ class WidgetController {
   };
 
   _refreshWeatherViews() {
-    if (this._editMode) {
-      return;
-    };
-
     for (const view of this._views.values()) {
       if (view.widget.type === 'weather') {
         this._fillWidgetBody(view.widget, view.body);
@@ -898,6 +903,19 @@ class WidgetController {
         view.photoButton = null;
       };
     };
+
+    // After entering edit mode and creating all edit controls, sync the visual
+    // state of pinned widgets. Use timeout to ensure buttons are fully constructed.
+    if (enabled) {
+      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+        for (const view of this._views.values()) {
+          if (view.widget.pinned && view.pinButton) {
+            this._syncPinButtonState(view.widget.id);
+          }
+        }
+        return GLib.SOURCE_REMOVE;
+      });
+    }
   };
 
   _registerEditModeBinding() {
@@ -982,15 +1000,26 @@ class WidgetController {
 
     widget.pinned = !widget.pinned;
     this._saveWidgets();
+    
+    // Sync the visual state after save completes and any potential rebuilds settle.
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
+      this._syncPinButtonState(id);
+      return GLib.SOURCE_REMOVE;
+    });
+  };
 
-    const pinButton = this._views.get(id)?.pinButton;
-
-    if (pinButton) {
-      if (widget.pinned) {
-        pinButton.add_style_pseudo_class('active');
-      } else {
-        pinButton.remove_style_pseudo_class('active');
-      };
+  _syncPinButtonState(id) {
+    const view = this._views.get(id);
+    const widget = this._widgets.find(item => item.id === id);
+    
+    if (!view?.pinButton || !widget) {
+      return;
+    };
+    
+    if (widget.pinned) {
+      view.pinButton.set_style('background-color: #5b9de0; color: #ffffff; border-color: #5b9de0;');
+    } else {
+      view.pinButton.set_style(null);
     };
   };
 
@@ -1439,8 +1468,14 @@ class WidgetController {
       accessible_name: _('Pin widget'),
     });
 
+    // Apply the pinned visual state if the widget is pinned.
     if (view.widget.pinned) {
-      pinButton.add_style_pseudo_class('active');
+      GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+        if (pinButton && !pinButton.is_finalized()) {
+          pinButton.set_style('background-color: #5b9de0; color: #ffffff; border-color: #5b9de0;');
+        }
+        return GLib.SOURCE_REMOVE;
+      });
     };
 
     pinButton.connectObject('clicked', () => this.togglePin(view.widget.id), this);

@@ -114,15 +114,15 @@
 }
 
 .widget-layer .widget-edit-pin:active,
-.widget-layer .widget-edit-pin.active {
-    background-color: rgba(88, 161, 235, 0.9);
+.widget-layer .widget-edit-pin.pinned {
+    background-color: #5b9de0;
     color: #ffffff;
-    border-color: rgba(88, 161, 235, 0.9);
+    border-color: #5b9de0;
 }
 
 .widget-layer .widget-edit-pin:active:hover,
-.widget-layer .widget-edit-pin.active:hover {
-    background-color: rgba(120, 180, 245, 0.95);
+.widget-layer .widget-edit-pin.pinned:hover {
+    background-color: #6baae5;
 }
 
 .widget-context-menu {

@@ -255,6 +255,18 @@ function formatTemperature(temperature) {
 	return Number.isFinite(value) ? `${Math.round(value)}°` : '--';
 };
 
+// Natural width of a piece of text at the given font; used to size the
+// hourly cells so the full time label ("9:00 PM") fits without clipping.
+function measureLabelWidth(text, fontPx, weight) {
+	const label = new St.Label({
+		text: String(text ?? ''),
+		style: `font-size: ${fontPx}px; font-weight: ${weight};`,
+	});
+	const [, natural] = label.get_preferred_width(-1);
+	label.destroy();
+	return natural;
+};
+
 function cleanSummary(summary, locationName) {
 	if (!summary) {
 		return _('Weather unavailable');
@@ -660,7 +672,15 @@ export function render({body, widget, createLabel, theme, weather, weatherLocati
 	};
 
 	const hourly = renderedWeather.hourly;
-	const hourCount = Math.min(6, Math.max(4, Math.floor((widgetWidth - Math.round(40 * scale)) / Math.round(52 * scale))), hourly.length || 0);
+	// Size the hourly cells from the measured time label so the full
+	// "9:00 PM" always fits (12h locales) instead of being clipped.
+	const stripTimeFont = large ? 12 : 10;
+	const stripTimeWeight = large ? 700 : 800;
+	const widestHourTime = hourly.slice(0, 6).reduce(
+		(maxW, item) => Math.max(maxW, item ? measureLabelWidth(item.label, scaledFont(stripTimeFont, scale), stripTimeWeight) : 0),
+		0);
+	const hourCellWidth = Math.max(Math.round(52 * scale), widestHourTime + Math.round(8 * scale));
+	const hourCount = Math.min(6, Math.max(4, Math.floor((widgetWidth - Math.round(40 * scale)) / hourCellWidth)), hourly.length || 0);
 
 	if (large) {
 		body.add_child(buildHeader(renderedWeather, theme, createLabel, scale, {
