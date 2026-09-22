@@ -329,7 +329,10 @@ function formatEventTime(event, settings) {
 		const hours = ((start.getHours() + 11) % 12) + 1;
 		const showAmPm = settings?.get_boolean('digitalclock-show-ampm') ?? true;
 		const amPm = start.getHours() < 12 ? 'AM' : 'PM';
-		return `${hours}:${minutes}${showAmPm ? ` ${amPm}` : ''}`;
+		// Skip minutes when they're :00 so the label stays short and the
+		// AM/PM marker fits in narrow rows ("9 PM" instead of "9:00 PM").
+		const time = start.getMinutes() === 0 ? String(hours) : `${hours}:${minutes}`;
+		return `${time}${showAmPm ? ` ${amPm}` : ''}`;
 	}
 	return `${String(start.getHours()).padStart(2, '0')}:${minutes}`;
 }

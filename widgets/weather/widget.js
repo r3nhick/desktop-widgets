@@ -690,7 +690,20 @@ export function render({body, widget, createLabel, theme, weather, weatherLocati
 			const stripContentH = Math.round((12 + 24 + 14 + 16) * scale);
 			const headerH = Math.round((17 + 2 + 38) * scale);
 			const availableH = Math.max(1, widgetHeight - Math.round(24 * scale) - headerH - stripContentH - (hourCount >= 4 ? Math.round(14 * scale) : 0) - Math.round(8 * scale));
-			const targetDays = Math.min(4, renderedWeather.daily.length);
+			// 2x2 (square) can fit a longer week list, the 4x2 (wide) layout
+			// keeps a 4-day summary: square/tall widgets show as many days as
+			// the available height allows (up to a full week).
+			const wideLayout = widgetWidth >= widgetHeight * 1.6;
+			let targetDays = Math.min(4, renderedWeather.daily.length);
+			if (!wideLayout) {
+				const maxDays = Math.min(7, renderedWeather.daily.length);
+				for (let n = targetDays + 1; n <= maxDays; n++) {
+					if (availableH / (n * 22 + (n - 1) * 6) >= 0.65)
+						targetDays = n;
+					else
+						break;
+				};
+			};
 			const days = renderedWeather.daily.slice(0, targetDays);
 			const weeklyScale = Math.max(0.65, Math.min(scale, availableH / (targetDays * 22 + (targetDays - 1) * 6)));
 			const rowSpacing = Math.round(6 * weeklyScale);

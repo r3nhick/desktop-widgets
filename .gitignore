@@ -5,3 +5,9 @@ Map/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+# local tool config — keep locally, do not commit
+opencode.json
+agent.md
+.ignore
+AGENTS.md
