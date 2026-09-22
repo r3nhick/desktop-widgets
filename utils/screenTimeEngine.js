@@ -77,7 +77,15 @@ function saveJsonToFile(filePath, data) {
 		const dir = GLib.path_get_dirname(filePath);
 		GLib.mkdir_with_parents(dir, 0o755);
 		const bytes = new TextEncoder().encode(JSON.stringify(data, null, 2));
-		Gio.File.new_for_path(filePath).replace_contents(bytes, null, false, Gio.FileCreateFlags.NONE, null);
+		Gio.File.new_for_path(filePath).replace_contents_bytes_async(
+			GLib.Bytes.new(bytes), null, false, Gio.FileCreateFlags.NONE, null,
+			(file, result) => {
+				try {
+					file.replace_contents_finish(result);
+				} catch (e) {
+					console.error(`Failed to save screen time data: ${e.message}`);
+				}
+			});
 	} catch (e) {
 		console.error(`Failed to save screen time data: ${e.message}`);
 	}

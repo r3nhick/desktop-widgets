@@ -339,6 +339,8 @@ class WidgetController {
     this._views = new Map();
     this._dbusSignalIds = [];
     this._debounceTimers = {};
+    this._pendingAppearance = {rebuild: false, refresh: false};
+    this._dragSafetyId = 0;
     this._editMode = false;
     this._dragActor = null;
     this._layerX = null;
@@ -361,36 +363,43 @@ class WidgetController {
   enable() {
     this._widgets = this._loadWidgets();
     this._saveWidgets();
+    // Clear any stale drag flag left behind by a crashed preferences window.
+    this._layoutSettings.set_boolean('drag-active', false);
     this._editMode = this._layoutSettings.get_boolean('edit-mode');
     this._layoutSettings.connectObject(
       'changed::layout-json', () => {
+        if (this._layoutSettings.get_string(LAYOUT_KEY) === this._lastSavedJson) {
+          return;
+        };
+
         this._widgets = this._loadWidgets();
         this._rebuildWidgets();
       },
       'changed::edit-mode', () => this.setEditMode(this._layoutSettings.get_boolean('edit-mode')),
-      'changed::photo-size', () => this._refreshWidgets(),
-      'changed::battery-icon-size', () => this._refreshWidgets(),
-      'changed::battery-slot-count', () => this._refreshWidgets(),
-      'changed::battery-show-percent', () => this._refreshWidgets(),
+      'changed::photo-size', () => this._scheduleAppearance('refresh'),
+      'changed::battery-icon-size', () => this._scheduleAppearance('refresh'),
+      'changed::battery-slot-count', () => this._scheduleAppearance('refresh'),
+      'changed::battery-show-percent', () => this._scheduleAppearance('refresh'),
       'changed::arrange-widgets', () => this._onArrangeRequested(),
       'changed::edit-mode-binding', () => this._registerEditModeBinding(),
       'changed::calendar-weekday-format', () => this._refreshCalendarWeekdays(),
-      'changed::digitalclock-hour-format', () => this._refreshWidgets(),
-      'changed::digitalclock-show-seconds', () => this._refreshWidgets(),
-      'changed::digitalclock-show-ampm', () => this._refreshWidgets(),
-      'changed::github-use-green', () => this._refreshWidgets(),
-      'changed::github-username', () => this._refreshWidgets(),
-      'changed::style-border-radius', () => this._rebuildWidgets(),
-      'changed::style-border-width', () => this._rebuildWidgets(),
-      'changed::style-background', () => this._rebuildWidgets(),
-      'changed::style-border-color', () => this._rebuildWidgets(),
-      'changed::style-shadow', () => this._rebuildWidgets(),
-      'changed::style-widget-opacity', () => this._rebuildWidgets(),
-      'changed::style-use-custom-accent', () => this._rebuildWidgets(),
-      'changed::style-accent-color', () => this._rebuildWidgets(),
-      'changed::style-light-glass', () => this._rebuildWidgets(),
-      'changed::style-light-glass-blur', () => this._rebuildWidgets(),
-      'changed::style-light-glass-opacity', () => this._rebuildWidgets(),
+      'changed::digitalclock-hour-format', () => this._scheduleAppearance('refresh'),
+      'changed::digitalclock-show-seconds', () => this._scheduleAppearance('refresh'),
+      'changed::digitalclock-show-ampm', () => this._scheduleAppearance('refresh'),
+      'changed::github-use-green', () => this._scheduleAppearance('refresh'),
+      'changed::github-username', () => this._scheduleAppearance('refresh'),
+      'changed::style-border-radius', () => this._scheduleAppearance('rebuild'),
+      'changed::style-border-width', () => this._scheduleAppearance('rebuild'),
+      'changed::style-background', () => this._scheduleAppearance('rebuild'),
+      'changed::style-border-color', () => this._scheduleAppearance('rebuild'),
+      'changed::style-shadow', () => this._scheduleAppearance('rebuild'),
+      'changed::style-widget-opacity', () => this._scheduleAppearance('rebuild'),
+      'changed::style-use-custom-accent', () => this._scheduleAppearance('rebuild'),
+      'changed::style-accent-color', () => this._scheduleAppearance('rebuild'),
+      'changed::style-light-glass', () => this._scheduleAppearance('rebuild'),
+      'changed::style-light-glass-blur', () => this._scheduleAppearance('rebuild'),
+      'changed::style-light-glass-opacity', () => this._scheduleAppearance('rebuild'),
+      'changed::drag-active', () => this._onDragActiveChanged(),
       this
     );
     this._createLayer();
@@ -422,6 +431,10 @@ class WidgetController {
 
     this._watchBatteryChanges();
 
+    this._batteryDevicesUnsubscribe = BatteryWidget.onBatteryDevicesChanged(() => {
+      this._debounce('battery', () => this._refreshBatteryViews(), 100);
+    });
+
     if (this._layoutSettings.get_boolean('arrange-widgets')) {
       this._onArrangeRequested();
     };
@@ -437,10 +450,18 @@ class WidgetController {
     this._eventsClient = null;
     this._workspaceIntegration.destroy();
 
-    for (const timerId of Object.values(this._debounceTimers)) {
-      if (timerId) GLib.source_remove(timerId);
+    this._batteryDevicesUnsubscribe?.();
+    this._batteryDevicesUnsubscribe = null;
+
+    for (const record of Object.values(this._debounceTimers)) {
+      if (record?.id) GLib.source_remove(record.id);
     }
     this._debounceTimers = {};
+
+    if (this._dragSafetyId) {
+      GLib.source_remove(this._dragSafetyId);
+      this._dragSafetyId = 0;
+    };
 
     global.stage.disconnectObject(this);
     Main.layoutManager.disconnectObject(this);
@@ -466,15 +487,71 @@ class WidgetController {
     this._extension = null;
   };
 
-  _debounce(key, callback, delay = 230) {
+  _debounce(key, callback, delay = 200) {
     if (this._debounceTimers[key]) {
-      GLib.source_remove(this._debounceTimers[key]);
+      GLib.source_remove(this._debounceTimers[key].id);
     }
-    this._debounceTimers[key] = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
-      callback();
-      this._debounceTimers[key] = 0;
-      return GLib.SOURCE_REMOVE;
-    });
+
+    this._debounceTimers[key] = {
+      since: Date.now(),
+      id: GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
+        callback();
+        this._debounceTimers[key] = 0;
+        return GLib.SOURCE_REMOVE;
+      }),
+    };
+  };
+
+  _scheduleAppearance(kind) {
+    if (this._layoutSettings.get_boolean('drag-active')) {
+      this._pendingAppearance[kind] = true;
+      return;
+    }
+
+    this._debounce(kind, () => {
+      this._pendingAppearance[kind] = false;
+      if (kind === 'rebuild') {
+        this._rebuildWidgets();
+      } else {
+        this._refreshWidgets();
+      };
+    }, 200);
+  };
+
+  _onDragActiveChanged() {
+    if (this._layoutSettings.get_boolean('drag-active')) {
+      // Slider grabbed: drop anything already scheduled, wait for release.
+      for (const kind of ['rebuild', 'refresh']) {
+        const record = this._debounceTimers[kind];
+        if (record?.id) GLib.source_remove(record.id);
+        this._debounceTimers[kind] = 0;
+        this._pendingAppearance[kind] = false;
+      };
+
+      // Safety net: if the preferences window dies mid-drag the flag could
+      // stick forever, so clear it after an implausibly long hold.
+      if (this._dragSafetyId) GLib.source_remove(this._dragSafetyId);
+      this._dragSafetyId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 120, () => {
+        this._dragSafetyId = 0;
+        if (this._layoutSettings.get_boolean('drag-active')) {
+          this._layoutSettings.set_boolean('drag-active', false);
+        };
+        return GLib.SOURCE_REMOVE;
+      });
+      return;
+    };
+
+    if (this._dragSafetyId) {
+      GLib.source_remove(this._dragSafetyId);
+      this._dragSafetyId = 0;
+    };
+
+    // Handle released: flush any appearance change made during the drag.
+    for (const kind of ['rebuild', 'refresh']) {
+      if (this._pendingAppearance[kind]) {
+        this._scheduleAppearance(kind);
+      };
+    };
   };
 
   _parseWidgets(serialized) {
@@ -548,7 +625,9 @@ class WidgetController {
   };
 
   _saveWidgets() {
-    this._layoutSettings.set_string(LAYOUT_KEY, JSON.stringify({version: LAYOUT_VERSION, widgets: this._widgets}));
+    const json = JSON.stringify({version: LAYOUT_VERSION, widgets: this._widgets});
+    this._lastSavedJson = json;
+    this._layoutSettings.set_string(LAYOUT_KEY, json);
   };
 
   _clearViews() {
@@ -581,7 +660,10 @@ class WidgetController {
 
     this._layer = new St.Widget({
       style_class: 'widget-layer',
-      reactive: true,
+      // Not reactive: the layer spans the whole desktop, so making it reactive
+      // would swallow every left-click meant for GNOME (desktop menu, etc.).
+      // Widget actors are reactive on their own, so clicks on them still work.
+      reactive: false,
       x_expand: true,
       y_expand: true,
     });
@@ -754,13 +836,15 @@ class WidgetController {
   _refreshBatteryViews() {
     for (const view of this._views.values()) {
       if (view.widget.type === 'battery') {
-        this._fillWidgetBody(view.widget, view.body);
+        this._safeFillWidgetBody(view.widget, view.body);
       };
     };
   };
 
   _watchBatteryChanges() {
-    const refresh = () => this._refreshBatteryViews();
+    // UPower and BlueZ emit bursts of signals (one per device per property),
+    // so coalesce them into a single re-render.
+    const refresh = () => this._debounce('battery', () => this._refreshBatteryViews(), 300);
     const refreshBlueZ = (_connection, _sender, _objectPath, _interfaceName, _signalName, parameters) => {
       const [changedInterface] = parameters.deep_unpack();
 
@@ -781,7 +865,39 @@ class WidgetController {
 
   setEditMode(enabled) {
     this._editMode = enabled;
-    this._rebuildWidgets();
+
+    for (const view of this._views.values()) {
+      if (enabled) {
+        if (!view.draggable) {
+          this._makeDraggable(view);
+        };
+
+        if (!view.editBorder) {
+          this._addEditControls(view);
+        };
+      } else {
+        this._cancelActiveDrag();
+        this._hideContextMenus();
+        // A size switch may still be mid-animation; snap the widget to its
+        // final size/position so nothing is left at an intermediate state
+        // after leaving edit mode.
+        this._animateWidget(view.widget, false);
+        view.contextMenu?.destroy();
+        view.contextMenu = null;
+        view.sizeMenu?.destroy();
+        view.sizeButton?.destroy();
+        view.editBorder?.destroy();
+        view.removeButton?.destroy();
+        view.pinButton?.destroy();
+        view.photoButton?.destroy();
+        view.editBorder = null;
+        view.removeButton = null;
+        view.pinButton = null;
+        view.sizeButton = null;
+        view.sizeMenu = null;
+        view.photoButton = null;
+      };
+    };
   };
 
   _registerEditModeBinding() {
@@ -830,9 +946,31 @@ class WidgetController {
   };
 
   removeWidget(id) {
+    this._cancelActiveDrag();
     this._widgets = this._widgets.filter(widget => widget.id !== id);
+    this._destroyWidgetView(id);
+    this._resolveLayout(null, false, true);
     this._saveWidgets();
-    this._rebuildWidgets();
+  };
+
+  _destroyWidgetView(id) {
+    const view = this._views.get(id);
+
+    if (!view) {
+      return;
+    };
+
+    view.sizeMenu?.destroy();
+    view.contextMenu?.destroy();
+    view.editBorder?.destroy();
+    view.removeButton?.destroy();
+    view.pinButton?.destroy();
+    view.sizeButton?.destroy();
+    view.photoButton?.destroy();
+    view.actor.disconnectObject(this);
+    view.actor.destroy();
+
+    this._views.delete(id);
   };
 
   togglePin(id) {
@@ -844,7 +982,16 @@ class WidgetController {
 
     widget.pinned = !widget.pinned;
     this._saveWidgets();
-    this._rebuildWidgets();
+
+    const pinButton = this._views.get(id)?.pinButton;
+
+    if (pinButton) {
+      if (widget.pinned) {
+        pinButton.add_style_pseudo_class('active');
+      } else {
+        pinButton.remove_style_pseudo_class('active');
+      };
+    };
   };
 
   _onArrangeRequested() {
@@ -992,7 +1139,11 @@ class WidgetController {
     this._resolveLayout(null, false, true);
 
     for (const widget of this._widgets) {
-      this._createWidget(widget);
+      try {
+        this._createWidget(widget);
+      } catch (error) {
+        warn('widget-create-failed', `Failed to create ${widget.type}: ${error.message}\n${error.stack}`);
+      };
     };
   };
 
@@ -1019,7 +1170,7 @@ class WidgetController {
     widget.size = sizeKey;
     widget.data = {...(widget.data ?? {}), sizeManual: true};
     this._views.get(widget.id)?.sizeMenu?.hide();
-    this._fillWidgetBody(widget, this._views.get(widget.id)?.body);
+    this._safeFillWidgetBody(widget, this._views.get(widget.id)?.body);
     this._clampWidget(widget);
     this._resolveLayout(widget, true, true);
     this._animateWidget(widget, true);
@@ -1081,16 +1232,6 @@ class WidgetController {
     const opacity = this._layoutSettings.get_double('style-widget-opacity');
     actor.opacity = Math.round(clamp(opacity, 0, 1) * 255);
 
-    if (this._layoutSettings.get_boolean('style-light-glass')) {
-      const glassBlur = this._layoutSettings.get_int('style-light-glass-blur');
-      const blurEffect = new Shell.BlurEffect({
-        radius: glassBlur,
-        brightness: 1.0,
-        mode: Shell.BlurMode.BACKGROUND,
-      });
-      actor.add_effect(blurEffect);
-    }
-
     const body = new St.BoxLayout({
       vertical: true,
       style_class: 'widget-body',
@@ -1104,6 +1245,7 @@ class WidgetController {
       widget,
       actor,
       body,
+      draggable: false,
       editBorder: null,
       removeButton: null,
       pinButton: null,
@@ -1118,7 +1260,19 @@ class WidgetController {
       this._addEditControls(view);
     };
 
-    this._fillWidgetBody(widget, body);
+    this._safeFillWidgetBody(widget, body);
+  };
+
+  _safeFillWidgetBody(widget, body) {
+    if (!body) {
+      return;
+    };
+
+    try {
+      this._fillWidgetBody(widget, body);
+    } catch (error) {
+      warn('widget-render-failed', `Failed to render ${widget.type}: ${error.message}\n${error.stack}`);
+    };
   };
 
   _pinButtonPosition(widget) {
@@ -1710,6 +1864,8 @@ class WidgetController {
 
       return Clutter.EVENT_STOP;
     }, this);
+
+    view.draggable = true;
   };
 
   _cancelActiveDrag() {
@@ -1985,7 +2141,7 @@ class WidgetController {
     };
 
     this._saveWidgets();
-    this._fillWidgetBody(widget, body);
+    this._safeFillWidgetBody(widget, body);
   };
 
   _label(text, styleClass, style = null) {

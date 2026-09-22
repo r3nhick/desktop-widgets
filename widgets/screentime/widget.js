@@ -107,7 +107,13 @@ try {
 	GioUnix = null;
 }
 const appInfoCache = new Map();
+const APP_INFO_CACHE_MAX = 256;
 function resolveDesktopAppInfo(appKey) {
+	// Keep the cache bounded so a long-running session across many apps cannot
+	// hold on to an ever-growing set of desktop entry objects.
+	if (appInfoCache.size >= APP_INFO_CACHE_MAX) {
+		appInfoCache.clear();
+	}
 	if (!appInfoCache.has(appKey)) {
 		try {
 			const AppInfoClass = GioUnix?.DesktopAppInfo?.new ? GioUnix.DesktopAppInfo : Gio.DesktopAppInfo;
@@ -148,6 +154,8 @@ export function render({body, createLabel, theme, sizeForWidget, widget, setting
 		engineListener: null,
 		releaseEngine: null,
 		lastAppListSignature: '',
+		lastAppListScale: null,
+		lastListHeight: null,
 	};
 
 	// Nothing may paint outside the widget's own box.
@@ -409,8 +417,12 @@ export function render({body, createLabel, theme, sizeForWidget, widget, setting
 			updateYAxisLabels();
 
 		const signature = appListSignature(state.snapshot);
-		if (signature !== state.lastAppListSignature) {
+		const geometryChanged = state.geometry.scale !== state.lastAppListScale
+			|| state.geometry.listHeight !== state.lastListHeight;
+		if (signature !== state.lastAppListSignature || geometryChanged) {
 			state.lastAppListSignature = signature;
+			state.lastAppListScale = state.geometry.scale;
+			state.lastListHeight = state.geometry.listHeight;
 			rebuildAppList();
 		}
 		if (chartCanvas && state.geometry.plotWidth > 0)
@@ -586,6 +598,7 @@ export function render({body, createLabel, theme, sizeForWidget, widget, setting
 	let lastWidth = -1;
 	let lastHeight = -1;
 	let relayouting = false;
+	let updateId = 0;
 	const update = () => {
 		if (disposed || relayouting) return;
 		const currentWidth = contentWidth();
@@ -600,10 +613,35 @@ export function render({body, createLabel, theme, sizeForWidget, widget, setting
 			relayouting = false;
 		}
 	};
-	body.connect('notify::width', update);
-	body.connect('notify::height', update);
+
+	// A size animation (or a size switch) fires notify::width/height every
+	// frame; coalesce them so the (expensive) relayout runs once the size has
+	// settled instead of on each frame.
+	const scheduleUpdate = () => {
+		if (disposed) return;
+		if (updateId) GLib.source_remove(updateId);
+		updateId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 80, () => {
+			updateId = 0;
+			update();
+			return GLib.SOURCE_REMOVE;
+		});
+	};
+
+	body.connect('notify::width', scheduleUpdate);
+	body.connect('notify::height', scheduleUpdate);
+	// The actor is the source of truth for the widget size (set by
+	// extension.js); listen on it directly as well so an interrupted resize
+	// animation (e.g. quickly leaving edit mode mid-ease) still converges.
+	if (actor) {
+		actor.connect('notify::width', scheduleUpdate);
+		actor.connect('notify::height', scheduleUpdate);
+	}
 	body.connect('destroy', () => {
 		disposed = true;
+		if (updateId) {
+			GLib.source_remove(updateId);
+			updateId = 0;
+		};
 	});
 	GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
 		if (!disposed) {

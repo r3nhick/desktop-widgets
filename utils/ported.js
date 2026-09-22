@@ -70,30 +70,71 @@ export function loadJsonFromFileAsync(filePath, callback) {
 	});
 }
 
-function writeFile(filePath, data) {
+function encodeJson(data) {
+	return new TextEncoder().encode(JSON.stringify(data, null, 2));
+}
+
+function ensureParent(filePath) {
 	const parent = Gio.File.new_for_path(filePath).get_parent();
 
 	if (parent) {
 		ensureDirectory(parent.get_path());
 	}
+}
 
-	const bytes = new TextEncoder().encode(JSON.stringify(data, null, 2));
+// Per-file write queues: while an async write is in flight, later saves
+// coalesce into a single follow-up with the latest payload, so writes stay
+// ordered (last write wins) and the main loop never blocks on disk I/O.
+const writeQueues = new Map();
 
-	try {
-		Gio.File.new_for_path(filePath).replace_contents(
-			bytes, null, false, Gio.FileCreateFlags.NONE, null);
-	} catch (error) {
-		console.error(`Error saving JSON to ${filePath}: ${error}`);
+function flushWriteQueue(filePath) {
+	const entry = writeQueues.get(filePath);
+
+	if (!entry || entry.running) {
+		return;
 	}
+
+	if (entry.data === null) {
+		writeQueues.delete(filePath);
+		return;
+	}
+
+	const data = entry.data;
+	entry.data = null;
+	entry.running = true;
+
+	ensureParent(filePath);
+	Gio.File.new_for_path(filePath).replace_contents_bytes_async(
+		GLib.Bytes.new(encodeJson(data)), null, false, Gio.FileCreateFlags.NONE, null,
+		(file, res) => {
+			try {
+				file.replace_contents_finish(res);
+			} catch (error) {
+				console.error(`Error saving JSON to ${filePath}: ${error}`);
+			}
+
+			entry.running = false;
+			flushWriteQueue(filePath);
+		});
 }
 
 export function saveJsonToFile(filePath, data) {
-	writeFile(filePath, data);
+	let entry = writeQueues.get(filePath);
+
+	if (!entry) {
+		entry = {running: false, data: null};
+		writeQueues.set(filePath, entry);
+	}
+
+	entry.data = data;
+	flushWriteQueue(filePath);
 }
 
 export function saveJsonToFileSync(filePath, data) {
 	try {
-		writeFile(filePath, data);
+		ensureParent(filePath);
+		Gio.File.new_for_path(filePath).replace_contents(
+			encodeJson(data), null, false, Gio.FileCreateFlags.NONE, null);
 	} catch (error) {
 		console.error(`Error saving JSON to ${filePath}: ${error}`);
 	}

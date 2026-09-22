@@ -1154,26 +1154,33 @@ let Controller = class Controller {
 		};
 
 		this._timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TICK_MS, () => {
-			const now = Date.now();
+			try {
+				const now = Date.now();
 
-			if (this._playing) {
-				if (now >= this._seekLockUntil && !this._seekActive) {
-					this._position = Math.max(0, this._position + (Math.max(0, this._rate) || 1) * (now - this._posAt));
-					this._posAt = now;
+				if (this._playing) {
+					if (now >= this._seekLockUntil && !this._seekActive) {
+						this._position = Math.max(0, this._position + (Math.max(0, this._rate) || 1) * (now - this._posAt) * 1000);
+						this._posAt = now;
+					};
+
+					if (now - this._lastPosSync > 5000) {
+						this._lastPosSync = now;
+						this._syncPosition();
+					};
 				};
 
-				if (now - this._lastPosSync > 5000) {
-					this._lastPosSync = now;
-					this._syncPosition();
+				if (now - this._lastPlayerScan > 3000) {
+					this._lastPlayerScan = now;
+					this._reconsider();
 				};
-			};
 
-			if (now - this._lastPlayerScan > 3000) {
-				this._lastPlayerScan = now;
-				this._reconsider();
+				this._render();
+			} catch (error) {
+				// Keep the per-second renderer alive: in GJS an exception
+				// inside a GLib.timeout_add callback would otherwise destroy
+				// the source, silently killing the ticking slider/time.
+				log(`music widget tick error: ${error}`);
 			};
-
-			this._render();
 			return GLib.SOURCE_CONTINUE;
 		});
 	};
@@ -1211,7 +1218,7 @@ let Controller = class Controller {
 		let position = this._position;
 
 		if (this._playing && !settle) {
-			position = this._position + (Math.max(0, this._rate) || 1) * (now - this._posAt);
+			position = this._position + (Math.max(0, this._rate) || 1) * (now - this._posAt) * 1000;
 		};
 
 		this._card.update({

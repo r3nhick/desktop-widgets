@@ -10,7 +10,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: widgets/notes/widget.js:54
 msgid ""
@@ -77,7 +78,9 @@ msgid "Add Widget"
 msgstr "Добавить виджет"
 
 #: prefs.js:875
-msgid "Adjust the visual size of the device indicators displayed inside the battery charge rings."
+msgid ""
+"Adjust the visual size of the device indicators displayed inside the battery "
+"charge rings."
 msgstr "Настроить размер индикаторов устройств внутри колец заряда."
 
 #: prefs.js:430
@@ -93,8 +96,11 @@ msgid "Animation shown when no track is playing"
 msgstr "Анимация, когда ничего не играет"
 
 #: prefs.js:982 prefs.js:1040
-msgid "App launched when the widget is clicked. Takes priority over built-in players"
-msgstr "Приложение, запускаемое при нажатии на виджет. Имеет приоритет над встроенными плеерами"
+msgid ""
+"App launched when the widget is clicked. Takes priority over built-in players"
+msgstr ""
+"Приложение, запускаемое при нажатии на виджет. Имеет приоритет над "
+"встроенными плеерами"
 
 #: prefs.js:29 widgets/applauncher/widget.js:175
 msgid "App Launcher"
@@ -114,11 +120,13 @@ msgstr "Внешний вид часов на вашем рабочем стол
 
 #: prefs.js:1168
 msgid "Applied to all GitHub widgets. Empty to set a username per widget"
-msgstr "Применяется ко всем виджетам GitHub. Пусто — чтобы задавать имя отдельно для каждого виджета"
+msgstr ""
+"Применяется ко всем виджетам GitHub. Пусто — чтобы задавать имя отдельно для "
+"каждого виджета"
 
 #: prefs.js:1733
-msgid "Apply a light glass effect with transparency and blur to all widgets"
-msgstr "Применять к виджетам эффект светлого стекла с прозрачностью и размытием"
+msgid "Apply a glass effect with transparency and blur to all widgets"
+msgstr "Применять к виджетам эффект стекла с прозрачностью и размытием"
 
 #: prefs.js:1541
 msgid "Apps"
@@ -173,8 +181,8 @@ msgid "Bluetooth"
 msgstr "Bluetooth"
 
 #: prefs.js:1740
-msgid "Blur radius of the light glass effect"
-msgstr "Радиус размытия эффекта светлого стекла"
+msgid "Blur radius of the glass effect"
+msgstr "Радиус размытия эффекта стекла"
 
 #: prefs.js:1801
 msgid "Blur radius of the shadow"
@@ -265,7 +273,9 @@ msgid "Configure desktop widgets. Changes apply immediately."
 msgstr "Настройте виджеты. Изменения применяются сразу."
 
 #: prefs.js:851
-msgid "Configure how your pictures are scaled and cropped inside the Photos widget bounds."
+msgid ""
+"Configure how your pictures are scaled and cropped inside the Photos widget "
+"bounds."
 msgstr "Настройте масштабирование и обрезку фотографий."
 
 #: prefs.js:61
@@ -458,7 +468,8 @@ msgstr "Прозрачность стекла"
 
 #: prefs.js:765
 msgid "Global shortcut to toggle edit mode. Press Backspace to clear."
-msgstr "Глобальная горячая клавиша для режима редактирования. Backspace — очистить."
+msgstr ""
+"Глобальная горячая клавиша для режима редактирования. Backspace — очистить."
 
 #: widgets/weather/widget.js:637
 msgid "GNOME Weather"
@@ -545,8 +556,8 @@ msgid "License"
 msgstr "Лицензия"
 
 #: prefs.js:1732
-msgid "Light Glass Style"
-msgstr "Стиль «Светлое стекло»"
+msgid "Glass Style"
+msgstr "Стиль «Стекло»"
 
 #: widgets/todo/widget.js:48
 msgid "Linux os"
@@ -689,8 +700,8 @@ msgid "Only available in the 2×1 and 2×1 mini sizes"
 msgstr "Доступно только в размерах 2×1 и 2×1 mini"
 
 #: prefs.js:1759
-msgid "Opacity of the light glass background"
-msgstr "Прозрачность фона светлого стекла"
+msgid "Opacity of the glass background"
+msgstr "Прозрачность фона стекла"
 
 #: widgets/weather/widget.js:636
 msgid "Open Weather to set a location"
@@ -709,8 +720,12 @@ msgid "Overwrite existing layout?"
 msgstr "Заменить существующую раскладку?"
 
 #: prefs.js:925
-msgid "Per-app screen time is tracked automatically while the widget is on your desktop."
-msgstr "Время экрана по приложениям отслеживается автоматически, пока виджет находится на рабочем столе."
+msgid ""
+"Per-app screen time is tracked automatically while the widget is on your "
+"desktop."
+msgstr ""
+"Время экрана по приложениям отслеживается автоматически, пока виджет "
+"находится на рабочем столе."
 
 #: prefs.js:857
 msgid "Photo size"
@@ -757,7 +772,8 @@ msgid "Preset name"
 msgstr "Название пресета"
 
 #: prefs.js:959
-msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
+msgid ""
+"Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
 msgstr "Не давать браузерам перехватывать виджет музыки."
 
 #: widgets/notes/widget.js:53
@@ -810,7 +826,8 @@ msgstr "Сохранить текущую раскладку в JSON-файл"
 
 #: prefs.js:463
 msgid "Save the current widget positions under a name and restore them later."
-msgstr "Сохраните расположение виджетов под именем для последующего восстановления."
+msgstr ""
+"Сохраните расположение виджетов под именем для последующего восстановления."
 
 #: prefs.js:462
 msgid "Saved Layouts"
@@ -953,8 +970,11 @@ msgid "Use GitHub Green Colors"
 msgstr "Использовать зелёные цвета GitHub"
 
 #: prefs.js:1155
-msgid "Use GitHub's default green color scheme instead of the theme accent color"
-msgstr "Использовать фирменную зелёную цветовую схему GitHub вместо акцентного цвета темы"
+msgid ""
+"Use GitHub's default green color scheme instead of the theme accent color"
+msgstr ""
+"Использовать фирменную зелёную цветовую схему GitHub вместо акцентного цвета "
+"темы"
 
 #: prefs.js:1946
 msgid "Version %s"
@@ -1003,3 +1023,21 @@ msgstr "Оформление"
 #: prefs.js:336
 msgid "Widgets"
 msgstr "Виджеты"
+
+#: prefs.js:43
+msgid "System Monitor"
+msgstr "Системный монитор"
+
+#: prefs.js:1821
+msgid "⚠ Warning: Glass Style increases GPU usage"
+msgstr "⚠ Предупреждение: Glass Style повышает нагрузку на GPU"
+
+#: prefs.js:1822
+msgid ""
+"Glass widgets are redrawn every frame with transparency effects, which "
+"raises GPU load. If the desktop becomes slow or your GPU heats up, turn "
+"Glass Style off."
+msgstr ""
+"Стеклянные виджеты перерисовываются на каждом кадре с эффектами прозрачности, "
+"что повышает нагрузку на GPU. Если рабочий стол стал медленным или GPU "
+"перегревается, отключите Glass Style."

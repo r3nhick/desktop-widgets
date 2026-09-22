@@ -35,7 +35,7 @@ const EVENTS_WINDOW_DAYS = 35;
 export class CalendarEventsClient {
   constructor() {
     this._events = new Map();
-    this._listeners = [];
+    this._listeners = new Set();
     this._loaded = false;
     this._range = null;
     this._subIds = [];
@@ -203,15 +203,15 @@ export class CalendarEventsClient {
   };
 
   onChange(callback) {
-    this._listeners.push(callback);
+    this._listeners.add(callback);
 
     return () => {
-      this._listeners = this._listeners.filter(listener => listener !== callback);
+      this._listeners.delete(callback);
     };
   };
 
   _notify() {
-    for (const listener of [...this._listeners]) {
+    for (const listener of this._listeners) {
       try {
         listener();
       } catch (e) {
@@ -234,7 +234,7 @@ export class CalendarEventsClient {
       this._timeoutId = 0;
     };
 
-    this._listeners = [];
+    this._listeners.clear();
     this._events.clear();
   };
 };
@@ -463,13 +463,14 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
 	};
 
 	const todayEvents = eventsClient.eventsForDate(now);
-	const shown = [...todayEvents.slice(0, 2)];
+	// Show all today's events, not just 2
+	const shown = [...todayEvents];
 
-	if (todayEvents.length < 2) {
+	// If no events today, show upcoming
+	if (!shown.length) {
 		const upcoming = eventsClient
 			.nextEventsFrom(Math.floor(now.getTime() / 1000), 5)
-			.filter(event => !shown.includes(event))
-			.slice(0, 2 - shown.length);
+			.slice(0, 3);
 
 		for (const event of upcoming) {
 			shown.push(event);
@@ -481,16 +482,43 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
 		return;
 	};
 
+	// Event colors cycling through a palette
+	const eventColors = ['#ff6600', '#3584e4', '#33d17a', '#f6d32d', '#9141ac', '#e01b24'];
+	let colorIndex = 0;
+
 	for (const event of shown) {
 		const text = event.summary && event.summary.trim() ? event.summary.trim() : '…';
-		container.add_child(eventLabel(text));
-	};
+		const eventColor = eventColors[colorIndex % eventColors.length];
+		colorIndex++;
 
-	if (todayEvents.length > 2) {
-		container.add_child(eventLabel(
-			`+${todayEvents.length - 2} ${_('more')}`,
-			`font-size: 13px; font-weight: 500; color: ${secondary};`));
+		// Event item container with border and dark background
+		const eventItem = new St.BoxLayout({
+			vertical: false,
+			style_class: 'widget-calendar-event-item',
+			style: `background-color: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 0; spacing: 0;`,
+		});
+
+		// Colored vertical indicator line on the left
+		const colorBar = new St.Widget({
+			style_class: 'widget-calendar-event-color',
+			style: `background-color: ${eventColor}; width: 3px; border-radius: 6px 0 0 6px; min-height: 30px;`,
+		});
+		eventItem.add_child(colorBar);
+
+		// Event text label
+		const eventTextLabel = createLabel(
+			text,
+			'widget-calendar-events',
+			`font-size: 13px; font-weight: 500; color: ${secondary}; padding: 6px 10px;`
+		);
+		eventTextLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+		eventTextLabel.clutter_text.line_wrap = false;
+		eventTextLabel.x_expand = true;
+		eventItem.add_child(eventTextLabel);
+
+		container.add_child(eventItem);
 	};
+	// Removed "+N more" label - all events are shown
 };
 
 export function render({body, createLabel, events, sizeForWidget, widget, theme, settings}) {
@@ -545,22 +573,36 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 			`font-size: 58px; font-weight: 700; color: ${text};`));
 		left.add_child(new St.Widget({y_expand: true}));
 
+		// Scroll container for events list
+		const eventsScroll = new St.ScrollView({
+			x_expand: true,
+			y_expand: false,
+			style: 'margin-bottom: 6px;',
+			overlay_scrollbars: true,
+		});
+		eventsScroll.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
+
 		const eventsBox = new St.BoxLayout({
 			vertical: true,
-			style: 'spacing: 2px; margin-bottom: 6px;',
+			style: 'spacing: 4px;',
 		});
-		left.add_child(eventsBox);
+		eventsScroll.set_child(eventsBox);
+		left.add_child(eventsScroll);
 
 		if (events) {
 			const refresh = () => {
-				if (!body.is_mapped()) {
-					return;
-				};
-
+				// Fill regardless of mapping: if the body is unmapped when we
+				// render (freshly created layer, rebuild while the overview is
+				// open), the events box would stay empty forever — the client
+				// is already loaded and requestRange() no-ops on the same
+				// range, so nothing ever re-triggers this again. Populating an
+				// unmapped box is harmless; it shows once mapped.
 				fillEventsBox(eventsBox, {eventsClient: events, now, secondary, createLabel});
 			};
 
-			eventsHandlers.set(body, events.onChange(refresh));
+			const dispose = events.onChange(refresh);
+			eventsHandlers.set(body, dispose);
+			body.connect('destroy', dispose);
 			refresh();
 
 			const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());

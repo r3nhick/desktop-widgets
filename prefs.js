@@ -153,6 +153,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
 
         const settings = this.getSettings();
 
+        // Never leave a slider "grabbed" state behind when the window closes.
+        window.connect('close-request', () => {
+            settings.set_boolean('drag-active', false);
+            return false;
+        });
+
         this._switchToSidebar(window);
 
         // General page
@@ -1729,15 +1735,15 @@ export default class WidgetsPrefs extends ExtensionPreferences {
 
         // Light Glass Style
         const lightGlassRow = new Adw.SwitchRow({
-            title: _('Light Glass Style'),
-            subtitle: _('Apply a light glass effect with transparency and blur to all widgets'),
+            title: _('Glass Style'),
+            subtitle: _('Apply a glass effect with transparency and blur to all widgets'),
         });
         lightGlassRow.set_active(settings.get_boolean('style-light-glass'));
 
         // Light Glass Blur
         const lightGlassBlurRow = new Adw.SpinRow({
             title: _('Glass Blur'),
-            subtitle: _('Blur radius of the light glass effect'),
+            subtitle: _('Blur radius of the glass effect'),
             adjustment: new Gtk.Adjustment({
                 lower: 0,
                 upper: 50,
@@ -1753,10 +1759,26 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         });
         lightGlassBlurRow.sensitive = lightGlassRow.get_active();
 
+        // Signal the shell while a slider is being dragged so it can defer
+        // widget re-renders until the handle is actually released.
+        const trackSliderDrag = (scale, key) => {
+            const click = new Gtk.GestureClick();
+            // Capture phase: observe the press/release even though GtkScale
+            // claims the pointer sequence for its own drag handling.
+            click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE);
+            click.connect('pressed', () => settings.set_boolean('drag-active', true));
+            click.connect('released', () => {
+                settings.set_double(key, scale.get_value());
+                settings.set_boolean('drag-active', false);
+            });
+            click.connect('stopped', () => settings.set_boolean('drag-active', false));
+            scale.add_controller(click);
+        };
+
         // Light Glass Opacity
         const lightGlassOpacityRow = new Adw.ActionRow({
             title: _('Glass Opacity'),
-            subtitle: _('Opacity of the light glass background'),
+            subtitle: _('Opacity of the glass background'),
         });
         const glassOpacityAdjustment = new Gtk.Adjustment({
             lower: 0.1,
@@ -1770,22 +1792,39 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             adjustment: glassOpacityAdjustment,
             valign: Gtk.Align.CENTER,
             hexpand: false,
-            width_request: 220,
+            width_request: 180,
             draw_value: false,
         });
+        const glassOpacityPercent = new Gtk.Label({
+            label: `${Math.round(glassOpacityAdjustment.value * 100)}%`,
+            css_classes: ['dim-label'],
+        });
         glassOpacityScale.connect('value-changed', () => {
+            glassOpacityPercent.label = `${Math.round(glassOpacityScale.get_value() * 100)}%`;
             this._debounce('style-light-glass-opacity', () => {
                 settings.set_double('style-light-glass-opacity', glassOpacityScale.get_value());
             }, 150);
         });
+        trackSliderDrag(glassOpacityScale, 'style-light-glass-opacity');
         lightGlassOpacityRow.add_suffix(glassOpacityScale);
+        lightGlassOpacityRow.add_suffix(glassOpacityPercent);
         lightGlassOpacityRow.sensitive = lightGlassRow.get_active();
+
+        // GPU warning: always visible above the Glass Style toggle.
+        // Must be a PreferencesRow: plain widgets are added to a separate
+        // box below the group's listbox, so they always render at the very
+        // bottom of the group regardless of add order.
+        const glassGpuWarningRow = new Adw.ActionRow({
+            title: _('⚠ Warning: Glass Style increases GPU usage'),
+            subtitle: _('Glass widgets are redrawn every frame with transparency effects, which raises GPU load. If the desktop becomes slow or your GPU heats up, turn Glass Style off.'),
+        });
 
         lightGlassRow.connect('notify::active', () => {
             settings.set_boolean('style-light-glass', lightGlassRow.get_active());
             lightGlassBlurRow.sensitive = lightGlassRow.get_active();
             lightGlassOpacityRow.sensitive = lightGlassRow.get_active();
         });
+        group.add(glassGpuWarningRow);
         group.add(lightGlassRow);
         group.add(lightGlassBlurRow);
         group.add(lightGlassOpacityRow);
@@ -1850,15 +1889,22 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             adjustment: opacityAdjustment,
             valign: Gtk.Align.CENTER,
             hexpand: false,
-            width_request: 220,
+            width_request: 180,
             draw_value: false,
         });
+        const opacityPercent = new Gtk.Label({
+            label: `${Math.round(opacityAdjustment.value * 100)}%`,
+            css_classes: ['dim-label'],
+        });
         opacityScale.connect('value-changed', () => {
+            opacityPercent.label = `${Math.round(opacityScale.get_value() * 100)}%`;
             this._debounce('style-widget-opacity', () => {
                 settings.set_double('style-widget-opacity', opacityScale.get_value());
             }, 150);
         });
+        trackSliderDrag(opacityScale, 'style-widget-opacity');
         opacityRow.add_suffix(opacityScale);
+        opacityRow.add_suffix(opacityPercent);
         group.add(opacityRow);
 
         // Reset Style

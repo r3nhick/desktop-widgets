@@ -57,6 +57,16 @@ const translateDayRows = rows => {
 
 const decoder = new TextDecoder();
 
+// A single Soup session is shared by every github widget instance so that
+// HTTP connections are pooled instead of torn down and rebuilt per render.
+let sharedSession = null;
+
+function getSession() {
+    if (!sharedSession)
+        sharedSession = new Soup.Session();
+    return sharedSession;
+}
+
 function contributionLevel(count) {
     if (count >= 10) return 4;
     if (count >= 6) return 3;
@@ -106,7 +116,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
     const layout = isMini
         ? {
-            avatar: 20, username: 13, badge: 12, label: 14, entryWidth: 100,
+            avatar: 20, username: 15, badge: 14, label: 11, entryWidth: 100,
             footer: 0, month: 0, spacing: 2, gap: 1, daysW: 20,
             footerFont: 0, dayRows: translateDayRows(DAY_LABEL_ROWS_MINI), maxWeeks: 22,
         }
@@ -144,7 +154,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
     let username = settingsUsername;
     let avatarInitials = '?';
     const state = { timerId: null, editing: false, cancellable: new Gio.Cancellable() };
-    const session = new Soup.Session();
+    const session = getSession();
     let latestByDate = new Map();
     let lastSyncTime = null;
     let currentStreak = 0;
@@ -256,8 +266,8 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
     });
     matrixBox.add_child(matrixBody);
 
-    const dayLabelsColumn = new St.BoxLayout({
-        orientation: Clutter.Orientation.VERTICAL,
+    const dayLabelsColumn = new St.Widget({
+        x_expand: false,
         style: `width: ${dayLabelsWidth}px;`,
     });
     matrixBody.add_child(dayLabelsColumn);
@@ -408,27 +418,31 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
     function renderDayLabels() {
         dayLabelsColumn.destroy_all_children();
-        dayLabelsColumn.style = `width: ${dayLabelsWidth}px; spacing: ${cellGap}px;`;
+        dayLabelsColumn.style = `width: ${dayLabelsWidth}px; height: ${7 * (cellSize + cellGap) - cellGap}px;`;
+
         for (let row = 0; row < 7; row++) {
-            const slot = new St.Widget({
-                layout_manager: new Clutter.BinLayout(),
-                width: dayLabelsWidth,
-                height: cellSize,
+            if (!layout.dayRows[row]) continue;
+
+            const lbl = new St.Label({
+                text: layout.dayRows[row],
+                style: `font-size: ${layout.label}px; font-weight: 700; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
             });
-            if (layout.dayRows[row]) {
-                const lbl = new St.Label({
-                    text: layout.dayRows[row],
-                    y_align: Clutter.ActorAlign.CENTER,
-                    style: `font-size: ${layout.label}px; font-weight: 700; color: ${textColor}; opacity: ${SECONDARY_OPACITY};`,
-                });
-                // Disable text ellipsize to show full day names
-                const clutterText = lbl.get_clutter_text();
-                if (clutterText) {
-                    clutterText.ellipsize = Pango.EllipsizeMode.NONE;
-                }
-                slot.add_child(lbl);
+
+            // Disable text ellipsize to show full day names
+            const clutterText = lbl.get_clutter_text();
+            if (clutterText) {
+                clutterText.ellipsize = Pango.EllipsizeMode.NONE;
             }
-            dayLabelsColumn.add_child(slot);
+
+            dayLabelsColumn.add_child(lbl);
+
+            // Position each label at its natural size, centered on its row, so the
+            // glyphs are never force-shrunk into the tiny row slot (no clipping).
+            const [, natW] = lbl.get_preferred_width(-1);
+            const [, natH] = lbl.get_preferred_height(-1);
+            const x = dayLabelsWidth >= natW ? Math.round((dayLabelsWidth - natW) / 2) : 0;
+            const y = row * (cellSize + cellGap) + (cellSize - natH) / 2;
+            lbl.set_position(x, Math.round(y));
         }
     }
 
@@ -437,10 +451,26 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         return levelColors[4 - level];
     }
 
+    // Cheap fingerprint of the contribution data. GitHub counts only ever
+    // change by growing, so (active days, total) changes whenever the fetched
+    // data differs — letting us skip rebuilding ~371 cells on identical polls.
+    function contributionsSignature(byDate) {
+        let sum = 0;
+        let days = 0;
+        for (const count of byDate.values()) {
+            sum += count;
+            if (count > 0) days++;
+        }
+        return `${days}:${sum}`;
+    }
+
     function renderMatrix(contributionsByDate) {
         const byDate = contributionsByDate || latestByDate;
-        const dataKey = `${cellSize}|${cellGap}|${weeks}|${useGreen}|${contentW}`;
-        if (dataKey === matrixGeometry.dataKey && !contributionsByDate) return;
+        // The grid is anchored to today, so it must be rebuilt when the date
+        // rolls over even if the contribution counts are unchanged.
+        const todayKey = GLib.DateTime.new_now_local().format('%Y-%m-%d');
+        const dataKey = `${cellSize}|${cellGap}|${weeks}|${useGreen}|${contentW}|${todayKey}|${contributionsSignature(byDate)}`;
+        if (dataKey === matrixGeometry.dataKey) return;
 
         renderDayLabels();
 
@@ -762,7 +792,6 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         profileUrls.delete(widget.id);
         state.cancellable.cancel();
         if (state.timerId) { GLib.source_remove(state.timerId); state.timerId = null; }
-        session.abort();
         if (global.stage.get_key_focus() === usernameEntry)
             global.stage.set_key_focus(null);
     });

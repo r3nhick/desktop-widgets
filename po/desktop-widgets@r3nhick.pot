@@ -108,7 +108,7 @@ msgid "Applied to all GitHub widgets. Empty to set a username per widget"
 msgstr ""
 
 #: prefs.js:1733
-msgid "Apply a light glass effect with transparency and blur to all widgets"
+msgid "Apply a glass effect with transparency and blur to all widgets"
 msgstr ""
 
 #: prefs.js:1541
@@ -167,7 +167,7 @@ msgid "Bluetooth"
 msgstr ""
 
 #: prefs.js:1740
-msgid "Blur radius of the light glass effect"
+msgid "Blur radius of the glass effect"
 msgstr ""
 
 #: prefs.js:1801
@@ -559,7 +559,7 @@ msgid "License"
 msgstr ""
 
 #: prefs.js:1732
-msgid "Light Glass Style"
+msgid "Glass Style"
 msgstr ""
 
 #: widgets/todo/widget.js:48
@@ -710,7 +710,7 @@ msgid "Only available in the 2×1 and 2×1 mini sizes"
 msgstr ""
 
 #: prefs.js:1759
-msgid "Opacity of the light glass background"
+msgid "Opacity of the glass background"
 msgstr ""
 
 #: widgets/weather/widget.js:636
@@ -1032,4 +1032,16 @@ msgstr ""
 
 #: prefs.js:336
 msgid "Widgets"
+msgstr ""
+
+#: prefs.js:43
+msgid "System Monitor"
+msgstr ""
+
+#: prefs.js:1821
+msgid "⚠ Warning: Glass Style increases GPU usage"
+msgstr ""
+
+#: prefs.js:1822
+msgid "Glass widgets are redrawn every frame with transparency effects, which raises GPU load. If the desktop becomes slow or your GPU heats up, turn Glass Style off."
 msgstr ""

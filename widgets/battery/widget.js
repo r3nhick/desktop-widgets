@@ -153,8 +153,16 @@ function isBatteryLike(props) {
 	].includes(kind);
 };
 
-function upowerCall(path, iface, method, params = null) {
-	return Gio.DBus.system.call_sync(
+Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
+
+// GJS returns the reply variant wrapped in a tuple for the sync path but
+// unwrapped for the promisified async path; normalize both.
+function unwrapReply(reply) {
+	return Array.isArray(reply) ? reply[0] : reply;
+};
+
+function upowerCallAsync(path, iface, method, params = null) {
+	return Gio.DBus.system.call(
 		'org.freedesktop.UPower',
 		path,
 		iface,
@@ -166,17 +174,19 @@ function upowerCall(path, iface, method, params = null) {
 		null);
 };
 
-function readUPowerDevices() {
+async function readUPowerDevices() {
 	try {
-		const [paths] = upowerCall('/org/freedesktop/UPower', 'org.freedesktop.UPower', 'EnumerateDevices').deep_unpack();
+		const reply = await upowerCallAsync('/org/freedesktop/UPower', 'org.freedesktop.UPower', 'EnumerateDevices');
+		const [paths] = unwrapReply(reply).deep_unpack();
 		const devices = [];
 
 		for (const path of paths) {
-			const [props] = upowerCall(
+			const propsReply = await upowerCallAsync(
 				path,
 				'org.freedesktop.DBus.Properties',
 				'GetAll',
-				GLib.Variant.new('(s)', ['org.freedesktop.UPower.Device'])).deep_unpack();
+				GLib.Variant.new('(s)', ['org.freedesktop.UPower.Device']));
+			const [props] = unwrapReply(propsReply).deep_unpack();
 
 			if (!isBatteryLike(props)) {
 				continue;
@@ -203,9 +213,9 @@ function readUPowerDevices() {
 	};
 };
 
-function readBlueZDevices() {
+async function readBlueZDevices() {
 	try {
-		const [objects] = Gio.DBus.system.call_sync(
+		const reply = await Gio.DBus.system.call(
 			'org.bluez',
 			'/',
 			'org.freedesktop.DBus.ObjectManager',
@@ -214,7 +224,8 @@ function readBlueZDevices() {
 			null,
 			Gio.DBusCallFlags.NONE,
 			1000,
-			null).deep_unpack();
+			null);
+		const [objects] = unwrapReply(reply).deep_unpack();
 		const devices = [];
 
 		for (const [path, interfaces] of Object.entries(objects)) {
@@ -275,8 +286,71 @@ function mergeDevices(devices) {
 	return [...merged.values()].sort((a, b) => Number(b.powerSupply) - Number(a.powerSupply) || a.name.localeCompare(b.name));
 };
 
-function readDevices() {
-	return mergeDevices([...readUPowerDevices(), ...readBlueZDevices()]);
+const REFRESH_MIN_INTERVAL_MS = 5000;
+
+let cachedDevices = [];
+let cachedSignature = '';
+let refreshPromise = null;
+let lastRefreshAt = 0;
+const deviceListeners = new Set();
+
+function devicesSignature(devices) {
+	return devices
+		.map(device => `${device.source}|${device.name}|${device.percentage}|${device.kind ?? ''}|${device.powerSupply ? 1 : 0}`)
+		.join(';');
+};
+
+// Renders read this synchronously (never touching DBus), so the shell composer
+// is never blocked; a background refresh updates the cache and notifies once
+// the data actually changed.
+export function getCachedBatteryDevices() {
+	return cachedDevices;
+};
+
+export function onBatteryDevicesChanged(callback) {
+	deviceListeners.add(callback);
+	return () => deviceListeners.delete(callback);
+};
+
+export function refreshBatteryDevices() {
+	const now = Date.now();
+
+	if (refreshPromise || now - lastRefreshAt < REFRESH_MIN_INTERVAL_MS) {
+		return refreshPromise;
+	};
+
+	lastRefreshAt = now;
+	refreshPromise = (async () => {
+		let devices = cachedDevices;
+
+		try {
+			const [upower, bluez] = await Promise.all([readUPowerDevices(), readBlueZDevices()]);
+			devices = mergeDevices([...upower, ...bluez]);
+		} catch (error) {
+			warn('battery-refresh', `Could not refresh batteries: ${error.message}`);
+		};
+
+		const signature = devicesSignature(devices);
+
+		if (signature !== cachedSignature) {
+			cachedSignature = signature;
+			cachedDevices = devices;
+
+			for (const callback of [...deviceListeners]) {
+				try {
+					callback(devices);
+				} catch (error) {
+					warn('battery-listener', `Battery listener failed: ${error.message}`);
+				};
+			};
+		};
+
+		return devices;
+	})().finally(() => {
+		refreshPromise = null;
+	});
+
+	return refreshPromise;
 };
 
 const BatteryRing = GObject.registerClass(
@@ -392,7 +466,8 @@ function createSlot(device, theme, createLabel, plan, showPercent) {
 export function render({body, createLabel, theme, sizeForWidget, widget, settings}) {
 	const slotLimit = Math.max(1, Math.min(8, Number(settings?.get_int('battery-slot-count') ?? SLOT_COUNT_DEFAULT)));
 	const showPercent = settings?.get_boolean('battery-show-percent') !== false;
-	const devices = readDevices().slice(0, slotLimit);
+	const devices = getCachedBatteryDevices().slice(0, slotLimit);
+	refreshBatteryDevices();
 	const iconKey = String(settings?.get_string('battery-icon-size') ?? 'medium');
 	const iconRatio = ICON_RATIOS[iconKey] ?? ICON_RATIOS.medium;
 	const [width, height] = sizeForWidget ? sizeForWidget(widget) : [454, 220];

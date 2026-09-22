@@ -10,7 +10,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: widgets/notes/widget.js:54
 msgid ""
@@ -77,7 +78,9 @@ msgid "Add Widget"
 msgstr "Додати віджет"
 
 #: prefs.js:875
-msgid "Adjust the visual size of the device indicators displayed inside the battery charge rings."
+msgid ""
+"Adjust the visual size of the device indicators displayed inside the battery "
+"charge rings."
 msgstr "Налаштувати розмір індикаторів пристроїв усередині кілець заряду."
 
 #: prefs.js:430
@@ -93,8 +96,11 @@ msgid "Animation shown when no track is playing"
 msgstr "Анімація, коли нічого не грає"
 
 #: prefs.js:982 prefs.js:1040
-msgid "App launched when the widget is clicked. Takes priority over built-in players"
-msgstr "Застосунок, що запускається при натисканні на віджет. Має пріоритет над вбудованими плеєрами"
+msgid ""
+"App launched when the widget is clicked. Takes priority over built-in players"
+msgstr ""
+"Застосунок, що запускається при натисканні на віджет. Має пріоритет над "
+"вбудованими плеєрами"
 
 #: prefs.js:29 widgets/applauncher/widget.js:175
 msgid "App Launcher"
@@ -114,11 +120,13 @@ msgstr "Вигляд годинника на вашому робочому ст�
 
 #: prefs.js:1168
 msgid "Applied to all GitHub widgets. Empty to set a username per widget"
-msgstr "Застосовується до всіх віджетів GitHub. Порожнє — щоб задавати ім’я окремо для кожного віджета"
+msgstr ""
+"Застосовується до всіх віджетів GitHub. Порожнє — щоб задавати ім’я окремо "
+"для кожного віджета"
 
 #: prefs.js:1733
-msgid "Apply a light glass effect with transparency and blur to all widgets"
-msgstr "Застосовувати до віджетів ефект світлого скла з прозорістю та розмиттям"
+msgid "Apply a glass effect with transparency and blur to all widgets"
+msgstr "Застосовувати до віджетів ефект скла з прозорістю та розмиттям"
 
 #: prefs.js:1541
 msgid "Apps"
@@ -173,8 +181,8 @@ msgid "Bluetooth"
 msgstr "Bluetooth"
 
 #: prefs.js:1740
-msgid "Blur radius of the light glass effect"
-msgstr "Радіус розмиття ефекту світлого скла"
+msgid "Blur radius of the glass effect"
+msgstr "Радіус розмиття ефекту скла"
 
 #: prefs.js:1801
 msgid "Blur radius of the shadow"
@@ -265,7 +273,9 @@ msgid "Configure desktop widgets. Changes apply immediately."
 msgstr "Налаштуйте віджети. Зміни застосовуються одразу."
 
 #: prefs.js:851
-msgid "Configure how your pictures are scaled and cropped inside the Photos widget bounds."
+msgid ""
+"Configure how your pictures are scaled and cropped inside the Photos widget "
+"bounds."
 msgstr "Налаштуйте масштабування та обрізку світлин."
 
 #: prefs.js:61
@@ -458,7 +468,9 @@ msgstr "Прозорість скла"
 
 #: prefs.js:765
 msgid "Global shortcut to toggle edit mode. Press Backspace to clear."
-msgstr "Глобальна гаряча клавіша для увімкнення режиму редагування. Backspace — очистити."
+msgstr ""
+"Глобальна гаряча клавіша для увімкнення режиму редагування. Backspace — "
+"очистити."
 
 #: widgets/weather/widget.js:637
 msgid "GNOME Weather"
@@ -545,8 +557,8 @@ msgid "License"
 msgstr "Ліцензія"
 
 #: prefs.js:1732
-msgid "Light Glass Style"
-msgstr "Стиль «Світле скло»"
+msgid "Glass Style"
+msgstr "Стиль «Скло»"
 
 #: widgets/todo/widget.js:48
 msgid "Linux os"
@@ -689,8 +701,8 @@ msgid "Only available in the 2×1 and 2×1 mini sizes"
 msgstr "Доступно лише в розмірах 2×1 та 2×1 mini"
 
 #: prefs.js:1759
-msgid "Opacity of the light glass background"
-msgstr "Прозорість фону світлого скла"
+msgid "Opacity of the glass background"
+msgstr "Прозорість фону скла"
 
 #: widgets/weather/widget.js:636
 msgid "Open Weather to set a location"
@@ -709,8 +721,12 @@ msgid "Overwrite existing layout?"
 msgstr "Замінити наявну розкладку?"
 
 #: prefs.js:925
-msgid "Per-app screen time is tracked automatically while the widget is on your desktop."
-msgstr "Час екрана за окремими застосунками відстежується автоматично, поки віджет на робочому столі."
+msgid ""
+"Per-app screen time is tracked automatically while the widget is on your "
+"desktop."
+msgstr ""
+"Час екрана за окремими застосунками відстежується автоматично, поки віджет "
+"на робочому столі."
 
 #: prefs.js:857
 msgid "Photo size"
@@ -757,7 +773,8 @@ msgid "Preset name"
 msgstr "Назва пресету"
 
 #: prefs.js:959
-msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
+msgid ""
+"Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
 msgstr "Не дозволяти браузерам перехоплювати віджет музики."
 
 #: widgets/notes/widget.js:53
@@ -953,8 +970,11 @@ msgid "Use GitHub Green Colors"
 msgstr "Використовувати зелені кольори GitHub"
 
 #: prefs.js:1155
-msgid "Use GitHub's default green color scheme instead of the theme accent color"
-msgstr "Використовувати фірмову зелену кольорову схему GitHub замість акцентного кольору теми"
+msgid ""
+"Use GitHub's default green color scheme instead of the theme accent color"
+msgstr ""
+"Використовувати фірмову зелену кольорову схему GitHub замість акцентного "
+"кольору теми"
 
 #: prefs.js:1946
 msgid "Version %s"
@@ -1003,3 +1023,21 @@ msgstr "Оформлення"
 #: prefs.js:336
 msgid "Widgets"
 msgstr "Віджети"
+
+#: prefs.js:43
+msgid "System Monitor"
+msgstr "Системний монітор"
+
+#: prefs.js:1821
+msgid "⚠ Warning: Glass Style increases GPU usage"
+msgstr "⚠ Попередження: Glass Style підвищує навантаження на GPU"
+
+#: prefs.js:1822
+msgid ""
+"Glass widgets are redrawn every frame with transparency effects, which "
+"raises GPU load. If the desktop becomes slow or your GPU heats up, turn "
+"Glass Style off."
+msgstr ""
+"Скляні віджети перемальовуються на кожному кадрі з ефектами прозорості, що "
+"підвищує навантаження на GPU. Якщо робочий стіл став повільним або GPU "
+"перегрівається, вимкніть Glass Style."

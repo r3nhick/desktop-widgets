@@ -156,6 +156,11 @@
       <summary>Light glass opacity</summary>
       <description>Opacity of the light glass background, from 0.1 (nearly transparent) to 1.0 (fully opaque).</description>
     </key>
+    <key name="drag-active" type="b">
+      <default>false</default>
+      <summary>Slider drag in progress</summary>
+      <description>Internal flag set by the preferences window while a slider is being dragged, used to defer widget re-rendering until the drag ends.</description>
+    </key>
     <key name="notes-title-font-size" type="i">
       <default>16</default>
       <summary>Notes title font size</summary>
