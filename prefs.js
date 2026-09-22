@@ -22,6 +22,7 @@ const WIDGET_TYPES = [
     {type: 'todo'},
     {type: 'github'},
     {type: 'screentime'},
+    {type: 'system'},
     {type: 'notes'},
 ];
 
