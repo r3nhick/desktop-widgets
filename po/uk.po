@@ -1041,3 +1041,23 @@ msgstr ""
 "Скляні віджети перемальовуються на кожному кадрі з ефектами прозорості, що "
 "підвищує навантаження на GPU. Якщо робочий стіл став повільним або GPU "
 "перегрівається, вимкніть Glass Style."
+
+#: widgets/calendar/widget.js:545
+msgid "All day"
+msgstr "Весь день"
+
+#: widgets/calendar/widget.js:568
+msgid "Tomorrow"
+msgstr "Завтра"
+
+#: widgets/calendar/widget.js:572
+msgid "Tomorrow, %s"
+msgstr "Завтра, %s"
+
+#: widgets/calendar/widget.js:571
+msgid "T"
+msgstr "T"
+
+#: widgets/calendar/widget.js:572
+msgid "T %s"
+msgstr "T %s"

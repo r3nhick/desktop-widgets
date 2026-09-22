@@ -1038,6 +1038,26 @@ msgid ""
 "raises GPU load. If the desktop becomes slow or your GPU heats up, turn "
 "Glass Style off."
 msgstr ""
-"Стеклянные виджеты перерисовываются на каждом кадре с эффектами прозрачности, "
-"что повышает нагрузку на GPU. Если рабочий стол стал медленным или GPU "
-"перегревается, отключите Glass Style."
+"Стеклянные виджеты перерисовываются на каждом кадре с эффектами "
+"прозрачности, что повышает нагрузку на GPU. Если рабочий стол стал медленным "
+"или GPU перегревается, отключите Glass Style."
+
+#: widgets/calendar/widget.js:545
+msgid "All day"
+msgstr "Весь день"
+
+#: widgets/calendar/widget.js:568
+msgid "Tomorrow"
+msgstr "Завтра"
+
+#: widgets/calendar/widget.js:572
+msgid "Tomorrow, %s"
+msgstr "Завтра, %s"
+
+#: widgets/calendar/widget.js:571
+msgid "T"
+msgstr "T"
+
+#: widgets/calendar/widget.js:572
+msgid "T %s"
+msgstr "T %s"

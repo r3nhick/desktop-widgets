@@ -83,6 +83,7 @@ export class CalendarEventsClient {
       };
 
       this._events.set(uid, {
+        id: uid,
         start: Number(ev?.[2]) || 0,
         end: Number(ev?.[3]) || 0,
         summary: String(ev?.[1] ?? ''),
@@ -307,6 +308,57 @@ function fitWeekdayFontSize(weekdays, cellWidth, desiredFont, minFont = 9) {
 
 function noEventsToday() {
 	return _('No events today');
+}
+
+function isAllDayEvent(event) {
+	// The calendar server doesn't report an all-day flag, so infer it from
+	// timestamps: the event starts at local midnight and spans a whole number
+	// of days (a ±1 h tolerance covers DST transitions).
+	const start = new Date(event.start * 1000);
+	if (start.getHours() !== 0 || start.getMinutes() !== 0 || start.getSeconds() !== 0)
+		return false;
+	const duration = event.end - event.start;
+	return duration >= 82800 && Math.abs(duration % 86400) <= 3600;
+}
+
+function formatEventTime(event, settings) {
+	const start = new Date(event.start * 1000);
+	const minutes = String(start.getMinutes()).padStart(2, '0');
+	const hourFormat = settings?.get_string('digitalclock-hour-format') ?? '24';
+	if (hourFormat === '12') {
+		const hours = ((start.getHours() + 11) % 12) + 1;
+		const showAmPm = settings?.get_boolean('digitalclock-show-ampm') ?? true;
+		const amPm = start.getHours() < 12 ? 'AM' : 'PM';
+		return `${hours}:${minutes}${showAmPm ? ` ${amPm}` : ''}`;
+	}
+	return `${String(start.getHours()).padStart(2, '0')}:${minutes}`;
+}
+
+// Palette used to color event rows. The calendar server doesn't report a
+// per-source color, so each calendar gets a stable color derived from its
+// source UID (embedded in the event id as "source_uid\ncomp_uid\ncomp_rid"),
+// matching how the Calendar app keeps one color per calendar instead of
+// cycling by list position.
+const EVENT_COLORS = ['#ff6600', '#3584e4', '#33d17a', '#f6d32d', '#9141ac', '#e01b24'];
+
+function hashString(str) {
+	let hash = 5381;
+	for (let i = 0; i < str.length; i++)
+		hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+	return hash;
+}
+
+function sourceColor(eventId) {
+	const sourceId = String(eventId ?? '').split('\n')[0];
+	return EVENT_COLORS[Math.abs(hashString(sourceId)) % EVENT_COLORS.length];
+}
+
+function isTomorrowEvent(event, now) {
+	const d = new Date(event.start * 1000);
+	const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+	return d.getFullYear() === tomorrow.getFullYear() &&
+		d.getMonth() === tomorrow.getMonth() &&
+		d.getDate() === tomorrow.getDate();
 };
 
 function calendarCell(text, labelStyle, cellStyle, createLabel, cellWidth, cellHeight, interactive = false, boost = 0, labelModifier = null) {
@@ -444,7 +496,7 @@ export function style(theme) {
 
 const eventsHandlers = new WeakMap();
 
-function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
+function fillEventsBox(container, {eventsClient, now, secondary, createLabel, settings}) {
 	container.destroy_all_children();
 
 	const eventLabel = (text, style) => createLabel(
@@ -466,13 +518,12 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
 	// Show all today's events, not just 2
 	const shown = [...todayEvents];
 
-	// If no events today, show upcoming
+	// If no events today, show tomorrow's events only (capped)
 	if (!shown.length) {
-		const upcoming = eventsClient
-			.nextEventsFrom(Math.floor(now.getTime() / 1000), 5)
-			.slice(0, 3);
+		const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+		const tomorrowEvents = eventsClient.eventsForDate(tomorrow).slice(0, 3);
 
-		for (const event of upcoming) {
+		for (const event of tomorrowEvents) {
 			shown.push(event);
 		};
 	};
@@ -482,14 +533,10 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
 		return;
 	};
 
-	// Event colors cycling through a palette
-	const eventColors = ['#ff6600', '#3584e4', '#33d17a', '#f6d32d', '#9141ac', '#e01b24'];
-	let colorIndex = 0;
-
 	for (const event of shown) {
 		const text = event.summary && event.summary.trim() ? event.summary.trim() : '…';
-		const eventColor = eventColors[colorIndex % eventColors.length];
-		colorIndex++;
+		// Stable color per calendar source (like the Calendar app)
+		const eventColor = sourceColor(event.id);
 
 		// Event item container with border and dark background
 		const eventItem = new St.BoxLayout({
@@ -501,7 +548,7 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
 		// Colored vertical indicator line on the left
 		const colorBar = new St.Widget({
 			style_class: 'widget-calendar-event-color',
-			style: `background-color: ${eventColor}; width: 3px; border-radius: 6px 0 0 6px; min-height: 30px;`,
+			style: `background-color: ${eventColor}; width: 3px; border-radius: 6px 0 0 6px; min-height: 26px;`,
 		});
 		eventItem.add_child(colorBar);
 
@@ -509,12 +556,36 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel}) {
 		const eventTextLabel = createLabel(
 			text,
 			'widget-calendar-events',
-			`font-size: 13px; font-weight: 500; color: ${secondary}; padding: 6px 10px;`
+			`font-size: 13px; font-weight: 500; color: ${secondary}; padding: 4px 8px;`
 		);
 		eventTextLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
 		eventTextLabel.clutter_text.line_wrap = false;
 		eventTextLabel.x_expand = true;
 		eventItem.add_child(eventTextLabel);
+
+		// "T" + time / "T" / "All day" / start time, pinned to the right of the
+		// summary text (compact tomorrow marker)
+		let timeText;
+		if (isTomorrowEvent(event, now)) {
+			timeText = isAllDayEvent(event)
+				? _('T')
+				: _('T %s').format(formatEventTime(event, settings));
+		} else {
+			timeText = isAllDayEvent(event)
+				? _('All day')
+				: formatEventTime(event, settings);
+		};
+		const eventTimeLabel = createLabel(
+			timeText,
+			'widget-calendar-events',
+			`font-size: 11px; font-weight: 600; color: ${secondary}; padding: 4px 8px 4px 2px;`
+		);
+		// createLabel() defaults to x_expand=true; unset it so the label keeps
+		// its natural width and, after the expanding summary label, always sits
+		// flush against the right edge of the row.
+		eventTimeLabel.x_expand = false;
+		eventTimeLabel.clutter_text.line_wrap = false;
+		eventItem.add_child(eventTimeLabel);
 
 		container.add_child(eventItem);
 	};
@@ -597,7 +668,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 				// is already loaded and requestRange() no-ops on the same
 				// range, so nothing ever re-triggers this again. Populating an
 				// unmapped box is harmless; it shows once mapped.
-				fillEventsBox(eventsBox, {eventsClient: events, now, secondary, createLabel});
+				fillEventsBox(eventsBox, {eventsClient: events, now, secondary, createLabel, settings});
 			};
 
 			const dispose = events.onChange(refresh);
@@ -609,7 +680,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 			const startEpoch = Math.floor(dayStart.getTime() / 1000);
 			events.requestRange(startEpoch, startEpoch + EVENTS_WINDOW_DAYS * 86400);
 		} else {
-			fillEventsBox(eventsBox, {eventsClient: null, now, secondary, createLabel});
+			fillEventsBox(eventsBox, {eventsClient: null, now, secondary, createLabel, settings});
 		};
 
 		const right = new St.BoxLayout({

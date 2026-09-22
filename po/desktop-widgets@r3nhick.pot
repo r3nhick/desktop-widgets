@@ -1045,3 +1045,23 @@ msgstr ""
 #: prefs.js:1822
 msgid "Glass widgets are redrawn every frame with transparency effects, which raises GPU load. If the desktop becomes slow or your GPU heats up, turn Glass Style off."
 msgstr ""
+
+#: widgets/calendar/widget.js:545
+msgid "All day"
+msgstr ""
+
+#: widgets/calendar/widget.js:568
+msgid "Tomorrow"
+msgstr ""
+
+#: widgets/calendar/widget.js:572
+msgid "Tomorrow, %s"
+msgstr ""
+
+#: widgets/calendar/widget.js:571
+msgid "T"
+msgstr ""
+
+#: widgets/calendar/widget.js:572
+msgid "T %s"
+msgstr ""
