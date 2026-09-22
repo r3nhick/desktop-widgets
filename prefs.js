@@ -38,6 +38,7 @@ const widgetTypeLabel = (type) => ({
     todo: _('Task'),
     github: _('GitHub Activity'),
     screentime: _('Screen Time'),
+    system: _('System Monitor'),
     notes: _('Notes'),
 }[type] ?? type);
 
@@ -54,6 +55,7 @@ const DEFAULT_SIZES = {
     todo: 'medium',
     github: 'medium',
     screentime: 'medium',
+    system: 'small',
     notes: 'medium',
 };
 
