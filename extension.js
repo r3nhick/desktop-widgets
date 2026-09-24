@@ -259,11 +259,11 @@ function rectForWidget(widget) {
   };
 };
 
-function rectsOverlap(a, b) {
-  return a.x < b.x + b.width + WIDGET_GAP &&
-    a.x + a.width + WIDGET_GAP > b.x &&
-    a.y < b.y + b.height + WIDGET_GAP &&
-    a.y + a.height + WIDGET_GAP > b.y;
+function rectsOverlap(a, b, gap = WIDGET_GAP) {
+  return a.x < b.x + b.width + gap &&
+    a.x + a.width + gap > b.x &&
+    a.y < b.y + b.height + gap &&
+    a.y + a.height + gap > b.y;
 };
 
 function raiseActor(actor) {
@@ -363,6 +363,7 @@ class WidgetController {
   };
 
   enable() {
+    this._widgetGap = this._readWidgetGap();
     this._widgets = this._loadWidgets();
     this._saveWidgets();
     // Clear any stale drag flag left behind by a crashed preferences window.
@@ -382,6 +383,9 @@ class WidgetController {
         this._rebuildWidgets();
       },
       'changed::edit-mode', () => this.setEditMode(this._layoutSettings.get_boolean('edit-mode')),
+      'changed::widget-gap', () => {
+        this._widgetGap = this._readWidgetGap();
+      },
       'changed::photo-size', () => this._scheduleAppearance('refresh'),
       'changed::battery-icon-size', () => this._scheduleAppearance('refresh'),
       'changed::battery-slot-count', () => this._scheduleAppearance('refresh'),
@@ -1037,6 +1041,7 @@ class WidgetController {
       return;
     };
 
+    const gap = this._widgetGap ?? WIDGET_GAP;
     const layerX = this._layerX ?? 0;
     const layerY = this._layerY ?? 0;
     const monitors = effectiveMonitors();
@@ -1071,11 +1076,11 @@ class WidgetController {
       const minY = monY + topYFor(monitor);
       const widths = [...new Set(movable.map(widget => sizeForWidget(widget)[0]))].sort((a, b) => a - b);
       const columns = [];
-      let colX = monX + WIDGET_GAP;
+      let colX = monX + gap;
 
       for (const width of widths) {
         columns.push({width, x: colX, widgets: []});
-        colX += width + WIDGET_GAP;
+        colX += width + gap;
       };
 
       for (const widget of movable) {
@@ -1093,9 +1098,9 @@ class WidgetController {
         for (const widget of column.widgets) {
           const [width, height] = sizeForWidget(widget);
 
-          widget.x = clamp(snap(column.x), monX + WIDGET_GAP, Math.max(monX + WIDGET_GAP, monX + monitor.width - width - WIDGET_GAP));
-          widget.y = clamp(snap(y), minY, Math.max(minY, monY + monitor.height - height - WIDGET_GAP));
-          y += height + WIDGET_GAP;
+          widget.x = clamp(snap(column.x), monX + gap, Math.max(monX + gap, monX + monitor.width - width - gap));
+          widget.y = clamp(snap(y), minY, Math.max(minY, monY + monitor.height - height - gap));
+          y += height + gap;
         };
       };
     };
@@ -1128,17 +1133,18 @@ class WidgetController {
     const [width, height] = sizeForWidget(widget);
     const layerX = this._layerX ?? 0;
     const layerY = this._layerY ?? 0;
+    const gap = this._widgetGap ?? WIDGET_GAP;
     const monitor = monitorAtStage(
       effectiveMonitors(),
       x + layerX + width / 2,
       y + layerY + height / 2);
 
-    const xCandidates = [(monitor?.x ?? layerX) - layerX + WIDGET_GAP];
+    const xCandidates = [(monitor?.x ?? layerX) - layerX + gap];
     const yCandidates = [(monitor?.y ?? layerY) - layerY + topYFor(monitor)];
 
     if (monitor) {
-      xCandidates.push(monitor.x - layerX + monitor.width - WIDGET_GAP - width);
-      yCandidates.push(monitor.y - layerY + monitor.height - WIDGET_GAP - height);
+      xCandidates.push(monitor.x - layerX + monitor.width - gap - width);
+      yCandidates.push(monitor.y - layerY + monitor.height - gap - height);
     };
 
     for (const other of this._widgets) {
@@ -1809,7 +1815,40 @@ class WidgetController {
 
       drag = null;
       this._clampWidget(widget);
-      this._resolveLayout(widget, true, false);
+      
+      // Перевірити чи віджет перетинається з іншими
+      const widgetRect = rectForWidget(widget);
+      const otherWidgets = this._widgets.filter(w => w !== widget);
+      const gap = this._widgetGap ?? WIDGET_GAP;
+      const hasOverlap = otherWidgets.some(other => 
+        rectsOverlap(widgetRect, rectForWidget(other), gap)
+      );
+      
+      if (hasOverlap) {
+        // Зберегти поточну позицію drop як origin для пошуку найближчої вільної
+        const originX = widget.x;
+        const originY = widget.y;
+        
+        // Знайти найближчу вільну клітинку на сітці
+        const position = this._findOpenPosition(widget, otherWidgets);
+        
+        // Fallback: якщо не знайшли вільну позицію (координати не змінилися),
+        // повернутися на oldX/oldY
+        if (position.x === originX && position.y === originY && 
+            widget.oldX !== undefined && widget.oldY !== undefined) {
+          widget.x = widget.oldX;
+          widget.y = widget.oldY;
+        } else {
+          widget.x = position.x;
+          widget.y = position.y;
+        }
+        
+        this._clampWidget(widget);
+      }
+      
+      delete widget.oldX;
+      delete widget.oldY;
+      
       this._animateWidget(widget, true);
       this._cancelActiveDrag();
       this._saveWidgets();
@@ -1828,10 +1867,11 @@ class WidgetController {
         return;
       };
 
-      const minX = monitor.x + WIDGET_GAP;
+      const gap = this._widgetGap ?? WIDGET_GAP;
+      const minX = monitor.x + gap;
       const minY = monitor.y + topYFor(monitor);
-      const maxX = Math.max(minX, monitor.x + monitor.width - width - WIDGET_GAP);
-      const maxY = Math.max(minY, monitor.y + monitor.height - height - WIDGET_GAP);
+      const maxX = Math.max(minX, monitor.x + monitor.width - width - gap);
+      const maxY = Math.max(minY, monitor.y + monitor.height - height - gap);
 
       widget.x = clamp(snap(drag.baseStageX + stageX - drag.stageX), minX, maxX) - (this._layerX ?? 0);
       widget.y = clamp(snap(drag.baseStageY + stageY - drag.stageY), minY, maxY) - (this._layerY ?? 0);
@@ -1842,7 +1882,6 @@ class WidgetController {
       widget.y = snapped.y;
       actor.set_position(widget.x, widget.y);
       this._syncEditControls(widget);
-      this._resolveLayout(widget, false, false);
     };
 
     actor.connectObject('button-press-event', (_source, event) => {
@@ -1866,6 +1905,8 @@ class WidgetController {
       view.contextMenu?.hide();
 
       const [stageX, stageY] = event.get_coords();
+      widget.oldX = widget.x;
+      widget.oldY = widget.y;
       drag = {
         stageX,
         stageY,
@@ -1885,6 +1926,7 @@ class WidgetController {
         const eventType = capturedEvent.type();
         const isMotion = eventType === Clutter.EventType.MOTION || eventType === Clutter.EventType.MOTION_NOTIFY;
         const isRelease = eventType === Clutter.EventType.BUTTON_RELEASE;
+        const isKeyPress = eventType === Clutter.EventType.KEY_PRESS;
 
         if (isMotion) {
           moveDrag(capturedEvent);
@@ -1893,6 +1935,17 @@ class WidgetController {
 
         if (isRelease) {
           finishDrag();
+          return Clutter.EVENT_STOP;
+        };
+
+        if (isKeyPress && capturedEvent.get_key_symbol() === Clutter.KEY_Escape) {
+          drag = null;
+          widget.x = widget.oldX;
+          widget.y = widget.oldY;
+          delete widget.oldX;
+          delete widget.oldY;
+          actor.set_position(widget.x, widget.y);
+          this._cancelActiveDrag();
           return Clutter.EVENT_STOP;
         };
 
@@ -2202,6 +2255,15 @@ class WidgetController {
     return label;
   };
 
+  _readWidgetGap() {
+    try {
+      const gap = this._layoutSettings.get_int('widget-gap');
+      return Number.isFinite(gap) && gap >= 0 ? gap : 10;
+    } catch (_error) {
+      return 10;
+    };
+  };
+
   _clampWidget(widget) {
     const layerX = this._layerX ?? 0;
     const layerY = this._layerY ?? 0;
@@ -2217,10 +2279,11 @@ class WidgetController {
 
     const monX = monitor.x - layerX;
     const monY = monitor.y - layerY;
-    const minX = monX + WIDGET_GAP;
+    const gap = this._widgetGap ?? WIDGET_GAP;
+    const minX = monX + gap;
     const minY = monY + topYFor(monitor);
-    const maxX = Math.max(minX, monX + monitor.width - width - WIDGET_GAP);
-    const maxY = Math.max(minY, monY + monitor.height - height - WIDGET_GAP);
+    const maxX = Math.max(minX, monX + monitor.width - width - gap);
+    const maxY = Math.max(minY, monY + monitor.height - height - gap);
     const x = clamp(snap(widget.x), minX, maxX);
     const y = clamp(snap(widget.y), minY, maxY);
 
@@ -2265,8 +2328,9 @@ class WidgetController {
   _positionIsFreeAgainst(widget, x, y, blockingWidgets) {
     const [width, height] = sizeForWidget(widget);
     const rect = {x, y, width, height};
+    const gap = this._widgetGap ?? WIDGET_GAP;
 
-    return !blockingWidgets.some(other => other !== widget && rectsOverlap(rect, rectForWidget(other)));
+    return !blockingWidgets.some(other => other !== widget && rectsOverlap(rect, rectForWidget(other), gap));
   };
 
   _findOpenPosition(widget, blockingWidgets = []) {
@@ -2284,10 +2348,11 @@ class WidgetController {
 
     const monX = monitor.x - layerX;
     const monY = monitor.y - layerY;
-    const minX = monX + WIDGET_GAP;
+    const gap = this._widgetGap ?? WIDGET_GAP;
+    const minX = monX + gap;
     const minY = monY + topYFor(monitor);
-    const maxX = Math.max(minX, monX + monitor.width - width - WIDGET_GAP);
-    const maxY = Math.max(minY, monY + monitor.height - height - WIDGET_GAP);
+    const maxX = Math.max(minX, monX + monitor.width - width - gap);
+    const maxY = Math.max(minY, monY + monitor.height - height - gap);
     const originX = clamp(snap(widget.x), minX, maxX);
     const originY = clamp(snap(widget.y), minY, maxY);
     const candidates = [];
@@ -2330,7 +2395,9 @@ class WidgetController {
 
       this._clampWidget(widget);
 
-      if (settled.some(other => rectsOverlap(rectForWidget(widget), rectForWidget(other)))) {
+      const gap = this._widgetGap ?? WIDGET_GAP;
+
+      if (settled.some(other => rectsOverlap(rectForWidget(widget), rectForWidget(other), gap))) {
         const position = this._findOpenPosition(widget, settled);
         widget.x = position.x;
         widget.y = position.y;
