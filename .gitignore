@@ -11,3 +11,6 @@ opencode.json
 agent.md
 .ignore
 AGENTS.md
+
+# internal AI dev docs — not for the public repo
+/docs/
