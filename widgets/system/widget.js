@@ -641,6 +641,9 @@ export function render({body, theme, widget, sizeForWidget}) {
       }
       
       sparkArea.queue_repaint();
+      
+      // Перерозподілити ширину tiles після оновлення тексту (особливо для network)
+      layoutTiles();
     };
 
     let startX = 0;
@@ -787,6 +790,9 @@ export function render({body, theme, widget, sizeForWidget}) {
         
         tile.sparkArea.queue_repaint();
       }
+      
+      // Перерозподілити ширину tiles після оновлення тексту (особливо для network)
+      layoutTiles();
     };
 
     let startX = 0;
