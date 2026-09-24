@@ -171,5 +171,11 @@
       <summary>Notes content font size</summary>
       <description>Font size in pixels for the Notes widget content text.</description>
     </key>
+    <key name="widget-gap" type="i">
+      <default>10</default>
+      <summary>Widget gap in pixels</summary>
+      <description>Space between widgets and screen edges (0-50px)</description>
+      <range min="0" max="50"/>
+    </key>
   </schema>
 </schemalist>

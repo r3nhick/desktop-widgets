@@ -32,10 +32,10 @@ const EXTENSION_PATH = GLib.path_get_dirname(GLib.filename_from_uri(import.meta.
 const LAYOUT_KEY = 'layout-json';
 const LAYOUT_VERSION = 2;
 const GRID_SIZE = 20;
-const WIDGET_GAP = 14;
+const WIDGET_GAP = 10;
 const SNAP_DISTANCE = 12;
 const CELL_SIZE = 190;
-const MEDIUM_WIDGET_WIDTH = CELL_SIZE * 2 + WIDGET_GAP;
+const MEDIUM_WIDGET_WIDTH = CELL_SIZE * 2;  // 380 без gap
 const MINI_WIDGET_WIDTH = 260;
 const MINI_WIDGET_HEIGHT = 120;
 const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
@@ -83,9 +83,9 @@ const WIDGET_SIZES = {
   medium: [MEDIUM_WIDGET_WIDTH, CELL_SIZE], // 2x1
   portrait: [CELL_SIZE, MEDIUM_WIDGET_WIDTH], // 1x2
   large: [MEDIUM_WIDGET_WIDTH, MEDIUM_WIDGET_WIDTH], // 2x2
-  tall: [MEDIUM_WIDGET_WIDTH, CELL_SIZE * 4 + WIDGET_GAP * 3], // 2x4
-  wide: [CELL_SIZE * 4 + WIDGET_GAP * 3, MEDIUM_WIDGET_WIDTH], // 4x2
-  huge: [CELL_SIZE * 4 + WIDGET_GAP * 3, CELL_SIZE * 4 + WIDGET_GAP * 3], // 4x4
+  tall: [MEDIUM_WIDGET_WIDTH, CELL_SIZE * 4], // 2x4 = 380x760
+  wide: [CELL_SIZE * 4, MEDIUM_WIDGET_WIDTH], // 4x2 = 760x380
+  huge: [CELL_SIZE * 4, CELL_SIZE * 4], // 4x4 = 760x760
 };
 
 const SIZE_LABELS = {
@@ -302,7 +302,7 @@ function effectiveMonitors() {
 function topYFor(monitor) {
   const isPrimary = !!monitor?.isPrimary || monitor?.index === Main.layoutManager.primaryIndex;
 
-  return isPrimary && Main.panel?.height ? Main.panel.height + WIDGET_GAP : WIDGET_GAP;
+  return isPrimary && Main.panel?.height ? Main.panel.height : 0;
 };
 
 function monitorAtStage(monitors, x, y) {
@@ -385,6 +385,9 @@ class WidgetController {
       'changed::edit-mode', () => this.setEditMode(this._layoutSettings.get_boolean('edit-mode')),
       'changed::widget-gap', () => {
         this._widgetGap = this._readWidgetGap();
+        this._debounce('gap-rebuild', () => {
+          this._rebuildWidgets();
+        }, 200);
       },
       'changed::photo-size', () => this._scheduleAppearance('refresh'),
       'changed::battery-icon-size', () => this._scheduleAppearance('refresh'),
@@ -1042,6 +1045,7 @@ class WidgetController {
     };
 
     const gap = this._widgetGap ?? WIDGET_GAP;
+    log(`[desktop-widgets] _arrangeWidgets using gap=${gap}, this._widgetGap=${this._widgetGap}, WIDGET_GAP=${WIDGET_GAP}`);
     const layerX = this._layerX ?? 0;
     const layerY = this._layerY ?? 0;
     const monitors = effectiveMonitors();
@@ -1073,7 +1077,7 @@ class WidgetController {
     for (const [monitor, movable] of movableByMonitor) {
       const monX = monitor.x - layerX;
       const monY = monitor.y - layerY;
-      const minY = monY + topYFor(monitor);
+      const minY = monY + topYFor(monitor) + gap;
       const widths = [...new Set(movable.map(widget => sizeForWidget(widget)[0]))].sort((a, b) => a - b);
       const columns = [];
       let colX = monX + gap;
@@ -1098,8 +1102,8 @@ class WidgetController {
         for (const widget of column.widgets) {
           const [width, height] = sizeForWidget(widget);
 
-          widget.x = clamp(snap(column.x), monX + gap, Math.max(monX + gap, monX + monitor.width - width - gap));
-          widget.y = clamp(snap(y), minY, Math.max(minY, monY + monitor.height - height - gap));
+          widget.x = clamp(column.x, monX + gap, Math.max(monX + gap, monX + monitor.width - width - gap));
+          widget.y = clamp(y, minY, Math.max(minY, monY + monitor.height - height - gap));
           y += height + gap;
         };
       };
@@ -1140,7 +1144,7 @@ class WidgetController {
       y + layerY + height / 2);
 
     const xCandidates = [(monitor?.x ?? layerX) - layerX + gap];
-    const yCandidates = [(monitor?.y ?? layerY) - layerY + topYFor(monitor)];
+    const yCandidates = [(monitor?.y ?? layerY) - layerY + topYFor(monitor) + gap];
 
     if (monitor) {
       xCandidates.push(monitor.x - layerX + monitor.width - gap - width);
@@ -1154,8 +1158,8 @@ class WidgetController {
 
       const [ow, oh] = sizeForWidget(other);
 
-      xCandidates.push(other.x, other.x + ow, other.x + ow - width);
-      yCandidates.push(other.y, other.y + oh, other.y + oh - height);
+      xCandidates.push(other.x - gap, other.x + ow + gap, other.x + ow - width + gap);
+      yCandidates.push(other.y - gap, other.y + oh + gap, other.y + oh - height + gap);
     };
 
     return {
@@ -1166,8 +1170,14 @@ class WidgetController {
 
   _snapToNearestEdge(widget) {
     const gap = this._widgetGap ?? WIDGET_GAP;
+    const layerX = this._layerX ?? 0;
+    const layerY = this._layerY ?? 0;
     const [width, height] = sizeForWidget(widget);
     const widgetRect = rectForWidget(widget);
+    const monitor = monitorAtStage(
+      effectiveMonitors(),
+      widget.x + layerX + width / 2,
+      widget.y + layerY + height / 2);
 
     // Знайти віджет, з яким перетинаємося. Pinned підходить як ціль:
     // він не рухається, тому віджет, що тягнеш, прилипає поруч з ним.
@@ -1188,11 +1198,23 @@ class WidgetController {
       {x: widget.x, y: overlapping.y + oh + gap},
     ];
 
+    // Кандидат має вміщуватися в моніторі з відступом gap: інакше після clamp'у
+    // віджет повернеться назад на зачеплений стос і лишиться в перетині.
+    const minX = (monitor?.x ?? layerX) - layerX + gap;
+    const minY = (monitor?.y ?? layerY) - layerY + topYFor(monitor) + gap;
+    const maxX = monitor ? Math.max(minX, monitor.x - layerX + monitor.width - width - gap) : Infinity;
+    const maxY = monitor ? Math.max(minY, monitor.y - layerY + monitor.height - height - gap) : Infinity;
+    const inBounds = (x, y) => x >= minX && x <= maxX && y >= minY && y <= maxY;
+
     // Найближча вільна позиція за Manhattan distance від місця drop.
     let best = null;
     let bestDistance = Infinity;
 
     for (const candidate of candidates) {
+      if (!inBounds(candidate.x, candidate.y)) {
+        continue;
+      };
+
       if (!this._positionIsFreeAgainst(widget, candidate.x, candidate.y, this._widgets)) {
         continue;
       };
@@ -1204,12 +1226,245 @@ class WidgetController {
       };
     };
 
-    // Якщо всі чотири краї зайняті, шукаємо будь-яку вільну клітинку на сітці монітора.
+    // Якщо всі чотири краї зайняті чи поза межами, шукаємо будь-яку вільну клітинку на сітці монітора.
     if (!best) {
       return this._findOpenPosition(widget, this._widgets);
     };
 
     return {x: best.x, y: best.y};
+  };
+
+  // Розсунути «стос» (щільний вертикальний стовпчик або горизонтальний ряд),
+  // щоб вмістити віджет без викидання його у вільну клітинку:
+  // середній (або закріплений / вказаний) лишається на місці, решта розсувається.
+  _spaceOut(widget, pool, anchorTarget = null) {
+    if (!this._layer || pool.length < 2) {
+      return [];
+    };
+
+    const gap = this._widgetGap ?? WIDGET_GAP;
+    const layerX = this._layerX ?? 0;
+    const layerY = this._layerY ?? 0;
+    const rect = rectForWidget(widget);
+    const monitor = monitorAtStage(
+      effectiveMonitors(),
+      widget.x + layerX + rect.width / 2,
+      widget.y + layerY + rect.height / 2);
+
+    if (!monitor) {
+      return [];
+    };
+
+    const others = pool.filter(other => other !== widget);
+
+    // Вертикальний стос: віджети в тій самій колонці (перетин проєкцій по X).
+    const columnMates = others.filter(other => {
+      const otherRect = rectForWidget(other);
+
+      return rect.x < otherRect.x + otherRect.width && rect.x + rect.width > otherRect.x;
+    });
+
+    if (columnMates.length) {
+      const column = this._tightRun(widget, columnMates, 'y');
+      const moved = this._spaceAxis(column, 'y', monitor, pool, gap, layerX, layerY, anchorTarget);
+
+      if (moved.length) {
+        return moved;
+      };
+    };
+
+    // Горизонтальний ряд: віджети в тому самому ряду (перетин проєкцій по Y).
+    const rowMates = others.filter(other => {
+      const otherRect = rectForWidget(other);
+
+      return rect.y < otherRect.y + otherRect.height && rect.y + rect.height > otherRect.y;
+    });
+
+    if (rowMates.length) {
+      const row = this._tightRun(widget, rowMates, 'x');
+      const moved = this._spaceAxis(row, 'x', monitor, pool, gap, layerX, layerY, anchorTarget);
+
+      if (moved.length) {
+        return moved;
+      };
+    };
+
+    return [];
+  };
+
+  // Щільний безперервний ланцюжок віджетів навколо widget вздовж осі:
+  // сусіди, що прилягають один до одного з відступом не більшим за gap.
+  _tightRun(widget, mates, axis) {
+    const gap = this._widgetGap ?? WIDGET_GAP;
+    const group = [...mates, widget];
+
+    group.sort((a, b) => {
+      const da = axis === 'y' ? a.y : a.x;
+      const db = axis === 'y' ? b.y : b.x;
+
+      return (da - db) || (axis === 'y' ? (a.x - b.x) : (a.y - b.y));
+    });
+
+    const index = group.indexOf(widget);
+    const coord = w => axis === 'y' ? w.y : w.x;
+    const sizeOf = w => {
+      const rect = rectForWidget(w);
+
+      return axis === 'y' ? rect.height : rect.width;
+    };
+
+    let start = index;
+    let end = index;
+
+    while (end + 1 < group.length &&
+      coord(group[end]) + sizeOf(group[end]) + gap >= coord(group[end + 1])) {
+      end += 1;
+    };
+    while (start - 1 >= 0 &&
+      coord(group[start - 1]) + sizeOf(group[start - 1]) + gap >= coord(group[start])) {
+      start -= 1;
+    };
+
+    return group.slice(start, end + 1);
+  };
+
+  // Переставити членів стосу вздовж осі так, щоб усі відступи стали точними.
+  // Якір (середній / закріплений / anchorTarget) не рухається; якщо з одного боку
+  // немає місця — якір переноситься на край; якщо не вміщується зовсім —
+  // зайві віджети виїжджають у вільні клітинки (_findOpenPosition).
+  _spaceAxis(members, axis, monitor, pool, gap, layerX, layerY, anchorTarget) {
+    const coord = widget => axis === 'y' ? widget.y : widget.x;
+    const setCoord = (widget, value) => {
+      if (axis === 'y') {
+        widget.y = value;
+      } else {
+        widget.x = value;
+      };
+    };
+    const sizeOf = widget => {
+      const rect = rectForWidget(widget);
+
+      return axis === 'y' ? rect.height : rect.width;
+    };
+
+    const sizes = members.map(sizeOf);
+    const n = members.length;
+    const min = axis === 'y'
+      ? monitor.y - layerY + topYFor(monitor) + gap
+      : monitor.x - layerX + gap;
+    const max = axis === 'y'
+      ? monitor.y - layerY + monitor.height - gap
+      : monitor.x - layerX + monitor.width - gap;
+    const pinnedIndexes = members
+      .map((widget, index) => widget.pinned ? index : -1)
+      .filter(index => index >= 0);
+
+    if (pinnedIndexes.length > 1) {
+      return [];
+    };
+
+    let anchorIndex = pinnedIndexes[0]
+      ?? (anchorTarget ? members.indexOf(anchorTarget) : null)
+      ?? Math.floor((n - 1) / 2);
+
+    if (!Number.isInteger(anchorIndex) || anchorIndex < 0 || anchorIndex >= n) {
+      return [];
+    };
+
+    const positions = new Array(n);
+
+    const place = (start, end) => {
+      positions[anchorIndex] = coord(members[anchorIndex]);
+
+      for (let i = anchorIndex - 1; i >= start; i--) {
+        positions[i] = positions[i + 1] - gap - sizes[i];
+      };
+      for (let i = anchorIndex + 1; i <= end; i++) {
+        positions[i] = positions[i - 1] + sizes[i - 1] + gap;
+      };
+
+      return {
+        overflowLow: positions[start] < min,
+        overflowHigh: positions[end] + sizes[end] > max,
+      };
+    };
+
+    let start = 0;
+    let end = n - 1;
+    let placed = place(start, end);
+
+    if (pinnedIndexes.length === 0) {
+      if (placed.overflowLow && placed.overflowHigh) {
+        // Не вміщується ні з одного боку: якір на край, зайве виїде.
+        anchorIndex = start;
+        placed = place(start, end);
+      } else if (placed.overflowLow) {
+        // Нема місця зверху/зліва: крайній лишається, решта рухається від нього.
+        anchorIndex = start;
+        placed = place(start, end);
+      } else if (placed.overflowHigh) {
+        // Нема місця знизу/справа: крайній лишається, решта рухається від нього.
+        anchorIndex = end;
+        placed = place(start, end);
+      };
+    };
+
+    while (placed.overflowLow && start < anchorIndex) {
+      start += 1;
+      placed = place(start, end);
+    };
+    while (placed.overflowHigh && end > anchorIndex) {
+      end -= 1;
+      placed = place(start, end);
+    };
+
+    if (placed.overflowLow || placed.overflowHigh) {
+      return [];
+    };
+
+    // Валідація: нові позиції не мають перетинатися з віджетами поза стосом.
+    const outside = pool.filter(member => !members.includes(member));
+
+    for (let i = start; i <= end; i++) {
+      const member = members[i];
+      const probe = {
+        x: axis === 'y' ? member.x : positions[i],
+        y: axis === 'y' ? positions[i] : member.y,
+        width: rectForWidget(member).width,
+        height: rectForWidget(member).height,
+      };
+
+      if (outside.some(other => rectsOverlap(probe, rectForWidget(other), gap))) {
+        return [];
+      };
+    };
+
+    const moved = [];
+
+    for (let i = start; i <= end; i++) {
+      const member = members[i];
+
+      if (coord(member) !== positions[i]) {
+        setCoord(member, positions[i]);
+        moved.push(member);
+      };
+    };
+
+    // Викинуті за межі стосу — у найближчу вільну клітинку.
+    for (let i = 0; i < n; i++) {
+      if (i >= start && i <= end) {
+        continue;
+      };
+
+      const evicted = members[i];
+      const position = this._findOpenPosition(evicted, pool);
+
+      evicted.x = position.x;
+      evicted.y = position.y;
+      moved.push(evicted);
+    };
+
+    return moved;
   };
 
   _rebuildWidgets() {
@@ -1864,18 +2119,29 @@ class WidgetController {
       drag = null;
       this._clampWidget(widget);
       
-      // Якщо віджет перетинається з іншими, прилипнути до найближчого вільного краю
+      // Якщо віджет перетинається з іншими — прилипнути до найближчого вільного краю:
+// під час перетягування рухається лише перетягнутий віджет, інші не чіпаємо
       const gap = this._widgetGap ?? WIDGET_GAP;
       const widgetRect = rectForWidget(widget);
       const hasOverlap = this._widgets.some(other =>
         other !== widget && rectsOverlap(widgetRect, rectForWidget(other), gap)
       );
-      
+
       if (hasOverlap) {
         const snapped = this._snapToNearestEdge(widget);
         widget.x = snapped.x;
         widget.y = snapped.y;
         this._clampWidget(widget);
+
+        // Страховка: якщо після snap+clamp віджет усе ще перетинається —
+        // відпустити його в найближчу вільну клітинку, щоб не лишався «застряглим».
+        if (this._widgets.some(other =>
+          other !== widget && rectsOverlap(rectForWidget(widget), rectForWidget(other), gap))) {
+          const open = this._findOpenPosition(widget, this._widgets);
+          widget.x = open.x;
+          widget.y = open.y;
+          this._clampWidget(widget);
+        };
       }
       
       delete widget.oldX;
@@ -1901,12 +2167,18 @@ class WidgetController {
 
       const gap = this._widgetGap ?? WIDGET_GAP;
       const minX = monitor.x + gap;
-      const minY = monitor.y + topYFor(monitor);
+      const minY = monitor.y + topYFor(monitor) + gap;
       const maxX = Math.max(minX, monitor.x + monitor.width - width - gap);
       const maxY = Math.max(minY, monitor.y + monitor.height - height - gap);
 
-      widget.x = clamp(snap(drag.baseStageX + stageX - drag.stageX), minX, maxX) - (this._layerX ?? 0);
-      widget.y = clamp(snap(drag.baseStageY + stageY - drag.stageY), minY, maxY) - (this._layerY ?? 0);
+      widget.x = clamp(drag.baseStageX + stageX - drag.stageX, minX, maxX) - (this._layerX ?? 0);
+      widget.y = clamp(drag.baseStageY + stageY - drag.stageY, minY, maxY) - (this._layerY ?? 0);
+
+      const monitorForDrag = monitorAtStage(
+        effectiveMonitors(),
+        drag.baseStageX + stageX - drag.stageX + width / 2,
+        drag.baseStageY + stageY - drag.stageY + height / 2);
+      log(`[desktop-widgets] drag gap=${gap} min=(${Math.round(minX)},${Math.round(minY)}) max=(${Math.round(maxX)},${Math.round(maxY)}) монітор=${monitorForDrag?.name ?? (monitor?.name ?? '?')} h=${monitorForDrag?.height ?? monitor?.height ?? '?'} wh=${this._layerX ?? 0}`)
 
       const snapped = this._snapEdges(widget, widget.x, widget.y);
 
@@ -2313,11 +2585,11 @@ class WidgetController {
     const monY = monitor.y - layerY;
     const gap = this._widgetGap ?? WIDGET_GAP;
     const minX = monX + gap;
-    const minY = monY + topYFor(monitor);
+    const minY = monY + topYFor(monitor) + gap;
     const maxX = Math.max(minX, monX + monitor.width - width - gap);
     const maxY = Math.max(minY, monY + monitor.height - height - gap);
-    const x = clamp(snap(widget.x), minX, maxX);
-    const y = clamp(snap(widget.y), minY, maxY);
+    const x = clamp(widget.x, minX, maxX);
+    const y = clamp(widget.y, minY, maxY);
 
     if (x === widget.x && y === widget.y) {
       return false;
@@ -2382,17 +2654,17 @@ class WidgetController {
     const monY = monitor.y - layerY;
     const gap = this._widgetGap ?? WIDGET_GAP;
     const minX = monX + gap;
-    const minY = monY + topYFor(monitor);
+    const minY = monY + topYFor(monitor) + gap;
     const maxX = Math.max(minX, monX + monitor.width - width - gap);
     const maxY = Math.max(minY, monY + monitor.height - height - gap);
-    const originX = clamp(snap(widget.x), minX, maxX);
-    const originY = clamp(snap(widget.y), minY, maxY);
+    const originX = clamp(widget.x, minX, maxX);
+    const originY = clamp(widget.y, minY, maxY);
     const candidates = [];
 
     for (let y = minY; y <= maxY; y += GRID_SIZE) {
       for (let x = minX; x <= maxX; x += GRID_SIZE) {
-        const snappedX = clamp(snap(x), minX, maxX);
-        const snappedY = clamp(snap(y), minY, maxY);
+        const snappedX = clamp(x, minX, maxX);
+        const snappedY = clamp(y, minY, maxY);
         const distance = Math.abs(snappedX - originX) + Math.abs(snappedY - originY);
         candidates.push({x: snappedX, y: snappedY, distance});
       };
@@ -2414,6 +2686,8 @@ class WidgetController {
       ? [anchor, ...this._widgets.filter(widget => widget !== anchor)]
       : [...this._widgets];
     const settled = [];
+    const before = new Map(this._widgets.map(widget => [widget.id, {x: widget.x, y: widget.y}]));
+    const gap = this._widgetGap ?? WIDGET_GAP;
     let changed = false;
 
     for (const widget of orderedWidgets) {
@@ -2422,23 +2696,28 @@ class WidgetController {
         continue;
       };
 
-      const oldX = widget.x;
-      const oldY = widget.y;
-
       this._clampWidget(widget);
 
-      const gap = this._widgetGap ?? WIDGET_GAP;
-
       if (settled.some(other => rectsOverlap(rectForWidget(widget), rectForWidget(other), gap))) {
-        const position = this._findOpenPosition(widget, settled);
-        widget.x = position.x;
-        widget.y = position.y;
-        this._clampWidget(widget);
+        // Спершу — розсування стосу (колонки/ряду) навколо якоря/середнього,
+        // і лише якщо не вийшло і перетин лишився — у вільну клітинку.
+        this._spaceOut(widget, settled, anchor === widget ? widget : null);
+
+        if (settled.some(other => rectsOverlap(rectForWidget(widget), rectForWidget(other), gap))) {
+          const position = this._findOpenPosition(widget, settled);
+          widget.x = position.x;
+          widget.y = position.y;
+          this._clampWidget(widget);
+        };
       };
 
       settled.push(widget);
+    };
 
-      if (widget.x !== oldX || widget.y !== oldY) {
+    for (const widget of this._widgets) {
+      const was = before.get(widget.id);
+
+      if (was && (was.x !== widget.x || was.y !== widget.y)) {
         changed = true;
         this._animateWidget(widget, animate);
       };

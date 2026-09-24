@@ -355,6 +355,30 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         settings.bind('edit-mode', editModeRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         widgetsGroup.add(editModeRow);
 
+        const gapRow = new Adw.SpinRow({
+            title: _('Widget gap (px)'),
+            subtitle: _('Space between widgets and screen edges'),
+            adjustment: new Gtk.Adjustment({
+                lower: 0,
+                upper: 50,
+                step_increment: 1,
+            }),
+        });
+        gapRow.set_value(settings.get_int('widget-gap'));
+        gapRow.connect('notify::value', () => {
+            const value = Math.round(gapRow.get_value());
+            if (settings.get_int('widget-gap') !== value) {
+                settings.set_int('widget-gap', value);
+            }
+        });
+        settings.connect('changed::widget-gap', () => {
+            const value = settings.get_int('widget-gap');
+            if (Math.round(gapRow.get_value()) !== value) {
+                gapRow.set_value(value);
+            }
+        });
+        widgetsGroup.add(gapRow);
+
         const deleteShortcutButton = new Gtk.Button({
             icon_name: 'edit-delete-symbolic',
             valign: Gtk.Align.CENTER,
