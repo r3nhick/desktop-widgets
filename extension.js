@@ -1164,6 +1164,54 @@ class WidgetController {
     };
   };
 
+  _snapToNearestEdge(widget) {
+    const gap = this._widgetGap ?? WIDGET_GAP;
+    const [width, height] = sizeForWidget(widget);
+    const widgetRect = rectForWidget(widget);
+
+    // Знайти віджет, з яким перетинаємося. Pinned підходить як ціль:
+    // він не рухається, тому віджет, що тягнеш, прилипає поруч з ним.
+    const overlapping = this._widgets.find(other =>
+      other !== widget && rectsOverlap(widgetRect, rectForWidget(other), gap));
+
+    if (!overlapping) {
+      return {x: widget.x, y: widget.y};
+    };
+
+    const [ow, oh] = sizeForWidget(overlapping);
+
+    // Чотири позиції вздовж краю зачепленого віджета: зліва, справа, зверху, знизу.
+    const candidates = [
+      {x: overlapping.x - width - gap, y: widget.y},
+      {x: overlapping.x + ow + gap, y: widget.y},
+      {x: widget.x, y: overlapping.y - height - gap},
+      {x: widget.x, y: overlapping.y + oh + gap},
+    ];
+
+    // Найближча вільна позиція за Manhattan distance від місця drop.
+    let best = null;
+    let bestDistance = Infinity;
+
+    for (const candidate of candidates) {
+      if (!this._positionIsFreeAgainst(widget, candidate.x, candidate.y, this._widgets)) {
+        continue;
+      };
+
+      const distance = Math.abs(candidate.x - widget.x) + Math.abs(candidate.y - widget.y);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = candidate;
+      };
+    };
+
+    // Якщо всі чотири краї зайняті, шукаємо будь-яку вільну клітинку на сітці монітора.
+    if (!best) {
+      return this._findOpenPosition(widget, this._widgets);
+    };
+
+    return {x: best.x, y: best.y};
+  };
+
   _rebuildWidgets() {
     if (!this._layer) {
       return;
@@ -1816,33 +1864,17 @@ class WidgetController {
       drag = null;
       this._clampWidget(widget);
       
-      // Перевірити чи віджет перетинається з іншими
-      const widgetRect = rectForWidget(widget);
-      const otherWidgets = this._widgets.filter(w => w !== widget);
+      // Якщо віджет перетинається з іншими, прилипнути до найближчого вільного краю
       const gap = this._widgetGap ?? WIDGET_GAP;
-      const hasOverlap = otherWidgets.some(other => 
-        rectsOverlap(widgetRect, rectForWidget(other), gap)
+      const widgetRect = rectForWidget(widget);
+      const hasOverlap = this._widgets.some(other =>
+        other !== widget && rectsOverlap(widgetRect, rectForWidget(other), gap)
       );
       
       if (hasOverlap) {
-        // Зберегти поточну позицію drop як origin для пошуку найближчої вільної
-        const originX = widget.x;
-        const originY = widget.y;
-        
-        // Знайти найближчу вільну клітинку на сітці
-        const position = this._findOpenPosition(widget, otherWidgets);
-        
-        // Fallback: якщо не знайшли вільну позицію (координати не змінилися),
-        // повернутися на oldX/oldY
-        if (position.x === originX && position.y === originY && 
-            widget.oldX !== undefined && widget.oldY !== undefined) {
-          widget.x = widget.oldX;
-          widget.y = widget.oldY;
-        } else {
-          widget.x = position.x;
-          widget.y = position.y;
-        }
-        
+        const snapped = this._snapToNearestEdge(widget);
+        widget.x = snapped.x;
+        widget.y = snapped.y;
         this._clampWidget(widget);
       }
       
