@@ -15,6 +15,10 @@ const SPARK_LINE_WIDTH = 2;
 const SPARK_FILL_ALPHA = 0.15;
 const ANIMATION_DURATION = 250;
 
+const ROW_SPACING = 10;
+const CONTAINER_PAD = 3;
+const MIN_TILE = 40;
+
 const METRIC_CPU = 0;
 const METRIC_RAM = 1;
 const METRIC_GPU = 2;
@@ -33,6 +37,8 @@ class SystemMonitor {
       cpu: 0,
       ram: 0,
       gpu: 0,
+      cpuTemp: 0,
+      gpuTemp: 0,
       networkDown: 0,
       networkUp: 0,
       cpuSamples: [],
@@ -47,16 +53,55 @@ class SystemMonitor {
     this.prevTxBytes = 0;
     this.prevTimeMs = 0;
     this.gpuPath = null;
+    this.cpuTempPath = null;
+    this.gpuTempPath = null;
     this.findGpuPath();
+    this.findCpuTempPath();
+    this.findGpuTempPath();
   }
 
   findGpuPath() {
-    const cards = ['/sys/class/drm/card0/device/gpu_busy_percent', 
+    const cards = ['/sys/class/drm/card0/device/gpu_busy_percent',
                    '/sys/class/drm/card1/device/gpu_busy_percent'];
     for (const path of cards) {
       const file = Gio.File.new_for_path(path);
       if (file.query_exists(null)) {
         this.gpuPath = path;
+        break;
+      }
+    }
+  }
+
+  findCpuTempPath() {
+    const paths = [
+      '/sys/class/hwmon/hwmon0/temp1_input',
+      '/sys/class/hwmon/hwmon1/temp1_input',
+      '/sys/class/hwmon/hwmon2/temp1_input',
+      '/sys/class/thermal/thermal_zone0/temp',
+      '/sys/class/thermal/thermal_zone1/temp',
+    ];
+    for (const path of paths) {
+      const file = Gio.File.new_for_path(path);
+      if (file.query_exists(null)) {
+        this.cpuTempPath = path;
+        break;
+      }
+    }
+  }
+
+  findGpuTempPath() {
+    const paths = [
+      '/sys/class/drm/card0/device/hwmon/hwmon0/temp1_input',
+      '/sys/class/drm/card0/device/hwmon/hwmon1/temp1_input',
+      '/sys/class/drm/card1/device/hwmon/hwmon0/temp1_input',
+      '/sys/class/drm/card1/device/hwmon/hwmon1/temp1_input',
+      '/sys/class/hwmon/hwmon3/temp1_input',
+      '/sys/class/hwmon/hwmon4/temp1_input',
+    ];
+    for (const path of paths) {
+      const file = Gio.File.new_for_path(path);
+      if (file.query_exists(null)) {
+        this.gpuTempPath = path;
         break;
       }
     }
@@ -126,6 +171,20 @@ class SystemMonitor {
     return isNaN(value) ? 0 : value / 100.0;
   }
 
+  async sampleCpuTemp() {
+    if (!this.cpuTempPath) return 0;
+    const text = await this.readFile(this.cpuTempPath);
+    const value = parseInt(text.trim(), 10);
+    return isNaN(value) ? 0 : value / 1000.0;
+  }
+
+  async sampleGpuTemp() {
+    if (!this.gpuTempPath) return 0;
+    const text = await this.readFile(this.gpuTempPath);
+    const value = parseInt(text.trim(), 10);
+    return isNaN(value) ? 0 : value / 1000.0;
+  }
+
   async sampleNetwork() {
     const text = await this.readFile('/proc/net/dev');
     const lines = text.split('\n');
@@ -165,16 +224,20 @@ class SystemMonitor {
   }
 
   async poll() {
-    const [cpu, ram, gpu, network] = await Promise.all([
+    const [cpu, ram, gpu, cpuTemp, gpuTemp, network] = await Promise.all([
       this.sampleCPU(),
       this.sampleRAM(),
       this.sampleGPU(),
+      this.sampleCpuTemp(),
+      this.sampleGpuTemp(),
       this.sampleNetwork(),
     ]);
 
     this.lastData.cpu = cpu;
     this.lastData.ram = ram;
     this.lastData.gpu = gpu;
+    this.lastData.cpuTemp = cpuTemp;
+    this.lastData.gpuTemp = gpuTemp;
     this.lastData.networkDown = network.down;
     this.lastData.networkUp = network.up;
 
@@ -313,11 +376,11 @@ function drawSparkline(ctx, width, height, samples, maxValue, color, lineAlpha) 
   ctx.fill();
 }
 
-function createSparkTile(theme, label, value, unit, accentColor, samples, maxValue) {
+function createSparkTile(theme, label, value, unit, accentColor, samples, maxValue, extraInfo = null) {
   const tile = new St.BoxLayout({
     vertical: true,
-    x_expand: true,
-    y_expand: true,
+    x_expand: false,
+    y_expand: false,
     style: `
       background-color: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -326,6 +389,60 @@ function createSparkTile(theme, label, value, unit, accentColor, samples, maxVal
       spacing: 4px;
     `,
   });
+
+  const headerRow = new St.BoxLayout({
+    x_expand: true,
+    style: `spacing: 6px;`,
+  });
+
+  const iconMap = {
+    'CPU': 'system-run-symbolic',
+    'RAM': 'drive-harddisk-symbolic',
+    'GPU': 'video-display-symbolic',
+    'Download': 'network-receive-symbolic',
+    'Upload': 'network-transmit-symbolic',
+  };
+
+  const icon = new St.Icon({
+    icon_name: iconMap[label] || 'computer-symbolic',
+    icon_size: 14,
+    style: `color: ${theme.muted};`,
+  });
+
+  const nameLabel = new St.Label({
+    text: label,
+    style: `
+      color: ${theme.muted};
+      font-size: 13px;
+      font-weight: 400;
+    `,
+  });
+
+  headerRow.add_child(icon);
+  headerRow.add_child(nameLabel);
+
+  const headerSpacer = new St.Widget({
+    x_expand: true,
+  });
+  headerRow.add_child(headerSpacer);
+
+  let extraLabel = null;
+  const needsTemp = (label === 'CPU' || label === 'GPU');
+
+  if (needsTemp || extraInfo) {
+    extraLabel = new St.Label({
+      text: extraInfo || '',
+      visible: !!extraInfo,
+      style: `
+        color: ${theme.muted};
+        font-size: 16px;
+        font-weight: 500;
+      `,
+    });
+    headerRow.add_child(extraLabel);
+  }
+
+  tile.add_child(headerRow);
 
   const valueRow = new St.BoxLayout({
     x_align: Clutter.ActorAlign.START,
@@ -353,15 +470,6 @@ function createSparkTile(theme, label, value, unit, accentColor, samples, maxVal
   valueRow.add_child(valueLabel);
   valueRow.add_child(unitLabel);
 
-  const nameLabel = new St.Label({
-    text: label,
-    style: `
-      color: ${theme.muted};
-      font-size: 13px;
-      font-weight: 400;
-    `,
-  });
-
   const sparkArea = new St.DrawingArea({
     x_expand: true,
     y_expand: true,
@@ -375,10 +483,9 @@ function createSparkTile(theme, label, value, unit, accentColor, samples, maxVal
   });
 
   tile.add_child(valueRow);
-  tile.add_child(nameLabel);
   tile.add_child(sparkArea);
 
-  return { tile, valueLabel, unitLabel, sparkArea };
+  return { tile, valueLabel, unitLabel, sparkArea, extraLabel };
 }
 
 export function render({body, theme, widget, sizeForWidget}) {
@@ -389,6 +496,7 @@ export function render({body, theme, widget, sizeForWidget}) {
   let currentMetric = METRIC_CPU;
   let currentView = VIEW_CPU_RAM;
   let unsubscribe = null;
+  const animatingActors = new Set();
 
   const container = new St.BoxLayout({
     vertical: true,
@@ -398,7 +506,65 @@ export function render({body, theme, widget, sizeForWidget}) {
     style: `padding: 3px;`,
   });
 
+  // Explicitly size the tiles: one row of two tiles (medium) or two rows of
+  // two tiles (large) get equal halves of the inner width. We read the real
+  // allocation and force set_size / set_width so text length never changes
+  // tile width (tiles are x_expand:false on purpose).
+  let layoutMode = null; // 'medium' | 'large'
+  let layoutRows = [];   // row actors whose tiles get sized by layoutTiles()
+
+  const layoutTiles = () => {
+    if (!layoutMode || layoutRows.length === 0) return;
+
+    const box = container.get_allocation_box();
+    const innerW = Math.floor(box.get_width()) - CONTAINER_PAD * 2;
+    const innerH = Math.floor(box.get_height()) - CONTAINER_PAD * 2;
+    if (innerW <= 0 || innerH <= 0) return;
+
+    if (layoutMode === 'small') {
+      const singleTile = layoutRows[0]?.get_children()?.[0];
+      if (singleTile) {
+        const cur = singleTile.get_allocation_box();
+        if (cur.get_width() !== innerW) {
+          singleTile.set_width(innerW);
+        }
+      }
+      return;
+    }
+
+    if (layoutMode === 'medium') {
+      const tileW = Math.max(MIN_TILE, Math.floor((innerW - ROW_SPACING) / 2));
+      for (const row of layoutRows) {
+        for (const child of row.get_children()) {
+          const cur = child.get_allocation_box();
+          if (cur.get_width() !== tileW) {
+            child.set_width(tileW);
+          }
+        }
+      }
+    } else {
+      const tileW = Math.max(MIN_TILE, Math.floor((innerW - ROW_SPACING) / 2));
+      const rowH = Math.max(MIN_TILE, Math.floor((innerH - ROW_SPACING) / 2));
+      for (const row of layoutRows) {
+        const curRow = row.get_allocation_box();
+        if (curRow.get_height() !== rowH) {
+          row.set_height(rowH);
+        }
+        for (const child of row.get_children()) {
+          const cur = child.get_allocation_box();
+          if (cur.get_width() !== tileW) {
+            child.set_width(tileW);
+          }
+        }
+      }
+    }
+  };
+
+  container.connect('notify::allocation', layoutTiles);
+
   if (size === 'small') {
+    layoutMode = 'small';
+
     const metricConfigs = [
       { label: 'CPU', key: 'cpu', samplesKey: 'cpuSamples', maxValue: 1.0, unit: '%' },
       { label: 'RAM', key: 'ram', samplesKey: 'ramSamples', maxValue: 1.0, unit: '%' },
@@ -407,7 +573,7 @@ export function render({body, theme, widget, sizeForWidget}) {
       { label: 'Upload', key: 'networkUp', samplesKey: 'netUpSamples', maxValue: 10, unit: '' },
     ];
 
-    let tile, valueLabel, unitLabel, sparkArea;
+    let tile, valueLabel, unitLabel, sparkArea, extraLabel;
     let scrollBox;
 
     const rebuild = (enterX = 0) => {
@@ -420,15 +586,27 @@ export function render({body, theme, widget, sizeForWidget}) {
 
       const config = metricConfigs[currentMetric];
       const samples = monitor.lastData[config.samplesKey] || [];
-      const result = createSparkTile(theme, config.label, '0', config.unit, accentColor, samples, config.maxValue);
+      
+      let extraInfo = null;
+      if (config.label === 'CPU' && monitor.lastData.cpuTemp > 0) {
+        extraInfo = `${Math.round(monitor.lastData.cpuTemp)}°C`;
+      } else if (config.label === 'GPU' && monitor.lastData.gpuTemp > 0) {
+        extraInfo = `${Math.round(monitor.lastData.gpuTemp)}°C`;
+      }
+      
+      const result = createSparkTile(theme, config.label, '0', config.unit, accentColor, samples, config.maxValue, extraInfo);
       tile = result.tile;
       valueLabel = result.valueLabel;
       unitLabel = result.unitLabel;
       sparkArea = result.sparkArea;
+      extraLabel = result.extraLabel;
       
       scrollBox.add_child(tile);
       container.add_child(scrollBox);
-      
+
+      layoutRows = [scrollBox];
+      layoutTiles();
+
       tile.translation_x = enterX;
       tile.set_opacity(0);
       tile.ease({
@@ -450,6 +628,16 @@ export function render({body, theme, widget, sizeForWidget}) {
         const val = Math.round(data[config.key] * 100);
         valueLabel.set_text(String(val));
         unitLabel.set_text('%');
+      }
+      
+      if (extraLabel) {
+        if (config.label === 'CPU' && data.cpuTemp > 0) {
+          extraLabel.set_text(`${Math.round(data.cpuTemp)}°C`);
+          extraLabel.show();
+        } else if (config.label === 'GPU' && data.gpuTemp > 0) {
+          extraLabel.set_text(`${Math.round(data.gpuTemp)}°C`);
+          extraLabel.show();
+        }
       }
       
       sparkArea.queue_repaint();
@@ -475,12 +663,14 @@ export function render({body, theme, widget, sizeForWidget}) {
         const oldTile = tile;
         const exitX = delta < 0 ? -width : width;
         
+        animatingActors.add(oldTile);
         oldTile.ease({
           opacity: 0,
           translation_x: exitX,
           duration: ANIMATION_DURATION,
           mode: Clutter.AnimationMode.EASE_IN_QUAD,
           onComplete: () => {
+            animatingActors.delete(oldTile);
             if (oldTile.get_parent()) {
               oldTile.get_parent().remove_child(oldTile);
             }
@@ -508,6 +698,8 @@ export function render({body, theme, widget, sizeForWidget}) {
     unsubscribe = monitor.subscribe(onData);
 
   } else if (size === 'medium') {
+    layoutMode = 'medium';
+
     const viewConfigs = [
       [
         { label: 'CPU', key: 'cpu', samplesKey: 'cpuSamples', maxValue: 1.0, unit: '%' },
@@ -539,7 +731,15 @@ export function render({body, theme, widget, sizeForWidget}) {
 
       for (const config of view) {
         const samples = monitor.lastData[config.samplesKey] || [];
-const result = createSparkTile(theme, config.label, '0', config.unit, accentColor, samples, config.maxValue);
+        
+        let extraInfo = null;
+        if (config.label === 'CPU' && monitor.lastData.cpuTemp > 0) {
+          extraInfo = `${Math.round(monitor.lastData.cpuTemp)}°C`;
+        } else if (config.label === 'GPU' && monitor.lastData.gpuTemp > 0) {
+          extraInfo = `${Math.round(monitor.lastData.gpuTemp)}°C`;
+        }
+        
+        const result = createSparkTile(theme, config.label, '0', config.unit, accentColor, samples, config.maxValue, extraInfo);
         tiles.push(result);
         currentRow.add_child(result.tile);
         
@@ -554,6 +754,8 @@ const result = createSparkTile(theme, config.label, '0', config.unit, accentColo
       }
 
       container.add_child(currentRow);
+      layoutRows = [currentRow];
+      layoutTiles();
     };
 
     const onData = (data) => {
@@ -571,6 +773,16 @@ const result = createSparkTile(theme, config.label, '0', config.unit, accentColo
           const val = Math.round(data[config.key] * 100);
           tile.valueLabel.set_text(String(val));
           tile.unitLabel.set_text('%');
+        }
+        
+        if (tile.extraLabel) {
+          if (config.label === 'CPU' && data.cpuTemp > 0) {
+            tile.extraLabel.set_text(`${Math.round(data.cpuTemp)}°C`);
+            tile.extraLabel.show();
+          } else if (config.label === 'GPU' && data.gpuTemp > 0) {
+            tile.extraLabel.set_text(`${Math.round(data.gpuTemp)}°C`);
+            tile.extraLabel.show();
+          }
         }
         
         tile.sparkArea.queue_repaint();
@@ -597,12 +809,14 @@ const result = createSparkTile(theme, config.label, '0', config.unit, accentColo
         const oldRow = currentRow;
         const exitX = delta < 0 ? -width : width;
         
+        animatingActors.add(oldRow);
         oldRow.ease({
           opacity: 0,
           translation_x: exitX,
           duration: ANIMATION_DURATION,
           mode: Clutter.AnimationMode.EASE_IN_QUAD,
           onComplete: () => {
+            animatingActors.delete(oldRow);
             if (oldRow.get_parent()) {
               oldRow.get_parent().remove_child(oldRow);
             }
@@ -630,6 +844,8 @@ const result = createSparkTile(theme, config.label, '0', config.unit, accentColo
     unsubscribe = monitor.subscribe(onData);
 
   } else if (size === 'large') {
+    layoutMode = 'large';
+
     const tilesGrid = new St.BoxLayout({
       vertical: true,
       x_expand: true,
@@ -647,7 +863,8 @@ const result = createSparkTile(theme, config.label, '0', config.unit, accentColo
       style: `spacing: 10px;`,
     });
 
-    const cpuTile = createSparkTile(theme, 'CPU', '0', '%', accentColor, monitor.lastData.cpuSamples, 1.0);
+    const cpuExtraInfo = monitor.lastData.cpuTemp > 0 ? `${Math.round(monitor.lastData.cpuTemp)}°C` : null;
+    const cpuTile = createSparkTile(theme, 'CPU', '0', '%', accentColor, monitor.lastData.cpuSamples, 1.0, cpuExtraInfo);
     const ramTile = createSparkTile(theme, 'RAM', '0', '%', accentColor, monitor.lastData.ramSamples, 1.0);
     const downTile = createSparkTile(theme, 'Download', '0', 'KB/s', accentColor, monitor.lastData.netDownSamples, 10);
     const upTile = createSparkTile(theme, 'Upload', '0', 'KB/s', accentColor, monitor.lastData.netUpSamples, 10);
@@ -660,10 +877,17 @@ const result = createSparkTile(theme, config.label, '0', config.unit, accentColo
     tilesGrid.add_child(topRow);
     tilesGrid.add_child(bottomRow);
     container.add_child(tilesGrid);
+    layoutRows = [topRow, bottomRow];
+    layoutTiles();
 
     const onData = (data) => {
       cpuTile.valueLabel.set_text(String(Math.round(data.cpu * 100)));
       ramTile.valueLabel.set_text(String(Math.round(data.ram * 100)));
+
+      if (cpuTile.extraLabel && data.cpuTemp > 0) {
+        cpuTile.extraLabel.set_text(`${Math.round(data.cpuTemp)}°C`);
+        cpuTile.extraLabel.show();
+      }
 
       const [dVal, dUnit] = formatBytes(data.networkDown);
       downTile.valueLabel.set_text(dVal);
@@ -685,6 +909,12 @@ const result = createSparkTile(theme, config.label, '0', config.unit, accentColo
   body.add_child(container);
 
   body.connect('destroy', () => {
+    // Cancel all active ease animations to prevent ghost content
+    for (const actor of animatingActors) {
+      actor.remove_all_transitions();
+    }
+    animatingActors.clear();
+    
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;
