@@ -34,12 +34,14 @@ const ICON_SIZE_RATIO = 0.85;
 const MIN_ICON_SIZE = 12;
 const MAX_ICON_SIZE = 200;
 
-const DEFAULT_APPS = [
-    { id: 'org.gnome.Nautilus.desktop', name: 'Files' },
-    { id: 'org.gnome.Terminal.desktop', name: 'Terminal' },
-    { id: 'firefox.desktop', name: 'Firefox' },
-    { id: 'org.gnome.Settings.desktop', name: 'Settings' },
-];
+function defaultApps() {
+    return [
+        { id: 'org.gnome.Nautilus.desktop', name: _('Files') },
+        { id: 'org.gnome.Terminal.desktop', name: _('Terminal') },
+        { id: 'firefox.desktop', name: _('Firefox') },
+        { id: 'org.gnome.Settings.desktop', name: _('Settings') },
+    ];
+}
 
 function resolveDesktopAppInfo(appKey) {
     try {
@@ -135,7 +137,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
     
     const dataFilePath = GLib.build_filenamev([getDataDir('applauncher'), `applauncher-${widget?.id}.json`]);
     
-    let apps = DEFAULT_APPS.map(a => ({ ...a }));
+    let apps = defaultApps();
     let appsLoaded = false;
 
     const container = new St.BoxLayout({
@@ -273,7 +275,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
                 button.set_child(cellBox);
                 rowBox.add_child(button);
 
-                const cell = { icon: appIcon, button, padding: TILE_PADDING_MIN, hovered: false, pressX: 0, pressY: 0 };
+                const cell = { icon: appIcon, button, padding: TILE_PADDING_MIN, hovered: false, pressX: 0, pressY: 0, mousePressed: false };
 
                 button.connect('enter-event', () => {
                     cell.hovered = true;
@@ -282,6 +284,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
                 });
                 button.connect('leave-event', () => {
                     cell.hovered = false;
+                    cell.mousePressed = false;
                     button.set_style(buildTileStyle(tileBaseBg, cell.padding));
                     return Clutter.EVENT_PROPAGATE;
                 });
@@ -289,6 +292,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
                 button.connect('button-press-event', (_actor, event) => {
                     if (event.get_button() !== 1)
                         return Clutter.EVENT_PROPAGATE;
+                    cell.mousePressed = true;
                     const [x, y] = event.get_coords();
                     cell.pressX = x;
                     cell.pressY = y;
@@ -306,7 +310,17 @@ export function render({ body, widget, theme, sizeForWidget }) {
                     if (isClickNotDrag) {
                         launchApp(appInfo, app, displayName);
                     }
+                    cell.mousePressed = false;
                     return Clutter.EVENT_STOP;
+                });
+
+                // Keyboard activation: St.Button emits 'clicked' for Enter/Space
+                // when focused; mouse clicks are handled by button-release-event
+                // with the drag threshold, so skip when a mouse press is active.
+                button.connect('clicked', () => {
+                    if (cell.mousePressed)
+                        return;
+                    launchApp(appInfo, app, displayName);
                 });
 
                 cells.push(cell);

@@ -10,7 +10,11 @@ Map/
 opencode.json
 agent.md
 .ignore
-AGENTS.md
 
 # internal AI dev docs — not for the public repo
 /docs/
+AGENTS.md
+CLAUDE.md
+**/CLAUDE.md
+.opencode/
+test-preferences.json

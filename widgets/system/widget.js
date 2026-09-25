@@ -3,6 +3,8 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
+import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+
 export const type = 'system';
 export const label = 'System Monitor';
 export const defaultSize = 'small';
@@ -569,8 +571,8 @@ export function render({body, theme, widget, sizeForWidget}) {
       { label: 'CPU', key: 'cpu', samplesKey: 'cpuSamples', maxValue: 1.0, unit: '%' },
       { label: 'RAM', key: 'ram', samplesKey: 'ramSamples', maxValue: 1.0, unit: '%' },
       { label: 'GPU', key: 'gpu', samplesKey: 'gpuSamples', maxValue: 1.0, unit: '%' },
-      { label: 'Download', key: 'networkDown', samplesKey: 'netDownSamples', maxValue: 10, unit: '' },
-      { label: 'Upload', key: 'networkUp', samplesKey: 'netUpSamples', maxValue: 10, unit: '' },
+      { label: _('Download'), key: 'networkDown', samplesKey: 'netDownSamples', maxValue: 10, unit: '' },
+      { label: _('Upload'), key: 'networkUp', samplesKey: 'netUpSamples', maxValue: 10, unit: '' },
     ];
 
     let tile, valueLabel, unitLabel, sparkArea, extraLabel;
@@ -713,8 +715,8 @@ export function render({body, theme, widget, sizeForWidget}) {
         { label: 'RAM', key: 'ram', samplesKey: 'ramSamples', maxValue: 1.0, unit: '%' },
       ],
       [
-      { label: 'Download', key: 'networkDown', samplesKey: 'netDownSamples', maxValue: 10, unit: '' },
-      { label: 'Upload', key: 'networkUp', samplesKey: 'netUpSamples', maxValue: 10, unit: '' },
+      { label: _('Download'), key: 'networkDown', samplesKey: 'netDownSamples', maxValue: 10, unit: '' },
+      { label: _('Upload'), key: 'networkUp', samplesKey: 'netUpSamples', maxValue: 10, unit: '' },
       ],
     ];
 

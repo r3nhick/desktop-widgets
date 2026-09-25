@@ -25,6 +25,8 @@ import * as SystemWidget from './widgets/system/widget.js';
 import * as NotesWidget from './widgets/notes/widget.js';
 import { configureLogger, resetLogger, warn } from './logger.js';
 import { assetPath } from './paths.js';
+import { isActorDestroyed } from './utils/actorLifecycle.js';
+import { GlassBlur } from './utils/glassBlur.js';
 import { clamp } from './utils.js';
 import { WorkspaceIntegration } from './workspaceIntegration.js';
 
@@ -88,19 +90,34 @@ const WIDGET_SIZES = {
   huge: [CELL_SIZE * 4, CELL_SIZE * 4], // 4x4 = 760x760
 };
 
-const SIZE_LABELS = {
-  minismall: '1×1 mini',
-  mini: '2×1 mini',
-  portraitmini: '1×2 mini',
-  minilarge: '2×2 mini',
-  small: '1×1',
-  medium: '2×1',
-  portrait: '1×2',
-  large: '2×2',
-  tall: '2×4',
-  wide: '4×2',
-  huge: '4×4',
-};
+function sizeLabel(sizeKey) {
+    switch (sizeKey) {
+        case 'minismall':
+            return _('1×1 mini');
+        case 'mini':
+            return _('2×1 mini');
+        case 'portraitmini':
+            return _('1×2 mini');
+        case 'minilarge':
+            return _('2×2 mini');
+        case 'small':
+            return _('1×1');
+        case 'medium':
+            return _('2×1');
+        case 'portrait':
+            return _('1×2');
+        case 'large':
+            return _('2×2');
+        case 'tall':
+            return _('2×4');
+        case 'wide':
+            return _('4×2');
+        case 'huge':
+            return _('4×4');
+        default:
+            return sizeKey;
+    }
+}
 
 function orderedSizes(sizeKeys) {
   const mini = [];
@@ -1843,7 +1860,7 @@ class WidgetController {
     // Apply the pinned visual state if the widget is pinned.
     if (view.widget.pinned) {
       GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-        if (pinButton && !pinButton.is_finalized()) {
+        if (pinButton && !isActorDestroyed(pinButton)) {
           pinButton.set_style('background-color: #5b9de0; color: #ffffff; border-color: #5b9de0;');
         }
         return GLib.SOURCE_REMOVE;
@@ -1886,7 +1903,7 @@ class WidgetController {
       const sizeItems = orderedSizes(supportedSizes).map(sizeKey => {
         const item = new St.Button({
           style_class: 'widget-size-menu-item',
-          label: SIZE_LABELS[sizeKey] ?? sizeKey,
+          label: sizeLabel(sizeKey),
           reactive: true,
           can_focus: true,
           track_hover: true,
@@ -1903,6 +1920,13 @@ class WidgetController {
 
       sizeButton.connectObject('clicked', () => {
         this._hideContextMenus();
+
+        // Hide other widgets' size menus so only one is open at a time.
+        for (const otherView of this._views.values()) {
+          if (otherView.sizeMenu && otherView.sizeMenu !== sizeMenu) {
+            otherView.sizeMenu.hide();
+          };
+        };
 
         if (sizeMenu.visible) {
           sizeMenu.hide();
@@ -2019,7 +2043,7 @@ class WidgetController {
         return true;
       };
     } catch (error) {
-      warn('desktop-widgets: failed to launch', appId, error);
+      warn('desktop-widgets: failed to launch', `${appId}: ${error}`);
     };
 
     return false;
@@ -2038,7 +2062,7 @@ class WidgetController {
         return true;
       };
     } catch (error) {
-      warn('desktop-widgets: failed to run custom app', value, error);
+      warn('desktop-widgets: failed to run custom app', `${value}: ${error}`);
     };
 
     return false;
@@ -2499,7 +2523,7 @@ class WidgetController {
       menu.add_child(this._contextMenuHeader(_('Widget size')));
 
       for (const sizeKey of menuSizes) {
-        const item = this._contextMenuItem(SIZE_LABELS[sizeKey] ?? sizeKey, () => {
+        const item = this._contextMenuItem(sizeLabel(sizeKey), () => {
           this._setWidgetSize(view.widget, sizeKey);
           this._hideContextMenus();
         });
