@@ -287,6 +287,10 @@ function unionOfMonitors(monitors) {
   return {x: left, y: top, width: right - left, height: bottom - top};
 };
 
+// The photos widget paints its own picture over the whole widget, so blurring
+// the wallpaper behind it would cost a backdrop capture and show nothing.
+const NO_GLASS_BACKDROP = new Set(['photos']);
+
 function effectiveMonitors() {
   const monitors = Main.layoutManager.monitors;
 
@@ -360,6 +364,13 @@ class WidgetController {
     this._weatherInfo = null;
     this._weatherUpdating = false;
     this._weatherUpdateTime = 0;
+    this._glass = new GlassBlur({
+      isEnabled: () => this._layoutSettings?.get_boolean('style-light-glass') ?? false,
+      blur: () => this._layoutSettings?.get_int('style-light-glass-blur') ?? 0,
+      cornerRadius: () => this._layoutSettings?.get_int('style-border-radius') ?? 16,
+      scaleFactor: () => St.ThemeContext.get_for_stage(global.stage).scale_factor,
+      warn: (key, message) => warn(key, message),
+    });
   };
 
   enable() {
@@ -410,8 +421,12 @@ class WidgetController {
       'changed::style-use-custom-accent', () => this._scheduleAppearance('rebuild'),
       'changed::style-accent-color', () => this._scheduleAppearance('rebuild'),
       'changed::style-light-glass', () => this._scheduleAppearance('rebuild'),
-      'changed::style-light-glass-blur', () => this._scheduleAppearance('rebuild'),
-      'changed::style-light-glass-opacity', () => this._scheduleAppearance('rebuild'),
+      // Glass is applied in place: a rebuild would tear down every widget, and
+      // _scheduleAppearance() holds changes back until the slider is released,
+      // which is exactly the lag a live blur must not have. The radius is a
+      // plain effect property, so it needs no re-cropping at all.
+      'changed::style-light-glass-blur', () => this._syncGlass(),
+      'changed::style-light-glass-opacity', () => this._restyleWidgets(),
       'changed::drag-active', () => this._onDragActiveChanged(),
       this
     );
@@ -459,6 +474,9 @@ class WidgetController {
   };
 
   destroy() {
+    this._glass?.destroy();
+    this._glass = null;
+
     this._eventsClient?.destroy();
     this._eventsClient = null;
     this._workspaceIntegration.destroy();
@@ -765,16 +783,22 @@ class WidgetController {
     // Apply custom global styles dynamically
     if (theme.radius !== 16) {
       styleStr += ` border-radius: ${theme.radius}px;`;
+    } else if (theme.lightGlass) {
+      // The blur is masked to the widget's own rounding by a shader, so the
+      // rounding has to be the one the glass was told about - otherwise the mask
+      // and the widget disagree and the corners leak.
+      styleStr += ' border-radius: 16px;';
     }
     if (theme.borderWidth !== 1) {
       styleStr += ` border-width: ${theme.borderWidth}px;`;
     }
     if (theme.shadow) {
       styleStr += ` box-shadow: ${theme.shadow};`;
-    }
-    if (theme.lightGlass) {
-      styleStr += ` box-shadow: 0 0 30px 0 rgba(0, 0, 0, 0.3);`;
-      styleStr += ` border-color: rgba(255, 255, 255, 0.3); border-width: ${theme.borderWidth}px;`;
+    } else if (theme.lightGlass) {
+      // Glass carries no shadow: the blur is the whole effect, and a shadow
+      // only reads as a halo spilling past the widget's own edges. This also
+      // cancels the drop shadow stylesheet.css puts on every widget.
+      styleStr += ' box-shadow: none;';
     }
 
     return styleStr;
@@ -1485,6 +1509,8 @@ class WidgetController {
         warn('widget-create-failed', `Failed to create ${widget.type}: ${error.message}\n${error.stack}`);
       };
     };
+
+    this._syncGlass();
   };
 
   _onWidgetSizeChange(widget, sizeKey) {
@@ -1601,6 +1627,41 @@ class WidgetController {
     };
 
     this._safeFillWidgetBody(widget, body);
+  };
+
+  /**
+   * Re-applies the actor style of every live widget without rebuilding it, so a
+   * glass slider changes the tint while it is still being dragged.
+   */
+  _restyleWidgets() {
+    for (const [id, view] of this._views) {
+      if (view.actor.get_parent() !== this._layer) {
+        view.actor.disconnectObject(this);
+        this._views.delete(id);
+        continue;
+      };
+
+      const style = this._styleForWidget(view.widget);
+
+      if (style) view.actor.set_style(style);
+    };
+
+    this._syncGlass();
+  };
+
+  /**
+   * Hands the live widgets to GlassBlur, which attaches the backdrop blur only
+   * to the ones that should have it. Nothing here re-crops or reloads: the blur
+   * is a GPU effect that follows the actor, so this is cheap enough to run
+   * while a slider is being dragged.
+   */
+  _syncGlass() {
+    if (!this._glass) {
+      return;
+    };
+
+    this._glass.sync([...this._views.values()].filter(view =>
+      view.actor && !NO_GLASS_BACKDROP.has(view.widget.type)));
   };
 
   _safeFillWidgetBody(widget, body) {
