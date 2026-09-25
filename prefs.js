@@ -862,7 +862,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
                     return Gdk.EVENT_STOP;
                 }
 
-                const accel = Gtk.accelerator_name_with_keycode(null, keyval, keycode, mask);
+                const accel = Gtk.accelerator_name(keyval, mask);
                 settings.set_strv('edit-mode-binding', [accel]);
                 editor.close();
                 updateLabel();
