@@ -652,7 +652,7 @@ export function render({body, widget, createLabel, theme, weather, weatherLocati
 		hourly: [],
 		daily: [],
 	};
-	const [widgetWidth, widgetHeight] = sizeForWidget ? sizeForWidget(widget) : [220, 220];
+	const [widgetWidth, widgetHeight] = sizeForWidget(widget);
 
 	// Three coherent regimes, decided by width and height:
 	//   compact (width < 340):        city + big temp + icon/condition  (1x1)

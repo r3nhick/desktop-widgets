@@ -470,7 +470,7 @@ export function render({body, createLabel, theme, sizeForWidget, widget, setting
 	refreshBatteryDevices();
 	const iconKey = String(settings?.get_string('battery-icon-size') ?? 'medium');
 	const iconRatio = ICON_RATIOS[iconKey] ?? ICON_RATIOS.medium;
-	const [width, height] = sizeForWidget ? sizeForWidget(widget) : [454, 220];
+	const [width, height] = sizeForWidget(widget);
 	const plan = batteryPlan(width, height, iconRatio, devices.length);
 	const tray = new St.BoxLayout({
 		style_class: 'widget-battery-tray',

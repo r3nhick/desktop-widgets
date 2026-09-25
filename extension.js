@@ -29,17 +29,14 @@ import { isActorDestroyed } from './utils/actorLifecycle.js';
 import { GlassBlur } from './utils/glassBlur.js';
 import { clamp } from './utils.js';
 import { WorkspaceIntegration } from './workspaceIntegration.js';
+import { LAYOUT_KEY, LAYOUT_VERSION, layoutJson } from './layoutDoc.js';
 
 const EXTENSION_PATH = GLib.path_get_dirname(GLib.filename_from_uri(import.meta.url)[0]);
-const LAYOUT_KEY = 'layout-json';
-const LAYOUT_VERSION = 2;
 const GRID_SIZE = 20;
-const WIDGET_GAP = 10;
+const WIDGET_GAP = 15;
 const SNAP_DISTANCE = 12;
 const CELL_SIZE = 190;
-const MEDIUM_WIDGET_WIDTH = CELL_SIZE * 2;  // 380 без gap
-const MINI_WIDGET_WIDTH = 260;
-const MINI_WIDGET_HEIGHT = 120;
+const MINI_CELL_SIZE = 120;
 const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
 const EDIT_MODE_BINDING_KEY = 'edit-mode-binding';
 
@@ -76,18 +73,45 @@ const WIDGET_CLICK_TYPES = new Set([
   ...Object.keys(WIDGET_APP_IDS),
   'github',
 ]);
-const WIDGET_SIZES = {
-  minismall: [MINI_WIDGET_HEIGHT, MINI_WIDGET_HEIGHT], // 1x1 mini
-  mini: [MINI_WIDGET_WIDTH, 120], // 2x1 mini
-  portraitmini: [MINI_WIDGET_HEIGHT, MINI_WIDGET_WIDTH], // 1x2 mini
-  minilarge: [MINI_WIDGET_WIDTH, MINI_WIDGET_WIDTH], // 2x2 mini
-  small: [CELL_SIZE, CELL_SIZE], // 1x1
-  medium: [MEDIUM_WIDGET_WIDTH, CELL_SIZE], // 2x1
-  portrait: [CELL_SIZE, MEDIUM_WIDGET_WIDTH], // 1x2
-  large: [MEDIUM_WIDGET_WIDTH, MEDIUM_WIDGET_WIDTH], // 2x2
-  tall: [MEDIUM_WIDGET_WIDTH, CELL_SIZE * 4], // 2x4 = 380x760
-  wide: [CELL_SIZE * 4, MEDIUM_WIDGET_WIDTH], // 4x2 = 760x380
-  huge: [CELL_SIZE * 4, CELL_SIZE * 4], // 4x4 = 760x760
+// Сітка віджета: [колонки, рядки, сім'я]. Джерело істини про форму розміру.
+// Віджет на n клітинок має ширину n * база + (n - 1) * gap, тож 2x1 сідає
+// впритук до двох 1x1 з одним зазором між ними, а не ширше за них.
+const MAIN_FAMILY = 'main';
+const MINI_FAMILY = 'mini';
+const WIDGET_CELL_SIZES = {[MAIN_FAMILY]: CELL_SIZE, [MINI_FAMILY]: MINI_CELL_SIZE};
+const WIDGET_SIZE_SHAPES = {
+  minismall: [1, 1, MINI_FAMILY], // 1x1 mini
+  mini: [2, 1, MINI_FAMILY], // 2x1 mini
+  portraitmini: [1, 2, MINI_FAMILY], // 1x2 mini
+  minilarge: [2, 2, MINI_FAMILY], // 2x2 mini
+  small: [1, 1, MAIN_FAMILY], // 1x1
+  medium: [2, 1, MAIN_FAMILY], // 2x1
+  portrait: [1, 2, MAIN_FAMILY], // 1x2
+  large: [2, 2, MAIN_FAMILY], // 2x2
+  tall: [2, 4, MAIN_FAMILY], // 2x4
+  wide: [4, 2, MAIN_FAMILY], // 4x2
+  huge: [4, 4, MAIN_FAMILY], // 4x4
+};
+const WIDGET_SIZE_KEYS = new Set(Object.keys(WIDGET_SIZE_SHAPES));
+
+function widgetSizesFor(gap) {
+  const sizes = {};
+
+  for (const [key, [cols, rows, family]] of Object.entries(WIDGET_SIZE_SHAPES)) {
+    const base = WIDGET_CELL_SIZES[family];
+
+    sizes[key] = [cols * base + (cols - 1) * gap, rows * base + (rows - 1) * gap];
+  };
+
+  return sizes;
+};
+
+function defaultSizeKeyFor(type) {
+  const widgetModule = WIDGETS.get(type);
+
+  return widgetModule?.defaultSize && WIDGET_SIZE_KEYS.has(widgetModule.defaultSize)
+    ? widgetModule.defaultSize
+    : 'small';
 };
 
 function sizeLabel(sizeKey) {
@@ -146,7 +170,7 @@ const ACCENT_COLORS = {
   slate: '#6f8396',
 };
 
-function defaultWidgetPositions() {
+function defaultWidgetPositions(gap) {
   const monitors = effectiveMonitors();
   const primary = monitors.find(m => m.isPrimary || m.index === Main.layoutManager.primaryIndex) ?? monitors[0];
 
@@ -154,17 +178,20 @@ function defaultWidgetPositions() {
     return null;
   }
 
+  // Кожен край пресета береться з розміру віджета, який його тримає: правий
+  // стовпець це 2x1, лівий маленький віджет це 1x1, міні рядок це 2x1 mini.
+  const sizes = widgetSizesFor(gap);
   const union = unionOfMonitors(monitors);
   const ox = primary.x - union.x;
   const oy = primary.y - union.y;
   const topY = snap(oy + topYFor(primary));
-  const row2Y = snap(topY + CELL_SIZE + WIDGET_GAP);
-  const row3Y = snap(row2Y + MINI_WIDGET_HEIGHT + WIDGET_GAP);
-  const rightX = snap(Math.max(ox + WIDGET_GAP, ox + primary.width - MEDIUM_WIDGET_WIDTH - WIDGET_GAP));
-  const middleX = snap(Math.max(ox + WIDGET_GAP, rightX - MEDIUM_WIDGET_WIDTH - WIDGET_GAP));
-  const leftSmallX = snap(Math.max(ox + WIDGET_GAP, middleX - CELL_SIZE - WIDGET_GAP));
-  const rightMiniX = snap(Math.max(ox + WIDGET_GAP, rightX - MINI_WIDGET_WIDTH - WIDGET_GAP));
-  const leftMiniX = snap(Math.max(ox + WIDGET_GAP, rightMiniX - MINI_WIDGET_WIDTH - WIDGET_GAP));
+  const row2Y = snap(topY + sizes.small[1] + gap);
+  const row3Y = snap(row2Y + sizes.minismall[1] + gap);
+  const rightX = snap(Math.max(ox + gap, ox + primary.width - sizes.medium[0] - gap));
+  const middleX = snap(Math.max(ox + gap, rightX - sizes.medium[0] - gap));
+  const leftSmallX = snap(Math.max(ox + gap, middleX - sizes.small[0] - gap));
+  const rightMiniX = snap(Math.max(ox + gap, rightX - sizes.mini[0] - gap));
+  const leftMiniX = snap(Math.max(ox + gap, rightMiniX - sizes.mini[0] - gap));
 
   return {
     weather: {x: middleX, y: topY},
@@ -188,15 +215,15 @@ function defaultPhotoData() {
   return {};
 };
 
-function cloneDefaultWidgets() {
-  const positions = defaultWidgetPositions();
+function cloneDefaultWidgets(gap) {
+  const positions = defaultWidgetPositions(gap);
 
   return DEFAULT_WIDGETS.map(widget => ({
     id: widget.id,
     type: widget.type,
     size: widget.size,
-    x: positions?.[widget.type]?.x ?? WIDGET_GAP,
-    y: positions?.[widget.type]?.y ?? WIDGET_GAP,
+    x: positions?.[widget.type]?.x ?? gap,
+    y: positions?.[widget.type]?.y ?? gap,
     data: widget.type === 'photos' ? defaultPhotoData() : {},
   }));
 };
@@ -252,21 +279,18 @@ function snap(value) {
   return Math.round(value / GRID_SIZE) * GRID_SIZE;
 };
 
-function sizeForWidget(widget) {
-  const widgetModule = WIDGETS.get(widget.type);
-  const size = widgetModule?.defaultSize && WIDGET_SIZES[widgetModule.defaultSize]
-    ? widgetModule.defaultSize
-    : 'small';
+function sizeForWidget(widget, gap) {
+  const key = widget.size && WIDGET_SIZE_KEYS.has(widget.size)
+    ? widget.size
+    : defaultSizeKeyFor(widget.type);
+  const [cols, rows, family] = WIDGET_SIZE_SHAPES[key];
+  const base = WIDGET_CELL_SIZES[family];
 
-  if (widget.size && WIDGET_SIZES[widget.size]) {
-    return WIDGET_SIZES[widget.size];
-  };
-
-  return WIDGET_SIZES[size];
+  return [cols * base + (cols - 1) * gap, rows * base + (rows - 1) * gap];
 };
 
-function rectForWidget(widget) {
-  const [width, height] = sizeForWidget(widget);
+function rectForWidget(widget, gap) {
+  const [width, height] = sizeForWidget(widget, gap);
 
   return {
     x: widget.x,
@@ -369,6 +393,7 @@ class WidgetController {
     this._layerX = null;
     this._layerY = null;
     this._needsLayoutPersist = false;
+    this._pendingRepack = false;
     this._eventsClient = new CalendarWidget.CalendarEventsClient();
     this._lastAppLaunchAt = 0;
     this._suppressAppClickUntil = 0;
@@ -413,8 +438,11 @@ class WidgetController {
       'changed::edit-mode', () => this.setEditMode(this._layoutSettings.get_boolean('edit-mode')),
       'changed::widget-gap', () => {
         this._widgetGap = this._readWidgetGap();
+        // Один крок розкладки на осідання повзунка: перебудувати актори за
+        // новим зазором, розкласти їх з анімацією і зберегти результат.
         this._debounce('gap-rebuild', () => {
           this._rebuildWidgets();
+          this._resolveLayout(null, true, true);
         }, 200);
       },
       'changed::photo-size', () => this._scheduleAppearance('refresh'),
@@ -449,6 +477,14 @@ class WidgetController {
     );
     this._createLayer();
     this._rebuildWidgets();
+
+    // Розкладка, збережена до нової формули розмірів, перепаковується один раз
+    // після того, як шар та актори вже існують.
+    if (this._pendingRepack) {
+      this._pendingRepack = false;
+      this._resolveLayout(null, false, true);
+    };
+
     this._refreshWeather(true);
     this._registerEditModeBinding();
     this._workspaceIntegration.enable(this._layer);
@@ -603,15 +639,16 @@ class WidgetController {
   };
 
   _parseWidgets(serialized) {
+    const fallbackGap = this._widgetGap ?? WIDGET_GAP;
     let parsed;
     try {
       parsed = JSON.parse(serialized);
     } catch (e) {
       warn('parse-error', `Failed to parse widget layout: ${e.message}`);
-      return cloneDefaultWidgets();
+      return cloneDefaultWidgets(fallbackGap);
     }
     if (!Array.isArray(parsed.widgets)) {
-      return cloneDefaultWidgets();
+      return cloneDefaultWidgets(fallbackGap);
     };
 
     const widgets = parsed.widgets
@@ -619,12 +656,10 @@ class WidgetController {
       .filter(widget => WIDGETS.has(widget.type))
       .map(widget => {
         const widgetModule = WIDGETS.get(widget.type);
-        const fallback = widgetModule?.defaultSize && WIDGET_SIZES[widgetModule.defaultSize]
-          ? widgetModule.defaultSize
-          : 'small';
+        const fallback = defaultSizeKeyFor(widget.type);
         const saved = String(widget.size ?? '');
         const supported = widgetModule?.supportedSizes ?? [];
-        const size = WIDGET_SIZES[saved] && (supported.length === 0 || supported.includes(saved))
+        const size = WIDGET_SIZE_KEYS.has(saved) && (supported.length === 0 || supported.includes(saved))
           ? saved
           : fallback;
 
@@ -639,21 +674,30 @@ class WidgetController {
         };
       });
 
-    if ((parsed.version ?? 1) !== LAYOUT_VERSION) {
-      const union = unionOfMonitors(effectiveMonitors());
-      const primary = Main.layoutManager.primaryMonitor;
+    const savedVersion = parsed.version ?? 1;
 
-      if (primary && union.width && union.height) {
-        const dX = primary.x - union.x;
-        const dY = primary.y - union.y;
+    if (savedVersion !== LAYOUT_VERSION) {
+      // Зсув на головний монітор уже застосовувався на шляху 1 -> 2, тож
+      // повторюємо його лише для схем без версії та для версії 1.
+      if (savedVersion === 1) {
+        const union = unionOfMonitors(effectiveMonitors());
+        const primary = Main.layoutManager.primaryMonitor;
 
-        for (const widget of widgets) {
-          widget.x += dX;
-          widget.y += dY;
+        if (primary && union.width && union.height) {
+          const dX = primary.x - union.x;
+          const dY = primary.y - union.y;
+
+          for (const widget of widgets) {
+            widget.x += dX;
+            widget.y += dY;
+          };
         };
       };
 
       this._needsLayoutPersist = true;
+      // Перепакування можливе лише після того, як існують шар та віджети,
+      // тому enable() розбирає цей прапорець після першої перебудови.
+      this._pendingRepack = true;
     };
 
     return widgets;
@@ -661,7 +705,7 @@ class WidgetController {
 
   _loadWidgets() {
     const serialized = this._layoutSettings.get_string(LAYOUT_KEY);
-    const widgets = serialized ? this._parseWidgets(serialized) : cloneDefaultWidgets();
+    const widgets = serialized ? this._parseWidgets(serialized) : cloneDefaultWidgets(this._widgetGap ?? WIDGET_GAP);
 
     if (this._needsLayoutPersist) {
       this._widgets = widgets;
@@ -674,9 +718,10 @@ class WidgetController {
 
   _saveWidgets() {
     try {
-      const json = JSON.stringify({version: LAYOUT_VERSION, widgets: this._widgets});
-      this._lastSavedJson = json;
-      this._layoutSettings.set_string(LAYOUT_KEY, json);
+      // _lastSavedJson ставиться перед записом, щоб обробник changed::layout-json
+      // впізнав власний запис і не перебудовував віджети.
+      this._lastSavedJson = layoutJson(this._widgets);
+      this._layoutSettings.set_string(LAYOUT_KEY, this._lastSavedJson);
     } catch (e) {
       logError(e, 'desktop-widgets: _saveWidgets failed');
       throw e;
@@ -993,7 +1038,7 @@ class WidgetController {
     };
 
     const index = this._widgets.length;
-    const size = WIDGET_SIZES[widgetModule.defaultSize] ? widgetModule.defaultSize : 'small';
+    const size = defaultSizeKeyFor(type);
 
     const widget = {
       id: `${type}-${Date.now()}`,
@@ -1086,7 +1131,6 @@ class WidgetController {
     };
 
     const gap = this._widgetGap ?? WIDGET_GAP;
-    log(`[desktop-widgets] _arrangeWidgets using gap=${gap}, this._widgetGap=${this._widgetGap}, WIDGET_GAP=${WIDGET_GAP}`);
     const layerX = this._layerX ?? 0;
     const layerY = this._layerY ?? 0;
     const monitors = effectiveMonitors();
@@ -1102,7 +1146,7 @@ class WidgetController {
         continue;
       };
 
-      const [width, height] = sizeForWidget(widget);
+      const [width, height] = this._sizeFor(widget);
       const monitor = monitorAtStage(
         monitors,
         widget.x + layerX + width / 2,
@@ -1119,7 +1163,7 @@ class WidgetController {
       const monX = monitor.x - layerX;
       const monY = monitor.y - layerY;
       const minY = monY + topYFor(monitor) + gap;
-      const widths = [...new Set(movable.map(widget => sizeForWidget(widget)[0]))].sort((a, b) => a - b);
+      const widths = [...new Set(movable.map(widget => this._sizeFor(widget)[0]))].sort((a, b) => a - b);
       const columns = [];
       let colX = monX + gap;
 
@@ -1129,7 +1173,7 @@ class WidgetController {
       };
 
       for (const widget of movable) {
-        const column = columns.find(col => col.width === sizeForWidget(widget)[0]);
+        const column = columns.find(col => col.width === this._sizeFor(widget)[0]);
 
         if (column) {
           column.widgets.push(widget);
@@ -1141,7 +1185,7 @@ class WidgetController {
         let y = minY;
 
         for (const widget of column.widgets) {
-          const [width, height] = sizeForWidget(widget);
+          const [width, height] = this._sizeFor(widget);
 
           widget.x = clamp(column.x, monX + gap, Math.max(monX + gap, monX + monitor.width - width - gap));
           widget.y = clamp(y, minY, Math.max(minY, monY + monitor.height - height - gap));
@@ -1175,7 +1219,7 @@ class WidgetController {
   };
 
   _snapEdges(widget, x, y) {
-    const [width, height] = sizeForWidget(widget);
+    const [width, height] = this._sizeFor(widget);
     const layerX = this._layerX ?? 0;
     const layerY = this._layerY ?? 0;
     const gap = this._widgetGap ?? WIDGET_GAP;
@@ -1197,7 +1241,7 @@ class WidgetController {
         continue;
       };
 
-      const [ow, oh] = sizeForWidget(other);
+      const [ow, oh] = this._sizeFor(other);
 
       xCandidates.push(other.x - gap, other.x + ow + gap, other.x + ow - width + gap);
       yCandidates.push(other.y - gap, other.y + oh + gap, other.y + oh - height + gap);
@@ -1213,8 +1257,8 @@ class WidgetController {
     const gap = this._widgetGap ?? WIDGET_GAP;
     const layerX = this._layerX ?? 0;
     const layerY = this._layerY ?? 0;
-    const [width, height] = sizeForWidget(widget);
-    const widgetRect = rectForWidget(widget);
+    const [width, height] = this._sizeFor(widget);
+    const widgetRect = this._rectFor(widget);
     const monitor = monitorAtStage(
       effectiveMonitors(),
       widget.x + layerX + width / 2,
@@ -1223,13 +1267,13 @@ class WidgetController {
     // Знайти віджет, з яким перетинаємося. Pinned підходить як ціль:
     // він не рухається, тому віджет, що тягнеш, прилипає поруч з ним.
     const overlapping = this._widgets.find(other =>
-      other !== widget && rectsOverlap(widgetRect, rectForWidget(other), gap));
+      other !== widget && rectsOverlap(widgetRect, this._rectFor(other), gap));
 
     if (!overlapping) {
       return {x: widget.x, y: widget.y};
     };
 
-    const [ow, oh] = sizeForWidget(overlapping);
+    const [ow, oh] = this._sizeFor(overlapping);
 
     // Чотири позиції вздовж краю зачепленого віджета: зліва, справа, зверху, знизу.
     const candidates = [
@@ -1286,7 +1330,7 @@ class WidgetController {
     const gap = this._widgetGap ?? WIDGET_GAP;
     const layerX = this._layerX ?? 0;
     const layerY = this._layerY ?? 0;
-    const rect = rectForWidget(widget);
+    const rect = this._rectFor(widget);
     const monitor = monitorAtStage(
       effectiveMonitors(),
       widget.x + layerX + rect.width / 2,
@@ -1300,7 +1344,7 @@ class WidgetController {
 
     // Вертикальний стос: віджети в тій самій колонці (перетин проєкцій по X).
     const columnMates = others.filter(other => {
-      const otherRect = rectForWidget(other);
+      const otherRect = this._rectFor(other);
 
       return rect.x < otherRect.x + otherRect.width && rect.x + rect.width > otherRect.x;
     });
@@ -1316,7 +1360,7 @@ class WidgetController {
 
     // Горизонтальний ряд: віджети в тому самому ряду (перетин проєкцій по Y).
     const rowMates = others.filter(other => {
-      const otherRect = rectForWidget(other);
+      const otherRect = this._rectFor(other);
 
       return rect.y < otherRect.y + otherRect.height && rect.y + rect.height > otherRect.y;
     });
@@ -1349,7 +1393,7 @@ class WidgetController {
     const index = group.indexOf(widget);
     const coord = w => axis === 'y' ? w.y : w.x;
     const sizeOf = w => {
-      const rect = rectForWidget(w);
+      const rect = this._rectFor(w);
 
       return axis === 'y' ? rect.height : rect.width;
     };
@@ -1383,7 +1427,7 @@ class WidgetController {
       };
     };
     const sizeOf = widget => {
-      const rect = rectForWidget(widget);
+      const rect = this._rectFor(widget);
 
       return axis === 'y' ? rect.height : rect.width;
     };
@@ -1471,11 +1515,11 @@ class WidgetController {
       const probe = {
         x: axis === 'y' ? member.x : positions[i],
         y: axis === 'y' ? positions[i] : member.y,
-        width: rectForWidget(member).width,
-        height: rectForWidget(member).height,
+        width: this._rectFor(member).width,
+        height: this._rectFor(member).height,
       };
 
-      if (outside.some(other => rectsOverlap(probe, rectForWidget(other), gap))) {
+      if (outside.some(other => rectsOverlap(probe, this._rectFor(other), gap))) {
         return [];
       };
     };
@@ -1531,7 +1575,7 @@ class WidgetController {
   };
 
   _onWidgetSizeChange(widget, sizeKey) {
-    if (!widget || !WIDGET_SIZES[sizeKey]) {
+    if (!widget || !WIDGET_SIZE_KEYS.has(sizeKey)) {
       return;
     };
 
@@ -1546,7 +1590,7 @@ class WidgetController {
   };
 
   _setWidgetSize(widget, sizeKey) {
-    if (!widget || !WIDGET_SIZES[sizeKey] || widget.size === sizeKey) {
+    if (!widget || !WIDGET_SIZE_KEYS.has(sizeKey) || widget.size === sizeKey) {
       return;
     };
 
@@ -1593,7 +1637,7 @@ class WidgetController {
       widget.size = PhotosWidget.preferredSize(this._layoutSettings, widget);
     };
 
-    const [width, height] = sizeForWidget(widget);
+    const [width, height] = this._sizeFor(widget);
     const actorParams = {
       vertical: true,
       style_class: `widget widget-${widget.type}`,
@@ -1717,7 +1761,7 @@ class WidgetController {
   };
 
   _removeButtonPosition(widget, removeButton) {
-    const [width] = sizeForWidget(widget);
+    const [width] = this._sizeFor(widget);
 
     removeButton.ensure_style();
     const [, buttonWidth] = removeButton.get_preferred_width(-1);
@@ -1751,7 +1795,7 @@ class WidgetController {
       return;
     };
 
-    const overlay = rectForWidget(widget);
+    const overlay = this._rectFor(widget);
     const button = this._removeButtonPosition(widget, view.removeButton);
     const pin = this._pinButtonPosition(widget);
     const size = this._sizeButtonPosition(widget, view.sizeButton);
@@ -2203,13 +2247,13 @@ class WidgetController {
 
       drag = null;
       this._clampWidget(widget);
-      
-      // Якщо віджет перетинається з іншими — прилипнути до найближчого вільного краю:
-// під час перетягування рухається лише перетягнутий віджет, інші не чіпаємо
+
+      // Якщо віджет перетинається з іншими, прилипнути до найближчого вільного
+      // краю. Під час перетягування рухається лише перетягнутий віджет.
       const gap = this._widgetGap ?? WIDGET_GAP;
-      const widgetRect = rectForWidget(widget);
+      const widgetRect = this._rectFor(widget);
       const hasOverlap = this._widgets.some(other =>
-        other !== widget && rectsOverlap(widgetRect, rectForWidget(other), gap)
+        other !== widget && rectsOverlap(widgetRect, this._rectFor(other), gap)
       );
 
       if (hasOverlap) {
@@ -2221,7 +2265,7 @@ class WidgetController {
         // Страховка: якщо після snap+clamp віджет усе ще перетинається —
         // відпустити його в найближчу вільну клітинку, щоб не лишався «застряглим».
         if (this._widgets.some(other =>
-          other !== widget && rectsOverlap(rectForWidget(widget), rectForWidget(other), gap))) {
+          other !== widget && rectsOverlap(this._rectFor(widget), this._rectFor(other), gap))) {
           const open = this._findOpenPosition(widget, this._widgets);
           widget.x = open.x;
           widget.y = open.y;
@@ -2243,7 +2287,7 @@ class WidgetController {
       };
 
       const [stageX, stageY] = event.get_coords();
-      const [width, height] = sizeForWidget(widget);
+      const [width, height] = this._sizeFor(widget);
       const monitor = monitorAtStage(effectiveMonitors(), stageX, stageY);
 
       if (!monitor) {
@@ -2580,7 +2624,7 @@ class WidgetController {
         weather: this._weather,
         weatherLocation: this._weatherLocation,
         createLabel: this._label.bind(this),
-        sizeForWidget,
+        sizeForWidget: this._sizeFor.bind(this),
         settings: this._layoutSettings,
         events: this._eventsClient,
         onPhotoChange: path => this._setWidgetPhoto(widget, body, path),
@@ -2647,16 +2691,26 @@ class WidgetController {
   _readWidgetGap() {
     try {
       const gap = this._layoutSettings.get_int('widget-gap');
-      return Number.isFinite(gap) && gap >= 0 ? gap : 10;
+      return Number.isFinite(gap) && gap >= 0 ? gap : 15;
     } catch (_error) {
-      return 10;
+      return 15;
     };
+  };
+
+  // Розмір віджета завжди береться з поточного зазору, щоб актор і вміст
+  // ніколи не гадали різні числа.
+  _sizeFor(widget) {
+    return sizeForWidget(widget, this._widgetGap ?? WIDGET_GAP);
+  };
+
+  _rectFor(widget) {
+    return rectForWidget(widget, this._widgetGap ?? WIDGET_GAP);
   };
 
   _clampWidget(widget) {
     const layerX = this._layerX ?? 0;
     const layerY = this._layerY ?? 0;
-    const [width, height] = sizeForWidget(widget);
+    const [width, height] = this._sizeFor(widget);
     const monitor = monitorAtStage(
       effectiveMonitors(),
       widget.x + layerX + width / 2,
@@ -2693,7 +2747,7 @@ class WidgetController {
       return;
     };
 
-    const [width, height] = sizeForWidget(widget);
+    const [width, height] = this._sizeFor(widget);
 
     if (!animate) {
       view.actor.set_position(widget.x, widget.y);
@@ -2715,17 +2769,17 @@ class WidgetController {
   };
 
   _positionIsFreeAgainst(widget, x, y, blockingWidgets) {
-    const [width, height] = sizeForWidget(widget);
+    const [width, height] = this._sizeFor(widget);
     const rect = {x, y, width, height};
     const gap = this._widgetGap ?? WIDGET_GAP;
 
-    return !blockingWidgets.some(other => other !== widget && rectsOverlap(rect, rectForWidget(other), gap));
+    return !blockingWidgets.some(other => other !== widget && rectsOverlap(rect, this._rectFor(other), gap));
   };
 
   _findOpenPosition(widget, blockingWidgets = []) {
     const layerX = this._layerX ?? 0;
     const layerY = this._layerY ?? 0;
-    const [width, height] = sizeForWidget(widget);
+    const [width, height] = this._sizeFor(widget);
     const monitor = monitorAtStage(
       effectiveMonitors(),
       widget.x + layerX + width / 2,
@@ -2783,12 +2837,12 @@ class WidgetController {
 
       this._clampWidget(widget);
 
-      if (settled.some(other => rectsOverlap(rectForWidget(widget), rectForWidget(other), gap))) {
+      if (settled.some(other => rectsOverlap(this._rectFor(widget), this._rectFor(other), gap))) {
         // Спершу — розсування стосу (колонки/ряду) навколо якоря/середнього,
         // і лише якщо не вийшло і перетин лишився — у вільну клітинку.
         this._spaceOut(widget, settled, anchor === widget ? widget : null);
 
-        if (settled.some(other => rectsOverlap(rectForWidget(widget), rectForWidget(other), gap))) {
+        if (settled.some(other => rectsOverlap(this._rectFor(widget), this._rectFor(other), gap))) {
           const position = this._findOpenPosition(widget, settled);
           widget.x = position.x;
           widget.y = position.y;

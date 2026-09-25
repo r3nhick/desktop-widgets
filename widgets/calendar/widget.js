@@ -596,7 +596,7 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel, se
 };
 
 export function render({body, createLabel, events, sizeForWidget, widget, theme, settings}) {
-	const [widgetWidth, widgetHeight] = sizeForWidget ? sizeForWidget(widget) : [220, 220];
+	const [widgetWidth, widgetHeight] = sizeForWidget(widget);
 	const text = theme?.text ?? TEXT;
 	const secondary = theme?.muted ?? SECONDARY;
 	const weekdayFormat = settings?.get_string('calendar-weekday-format') ?? 'short';

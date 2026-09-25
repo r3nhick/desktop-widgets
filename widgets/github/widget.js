@@ -108,7 +108,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
     const isMiniLarge = sizeKey === 'minilarge';
     const isLarge = sizeKey === 'large';
 
-    const [refW, refH] = sizeForWidget ? sizeForWidget(widget) : (isMini ? [260, 120] : (isLarge ? [394, 394] : [394, 190]));
+    const [refW, refH] = sizeForWidget(widget);
 
     // The .widget style adds 16px padding on each side
     const contentW = refW - WIDGET_PADDING * 2 - 2;

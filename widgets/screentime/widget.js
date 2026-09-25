@@ -137,7 +137,7 @@ export function render({body, createLabel, theme, sizeForWidget, widget, setting
 	const config = SIZE_CONFIGS[size] ?? DEFAULT_CONFIG;
 
 	// Get widget dimensions for proper layout sizing
-	const [widgetWidth, widgetHeight] = sizeForWidget ? sizeForWidget(widget) : [394, 190];
+	const [widgetWidth, widgetHeight] = sizeForWidget(widget);
 
 	if (settings?.get_int)
 		screenTimeEngine.setRetentionDays(settings.get_int('screentime-retention-days'));

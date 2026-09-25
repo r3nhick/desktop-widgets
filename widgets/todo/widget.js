@@ -77,7 +77,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
     let tasksLoaded = false;
     const state = { entryVisible: false };
 
-    const [refW, refH] = sizeForWidget ? sizeForWidget(widget) : [REF_WIDTH, REF_HEIGHT];
+    const [refW, refH] = sizeForWidget(widget);
     const contentW = Math.max(1, refW - 34);
     const contentH = Math.max(1, refH - 34);
     const scale = Math.max(0.4, Math.min(contentW / REF_WIDTH, contentH / REF_HEIGHT));

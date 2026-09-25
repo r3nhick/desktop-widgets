@@ -492,7 +492,7 @@ function createSparkTile(theme, label, value, unit, accentColor, samples, maxVal
 
 export function render({body, theme, widget, sizeForWidget}) {
   const size = widget?.size || defaultSize;
-  const [width, height] = sizeForWidget ? sizeForWidget(widget) : [200, 200];
+  const [width, height] = sizeForWidget(widget);
   const accentColor = theme.accent || '#3584e4';
 
   let currentMetric = METRIC_CPU;

@@ -1587,7 +1587,7 @@ function sessionBus() {
 };
 
 export function render({body, createLabel, theme, sizeForWidget, widget, settings}) {
-	const [widgetWidth, widgetHeight] = sizeForWidget ? sizeForWidget(widget) : [454, 220];
+	const [widgetWidth, widgetHeight] = sizeForWidget(widget);
 	const card = createCard(theme, createLabel, widgetWidth, widgetHeight);
 	card._settings = settings;
 	const controller = new Controller(card, sessionBus(), settings);

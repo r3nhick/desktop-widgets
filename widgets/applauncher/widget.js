@@ -133,7 +133,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
     const tileHoverBg = cssColorToRgba(textColor, TILE_HOVER_ALPHA);
     
     const sizeKey = widget?.size ?? 'medium';
-    const [width, height] = sizeForWidget ? sizeForWidget(widget) : [394, 190];
+    const [width, height] = sizeForWidget(widget);
     
     const dataFilePath = GLib.build_filenamev([getDataDir('applauncher'), `applauncher-${widget?.id}.json`]);
     

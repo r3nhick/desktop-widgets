@@ -9,6 +9,8 @@ import Gdk from 'gi://Gdk';
 import {ExtensionPreferences, gettext as _}
     from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
+import {clearLayout, layoutJson, writeLayout} from './layoutDoc.js';
+
 const WIDGET_TYPES = [
     {type: 'applauncher'},
     {type: 'clock'},
@@ -454,7 +456,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             activatable: true,
         });
         resetRow.connect('activated', () => {
-            settings.set_string('layout-json', '');
+            clearLayout(settings);
         });
         addGroup.add(resetRow);
 
@@ -635,7 +637,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
                     };
                 };
 
-                settings.set_string('layout-json', JSON.stringify({widgets: layout.widgets}));
+                writeLayout(settings, layout.widgets);
             } catch (error) {
                 this._showError(_('Could not import the layout'), error.message);
             };
@@ -752,7 +754,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
                 throw new Error(_('Not a valid widget layout'));
             };
 
-            settings.set_string('layout-json', content);
+            writeLayout(settings, parsed.widgets);
             this._refreshPresetList?.();
         } catch (error) {
             this._showError(_('Could not restore the layout'), error.message);
@@ -2171,7 +2173,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             data: {},
         });
 
-        settings.set_string('layout-json', JSON.stringify({widgets}));
+        settings.set_string('layout-json', layoutJson(widgets));
     }
 
     _debounce(key, callback, delay = 230) {
