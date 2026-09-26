@@ -1,115 +1,27 @@
-import Clutter from 'gi://Clutter';
-import GObject from 'gi://GObject';
+import St from 'gi://St';
 import Shell from 'gi://Shell';
-
-import { isActorDestroyed } from './actorLifecycle.js';
-
-// Rounds off whatever an actor has already painted.
-//
-// Shell.BlurEffect in BACKGROUND mode drops a rectangular patch of blurred
-// backdrop under the actor, so a widget with rounded corners would sit on a
-// square sheet of blurred wallpaper. This is the same signed-distance rounded
-// box Mutter uses for its own clips, feathered over a pixel so the edge stays
-// antialiased.
-const CORNER_SHADER = `
-uniform sampler2D tex;
-uniform float radius;
-uniform float width;
-uniform float height;
-
-float corner_coverage(vec2 p, float r) {
-    vec2 half_size = vec2(width, height) / 2.;
-    vec2 d = abs(p - half_size) - (half_size - vec2(r));
-    float dist = length(max(d, vec2(0.))) + min(max(d.x, d.y), 0.) - r;
-
-    return 1. - smoothstep(-.5, .5, dist);
-}
-
-void main(void) {
-    vec2 uv = cogl_tex_coord_in[0].xy;
-    // The backdrop capture reaches past the actor's own edges, so keep the
-    // outermost texel from sampling whatever lies outside the widget.
-    vec2 edge = vec2(1.) / vec2(width, height);
-    vec4 pixel = texture2D(tex, clamp(uv, edge, vec2(1.) - edge));
-    float alpha = corner_coverage(uv * vec2(width, height), radius);
-
-    cogl_color_out = vec4(pixel.rgb * alpha, min(alpha, pixel.a));
-}
-`;
-
-const RoundedCorners = GObject.registerClass(
-class RoundedCorners extends Clutter.ShaderEffect {
-    constructor() {
-        super();
-
-        this._width = 0;
-        this._height = 0;
-        this._radius = 0;
-
-        this.set_shader_source(CORNER_SHADER);
-    }
-
-    get width() {
-        return this._width;
-    }
-
-    set width(value) {
-        this._width = value;
-        this._apply();
-    }
-
-    get height() {
-        return this._height;
-    }
-
-    set height(value) {
-        this._height = value;
-        this._apply();
-    }
-
-    get radius() {
-        return this._radius;
-    }
-
-    set radius(value) {
-        this._radius = value;
-        this._apply();
-    }
-
-    _apply() {
-        // An actor that has not been laid out yet has no pixels to mask, and a
-        // radius wider than half the shorter side collapses the box into a pill.
-        if (this._width <= 0 || this._height <= 0) {
-            return;
-        };
-
-        const radius = Math.max(0, Math.min(this._radius, this._width / 2, this._height / 2));
-
-        this.set_uniform_value('width', this._width);
-        this.set_uniform_value('height', this._height);
-        this.set_uniform_value('radius', radius);
-    }
-});
+import Meta from 'gi://Meta';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Background from 'resource:///org/gnome/shell/ui/background.js';
 
 /**
- * Real backdrop blur for the glass look.
- *
- * St cannot blur what is behind an actor, but the shell can: Shell.BlurEffect
- * in BACKGROUND mode grabs the framebuffer underneath the actor, runs it
- * through Clutter's blur node and paints the result under the actor's own
- * content. Since widgets live in the layout manager's background group, the
- * only thing underneath them is the wallpaper - which is exactly what glass
- * should be showing.
- *
- * The effect re-reads the framebuffer on every frame and cannot be cached, so
- * it is only attached while the blur is actually wanted.
+ * Glass blur manager for desktop widgets.
+ * 
+ * Creates a blurred background for each widget using the same approach as
+ * blur-my-shell: Meta.BackgroundGroup with BackgroundManager renders the
+ * wallpaper, and Shell.BlurEffect blurs it. The blurred background is
+ * positioned behind the widget content.
+ * 
+ * Unlike the old approach that tried to blur in BACKGROUND mode on the widget
+ * actor itself, this creates a separate background actor for each widget and
+ * manages its size/position to match the widget.
  */
 export class GlassBlur {
     /**
      * @param {object} options
-     * @param {() => boolean} options.isEnabled whether the glass look is on
+     * @param {() => boolean} options.isEnabled whether glass style is active
      * @param {() => number} options.blur blur radius in logical pixels
-     * @param {() => number} options.cornerRadius radius to round the widgets to
+     * @param {() => number} options.cornerRadius widget corner radius
      * @param {() => number} options.scaleFactor theme scale factor
      * @param {(key: string, message: string) => void} [options.warn]
      */
@@ -118,123 +30,224 @@ export class GlassBlur {
         this._blur = blur;
         this._cornerRadius = cornerRadius;
         this._scaleFactor = scaleFactor;
-        this._warn = warn;
+        this._warn = warn ?? (() => {});
+        
+        // Map: widget id -> { actor, container, background, backgroundGroup, bgManager, signalIds }
         this._records = new Map();
     }
 
     /**
-     * Brings every given view in line with the current settings and forgets the
-     * ones left out, so callers only have to hand over the eligible widgets.
-     *
-     * @param {Iterable<{id: string, actor: Clutter.Actor}>} views
+     * Sync blur state for all given views. Views not in the list will have
+     * their blur removed.
+     * 
+     * @param {Iterable<{id: string, actor: Clutter.Actor, widget: object}>} views
      */
     sync(views) {
+        const viewsArray = Array.from(views);
         const live = new Set();
 
-        for (const view of views) {
-            if (!view?.actor) {
+        for (const view of viewsArray) {
+            if (!view?.actor || !view?.widget) {
                 continue;
-            };
+            }
 
             live.add(view.id);
             this._syncView(view);
-        };
+        }
 
+        // Remove blur from widgets that are no longer in the list
         for (const id of [...this._records.keys()]) {
             if (!live.has(id)) {
                 this._detach(id);
-            };
-        };
+            }
+        }
     }
 
     destroy() {
         for (const id of [...this._records.keys()]) {
             this._detach(id);
-        };
+        }
     }
 
     _syncView(view) {
         const radius = this._blur();
 
-        // There is no blur radius of zero to fall back on: even a hairline blur
-        // still costs a backdrop capture per widget per frame.
+        // No blur if disabled or radius is 0
         if (!this._isEnabled() || radius <= 0) {
             this._detach(view.id);
             return;
-        };
+        }
 
         let record = this._records.get(view.id);
 
+        // If actor changed, detach old and create new
         if (record && record.actor !== view.actor) {
             this._detach(view.id);
             record = null;
-        };
+        }
 
         if (!record) {
             record = this._attach(view);
+            if (!record) {
+                return; // Failed to attach
+            }
             this._records.set(view.id, record);
-        };
+        }
 
-        record.blur.radius = radius * this._scaleFactor();
+        // Update blur radius
+        if (record.blur) {
+            record.blur.radius = radius * this._scaleFactor();
+        }
 
-        const { actor } = record;
-
-        record.corners.width = actor.width;
-        record.corners.height = actor.height;
-        record.corners.radius = this._cornerRadius();
+        // Update size and position
+        this._updateSize(record);
     }
 
     _attach(view) {
-        const { actor } = view;
+        const { actor, widget } = view;
+        const container = actor.get_parent();
+        
+        if (!container) {
+            this._warn('glass-no-parent', `Widget ${widget.type} has no parent container`);
+            return null;
+        }
+
+        // Find monitor for this widget
+        const monitor = Main.layoutManager.findMonitorForActor(actor);
+        if (!monitor) {
+            this._warn('glass-no-monitor', `No monitor found for widget ${widget.type}`);
+            return null;
+        }
+
+        // Create background group to hold the blurred wallpaper
+        const backgroundGroup = new Meta.BackgroundGroup({
+            name: 'widget-glass-background',
+            width: 0,
+            height: 0,
+        });
+
+        // Create background widget that will contain the wallpaper
+        const background = new St.Widget({
+            name: 'widget-glass-blur',
+            style_class: 'widget-glass-blur',
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+        });
+
+        // Create BackgroundManager to render the actual wallpaper
+        const bgManager = new Background.BackgroundManager({
+            container: background,
+            monitorIndex: monitor.index,
+            controlPosition: false,
+        });
+
+        // Add blur effect to the background
         const blur = new Shell.BlurEffect({
-            mode: Shell.BlurMode.BACKGROUND,
+            name: 'glass-blur',
+            mode: Shell.BlurMode.ACTOR,
             radius: this._blur() * this._scaleFactor(),
+            brightness: 1.0,
         });
-        const corners = new RoundedCorners();
+        background.add_effect(blur);
 
-        // Order matters: the mask has to run over the blurred backdrop, not the
-        // other way round.
-        actor.add_effect(blur);
-        actor.add_effect(corners);
+        // Insert background group as first child of container (behind all widgets)
+        backgroundGroup.add_child(background);
+        container.insert_child_at_index(backgroundGroup, 0);
 
-        const record = { actor, blur, corners, sizeId: 0 };
+        // Track signal connections for cleanup
+        const signalIds = [];
 
-        // The mask is drawn in the actor's own pixels, so it has to follow every
-        // resize, including the ones the edit-mode size button performs.
-        record.sizeId = actor.connect('notify::size', () => {
-            if (isActorDestroyed(actor)) {
-                return;
-            };
+        // Connect to actor size/position changes to update background
+        signalIds.push(actor.connect('notify::position', () => {
+            const record = this._records.get(view.id);
+            if (record) this._updateSize(record);
+        }));
+        signalIds.push(actor.connect('notify::size', () => {
+            const record = this._records.get(view.id);
+            if (record) this._updateSize(record);
+        }));
 
-            record.corners.width = actor.width;
-            record.corners.height = actor.height;
-        });
+        // Connect to actor destruction
+        signalIds.push(actor.connect('destroy', () => {
+            this._detach(view.id);
+        }));
 
-        return record;
+        return {
+            actor,
+            widget,
+            container,
+            background,
+            backgroundGroup,
+            bgManager,
+            blur,
+            monitor,
+            signalIds,
+        };
+    }
+
+    _updateSize(record) {
+        const { actor, background, backgroundGroup, monitor, widget } = record;
+
+        // Get widget size and position
+        const [width, height] = actor.get_size();
+        const [x, y] = actor.get_position();
+
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        // backgroundGroup sits at (x, y) with size (width, height)
+        backgroundGroup.set_position(x, y);
+        backgroundGroup.set_size(width, height);
+
+        // Background inside the group: fill entire monitor, but positioned relative to group origin
+        // Group is at (x,y), monitor is at (monitor.x, monitor.y), so offset is:
+        const bgX = monitor.x - x;
+        const bgY = monitor.y - y;
+        
+        background.set_position(bgX, bgY);
+        background.set_size(monitor.width, monitor.height);
+        
+        // Clip to widget bounds: widget is at (x,y) in layer space, but in group space it's at (0,0)
+        // Background is at (bgX, bgY) in group space
+        // So widget bounds in background space are at (0 - bgX, 0 - bgY) = (-bgX, -bgY)
+        const clipX = -bgX;
+        const clipY = -bgY;
+        background.set_clip(clipX, clipY, width, height);
+
+        // Apply border radius
+        const radius = this._cornerRadius();
+        background.set_style(`border-radius: ${radius}px;`);
     }
 
     _detach(id) {
         const record = this._records.get(id);
-
         if (!record) {
             return;
-        };
+        }
+
+        // Disconnect all signals
+        for (const signalId of record.signalIds) {
+            try {
+                record.actor.disconnect(signalId);
+            } catch (e) {
+                // Actor might be destroyed already
+            }
+        }
+
+        // Destroy background manager
+        if (record.bgManager) {
+            record.bgManager.destroy();
+        }
+
+        // Remove and destroy background group
+        if (record.backgroundGroup) {
+            record.container?.remove_child(record.backgroundGroup);
+            record.backgroundGroup.destroy();
+        }
 
         this._records.delete(id);
-
-        if (isActorDestroyed(record.actor)) {
-            return;
-        };
-
-        if (record.sizeId) {
-            record.actor.disconnect(record.sizeId);
-        };
-
-        try {
-            record.actor.remove_effect(record.blur);
-            record.actor.remove_effect(record.corners);
-        } catch (error) {
-            this._warn?.('glass-detach-failed', `Failed to remove the glass effect: ${error.message}`);
-        };
     }
 }

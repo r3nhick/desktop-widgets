@@ -1721,8 +1721,11 @@ class WidgetController {
       return;
     };
 
-    this._glass.sync([...this._views.values()].filter(view =>
-      view.actor && !NO_GLASS_BACKDROP.has(view.widget.type)));
+    const views = [...this._views.values()]
+      .filter(view => view.actor && !NO_GLASS_BACKDROP.has(view.widget.type))
+      .map(view => ({...view, id: view.widget.id}));
+
+    this._glass.sync(views);
   };
 
   _safeFillWidgetBody(widget, body) {
