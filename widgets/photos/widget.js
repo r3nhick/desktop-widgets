@@ -7,7 +7,7 @@ import St from 'gi://St';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import { warn } from '../../logger.js';
-import { assetPath } from '../../paths.js';
+import { iconPath } from '../../paths.js';
 
 export const type = 'photos';
 export const label = 'Photos';
@@ -154,45 +154,40 @@ function buildEmptyState(createLabel, onPick, theme, radius = 16) {
 		style: 'spacing: 12px;',
 	});
 
-	// Use the same icon as in preferences
+	// Та сама іконка, що й у налаштуваннях: dw-image-light / dw-image-dark.
+	// Вона не має суфікса -symbolic, тому GTK не заливає її суцільним
+	// кольором і лінійні штрихи лишаються видимими.
 	const iconName = theme?.dark ? 'dw-image-dark' : 'dw-image-light';
-	// Build path to icons directory
-	const iconPath = GLib.build_filenamev([
-		GLib.path_get_dirname(GLib.path_get_dirname(import.meta.url.replace('file://', ''))),
-		'icons',
-		'hicolor',
-		'scalable',
-		'actions',
-		`${iconName}.svg`
-	]);
-	
+	const iconFile = iconPath(iconName);
+
 	let icon;
-	if (iconPath && Gio.File.new_for_path(iconPath).query_exists(null)) {
+	if (iconFile && Gio.File.new_for_path(iconFile).query_exists(null)) {
 		icon = new St.Icon({
 			style_class: 'widget-photo-icon',
-			icon_size: 96,
-			gicon: Gio.FileIcon.new(Gio.File.new_for_path(iconPath)),
+			icon_size: 88,
+			gicon: Gio.FileIcon.new(Gio.File.new_for_path(iconFile)),
 			x_align: Clutter.ActorAlign.CENTER,
 			y_align: Clutter.ActorAlign.CENTER,
 		});
 	} else {
-		// Fallback to system icon
+		// Фолбек, якщо іконки немає на диску: символьна перемальовується
+		// кольором теми, тож читається на будь-якому тлі.
 		icon = new St.Icon({
 			style_class: 'widget-photo-icon',
 			icon_name: 'image-x-generic-symbolic',
-			icon_size: 96,
+			icon_size: 88,
 			x_align: Clutter.ActorAlign.CENTER,
 			y_align: Clutter.ActorAlign.CENTER,
-			style: `color: ${theme?.muted || 'rgba(255, 255, 255, 0.5)'};`,
+			style: `color: ${theme?.muted ?? '#5e5c64'};`,
 		});
-	}
-	
+	};
+
 	container.add_child(icon);
 
 	const label = createLabel(
 		_('Select photo'),
 		'widget-photo-select',
-		`color: ${theme?.text || '#ffffff'}; font-size: 24px; font-weight: 600; text-align: center;`);
+		`color: ${theme?.text ?? '#ffffff'}; font-size: 24px; font-weight: 600; text-align: center;`);
 
 	label.x_expand = false;
 	label.x_align = Clutter.ActorAlign.CENTER;
@@ -248,7 +243,9 @@ const PhotoFrame = GObject.registerClass(
 );
 
 export function style(theme) {
-	return `background-color: #242424; border-color: ${theme.border}; border-radius: ${theme?.radius ?? 16}px; padding: 0px;`;
+	// Фон беремо з теми: жорсткий #242424 лишав віджет темним у світлій
+	// темі, а колір тексту theme.text тоді ще й ставав темним — невидимим.
+	return `background-color: ${theme?.background ?? '#242424'}; border-color: ${theme.border}; border-radius: ${theme?.radius ?? 16}px; padding: 0px;`;
 };
 
 export function render({body, widget, settings, createLabel, onPhotoChange, theme}) {

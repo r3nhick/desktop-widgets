@@ -842,6 +842,12 @@ class WidgetController {
     const theme = this._gnomeTheme();
     let styleStr = widgetModule.style(theme);
 
+    // Текстовий колір рамки задаємо тут, а не в stylesheet.css: там він був
+    // захардкоджений під темну тему, тож у світлій віджети лишались без
+    // тексту. Модулі, що ставлять власний color, ставлять такий самий
+    // theme.text, тому перекриття безпечне.
+    styleStr += ` color: ${theme.text};`;
+
     // Apply custom global styles dynamically
     if (theme.radius !== 16) {
       styleStr += ` border-radius: ${theme.radius}px;`;
