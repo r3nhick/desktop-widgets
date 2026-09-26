@@ -169,74 +169,74 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         // General page
         const generalPage = new Adw.PreferencesPage();
         generalPage.set_title(_('General'));
-        generalPage.set_icon_name('preferences-desktop-symbolic');
+        generalPage.set_icon_name('dw-settings-symbolic');
         this._buildGeneralPage(generalPage, settings);
         this._addSidebarPage(generalPage);
 
         // Photos page
         const photosPage = this._createPhotosPage(settings);
         photosPage.set_title(_('Photos Widget'));
-        photosPage.set_icon_name('image-x-generic-symbolic');
+        photosPage.set_icon_name('dw-image-symbolic');
         this._addSidebarPage(photosPage);
 
         // Battery page
         const batteryPage = this._createBatteryPage(settings);
         batteryPage.set_title(_('Battery Widget'));
-        batteryPage.set_icon_name('battery-symbolic');
+        batteryPage.set_icon_name('dw-battery-full-symbolic');
         this._addSidebarPage(batteryPage);
 
         // Screen Time page
         const screentimePage = this._createScreentimePage(settings);
         screentimePage.set_title(_('Screen Time Widget'));
-        screentimePage.set_icon_name('alarm-symbolic');
+        screentimePage.set_icon_name('dw-hourglass-symbolic');
         this._addSidebarPage(screentimePage);
 
         // Music page
         const musicPage = this._createMusicPage(settings);
         musicPage.set_title(_('Music Widget'));
-        musicPage.set_icon_name('audio-x-generic-symbolic');
+        musicPage.set_icon_name('dw-music-symbolic');
         this._addSidebarPage(musicPage);
 
         // Calendar page
         const calendarPage = this._createCalendarPage(settings);
         calendarPage.set_title(_('Calendar Widget'));
-        calendarPage.set_icon_name('x-office-calendar-symbolic');
+        calendarPage.set_icon_name('dw-calendar-days-symbolic');
         this._addSidebarPage(calendarPage);
 
         // Digital Clock page
         const digitalClockPage = this._createDigitalClockPage(settings);
         digitalClockPage.set_title(_('Digital Clock Widget'));
-        digitalClockPage.set_icon_name('appointment-new-symbolic');
+        digitalClockPage.set_icon_name('dw-clock-plus-symbolic');
         this._addSidebarPage(digitalClockPage);
 
         // GitHub page
         const githubPage = this._createGithubPage(settings);
         githubPage.set_title(_('GitHub Widget'));
-        githubPage.set_icon_name('folder-publicshare-symbolic');
+        githubPage.set_icon_name('dw-code-xml-symbolic');
         this._addSidebarPage(githubPage);
 
         // App Launcher page
         const appLauncherPage = this._createAppLauncherPage(settings);
         appLauncherPage.set_title(_('App Launcher Widget'));
-        appLauncherPage.set_icon_name('view-grid-symbolic');
+        appLauncherPage.set_icon_name('dw-layout-grid-symbolic');
         this._addSidebarPage(appLauncherPage);
 
         // Notes page
         const notesPage = this._createNotesPage(settings);
         notesPage.set_title(_('Notes Widget'));
-        notesPage.set_icon_name('document-edit-symbolic');
+        notesPage.set_icon_name('dw-notebook-pen-symbolic');
         this._addSidebarPage(notesPage);
 
         // Appearance page
         const appearancePage = this._createAppearancePage(settings);
         appearancePage.set_title(_('Appearance'));
-        appearancePage.set_icon_name('preferences-color-symbolic');
+        appearancePage.set_icon_name('dw-sparkles-symbolic');
         this._addSidebarPage(appearancePage);
 
         // About page
         const aboutPage = this._createAboutPage();
         aboutPage.set_title(_('About'));
-        aboutPage.set_icon_name('help-about-symbolic');
+        aboutPage.set_icon_name('dw-info-symbolic');
         this._addSidebarPage(aboutPage);
 
         // Handle window close
@@ -2031,7 +2031,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
 
         group.add(this._aboutLinkRow(
             _('Report an Issue'),
-            'desktop-widgets-bug-symbolic',
+            'dw-bug-symbolic',
             'https://github.com/r3nhick/desktop-widgets/issues'
         ));
         group.add(this._aboutLinkRow(
