@@ -143,53 +143,60 @@ export function openPhotoChooser(widget, onPhotoChange) {
 	openFileChooser(widget, onPhotoChange);
 };
 
-function defaultPreviewIcon(iconSize) {
-	const bundled = assetPath('image-svgrepo-com.svg');
-	const local = GLib.build_filenamev([GLib.get_home_dir(), 'Pictures', 'Other', 'image-svgrepo-com.svg']);
-
-	for (const path of [bundled, local]) {
-		if (path && Gio.File.new_for_path(path).query_exists(null)) {
-			return new St.Icon({
-				style_class: 'widget-photo-preview',
-				icon_size: iconSize,
-				gicon: Gio.FileIcon.new(Gio.File.new_for_path(path)),
-				x_align: Clutter.ActorAlign.CENTER,
-				y_align: Clutter.ActorAlign.CENTER,
-				style: 'color: rgba(255, 255, 255, 0.6);',
-			});
-		};
-	};
-
-	return new St.Icon({
-		style_class: 'widget-photo-preview',
-		icon_name: 'image-x-generic-symbolic',
-		icon_size: iconSize,
-		x_align: Clutter.ActorAlign.CENTER,
-		y_align: Clutter.ActorAlign.CENTER,
-		style: 'color: rgba(255, 255, 255, 0.45);',
-	});
-};
-
-function buildEmptyState(createLabel, onPick, radius = 16) {
-	const row = new St.BoxLayout({
+function buildEmptyState(createLabel, onPick, theme, radius = 16) {
+	const container = new St.BoxLayout({
 		style_class: 'widget-photo-empty',
+		vertical: true,
 		x_expand: true,
 		y_expand: true,
 		x_align: Clutter.ActorAlign.CENTER,
 		y_align: Clutter.ActorAlign.CENTER,
-		style: 'spacing: 16px;',
+		style: 'spacing: 12px;',
 	});
 
-	row.add_child(defaultPreviewIcon(88));
+	// Use the same icon as in preferences
+	const iconName = theme?.dark ? 'dw-image-dark' : 'dw-image-light';
+	// Build path to icons directory
+	const iconPath = GLib.build_filenamev([
+		GLib.path_get_dirname(GLib.path_get_dirname(import.meta.url.replace('file://', ''))),
+		'icons',
+		'hicolor',
+		'scalable',
+		'actions',
+		`${iconName}.svg`
+	]);
+	
+	let icon;
+	if (iconPath && Gio.File.new_for_path(iconPath).query_exists(null)) {
+		icon = new St.Icon({
+			style_class: 'widget-photo-icon',
+			icon_size: 96,
+			gicon: Gio.FileIcon.new(Gio.File.new_for_path(iconPath)),
+			x_align: Clutter.ActorAlign.CENTER,
+			y_align: Clutter.ActorAlign.CENTER,
+		});
+	} else {
+		// Fallback to system icon
+		icon = new St.Icon({
+			style_class: 'widget-photo-icon',
+			icon_name: 'image-x-generic-symbolic',
+			icon_size: 96,
+			x_align: Clutter.ActorAlign.CENTER,
+			y_align: Clutter.ActorAlign.CENTER,
+			style: `color: ${theme?.muted || 'rgba(255, 255, 255, 0.5)'};`,
+		});
+	}
+	
+	container.add_child(icon);
 
 	const label = createLabel(
-		_('Select image'),
+		_('Select photo'),
 		'widget-photo-select',
-		'color: rgba(255, 255, 255, 0.85); font-size: 20px; font-weight: 600; text-align: center;');
+		`color: ${theme?.text || '#ffffff'}; font-size: 24px; font-weight: 600; text-align: center;`);
 
 	label.x_expand = false;
-	label.x_align = Clutter.ActorAlign.START;
-	row.add_child(label);
+	label.x_align = Clutter.ActorAlign.CENTER;
+	container.add_child(label);
 
 	const button = new St.Button({
 		style_class: 'widget-photo-empty-button',
@@ -201,7 +208,7 @@ function buildEmptyState(createLabel, onPick, radius = 16) {
 		style: `background-color: transparent; border: none; padding: 0px; border-radius: ${radius}px;`,
 	});
 
-	button.set_child(row);
+	button.set_child(container);
 	button.connect('clicked', onPick);
 	return button;
 };
@@ -258,7 +265,7 @@ export function render({body, widget, settings, createLabel, onPhotoChange, them
 		return;
 	};
 
-	body.add_child(buildEmptyState(createLabel, () => openFileChooser(widget, onPhotoChange), radius));
+	body.add_child(buildEmptyState(createLabel, () => openFileChooser(widget, onPhotoChange), theme, radius));
 };
 
 export function cleanup() {
