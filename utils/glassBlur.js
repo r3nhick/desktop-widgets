@@ -12,9 +12,9 @@ import * as Background from 'resource:///org/gnome/shell/ui/background.js';
  * wallpaper, and Shell.BlurEffect blurs it. The blurred background is
  * positioned behind the widget content.
  * 
- * Unlike the old approach that tried to blur in BACKGROUND mode on the widget
- * actor itself, this creates a separate background actor for each widget and
- * manages its size/position to match the widget.
+ * The background is sized to match the widget exactly and positioned to
+ * overlay the widget's region. Border radius is applied via CSS to match
+ * the widget's rounded corners.
  */
 export class GlassBlur {
     /**
@@ -124,6 +124,7 @@ export class GlassBlur {
             name: 'widget-glass-background',
             width: 0,
             height: 0,
+            clip_to_allocation: true,
         });
 
         // Create background widget that will contain the wallpaper
@@ -134,6 +135,7 @@ export class GlassBlur {
             y: 0,
             width: 100,
             height: 100,
+            clip_to_allocation: true,
         });
 
         // Create BackgroundManager to render the actual wallpaper
@@ -198,27 +200,28 @@ export class GlassBlur {
             return;
         }
 
-        // backgroundGroup sits at (x, y) with size (width, height)
-        backgroundGroup.set_position(x, y);
-        backgroundGroup.set_size(width, height);
+        const radius = this._cornerRadius();
+        // Inset blur area by a few pixels to avoid corner artifacts
+        const inset = Math.max(2, Math.min(4, Math.floor(radius / 4)));
+
+        // backgroundGroup sits at (x + inset, y + inset) with inset size
+        backgroundGroup.set_position(x + inset, y + inset);
+        backgroundGroup.set_size(width - inset * 2, height - inset * 2);
 
         // Background inside the group: fill entire monitor, but positioned relative to group origin
-        // Group is at (x,y), monitor is at (monitor.x, monitor.y), so offset is:
-        const bgX = monitor.x - x;
-        const bgY = monitor.y - y;
+        // Group is at (x + inset, y + inset), monitor is at (monitor.x, monitor.y), so offset is:
+        const bgX = monitor.x - (x + inset);
+        const bgY = monitor.y - (y + inset);
         
         background.set_position(bgX, bgY);
         background.set_size(monitor.width, monitor.height);
         
-        // Clip to widget bounds: widget is at (x,y) in layer space, but in group space it's at (0,0)
-        // Background is at (bgX, bgY) in group space
-        // So widget bounds in background space are at (0 - bgX, 0 - bgY) = (-bgX, -bgY)
+        // Clip to widget bounds (adjusted for inset)
         const clipX = -bgX;
         const clipY = -bgY;
-        background.set_clip(clipX, clipY, width, height);
+        background.set_clip(clipX, clipY, width - inset * 2, height - inset * 2);
 
-        // Apply border radius
-        const radius = this._cornerRadius();
+        // Apply border radius to background
         background.set_style(`border-radius: ${radius}px;`);
     }
 

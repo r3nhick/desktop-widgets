@@ -145,6 +145,83 @@ function isValidAccel(mask, keyval) {
 };
 
 export default class WidgetsPrefs extends ExtensionPreferences {
+    /**
+     * Іконки розширення не мають суфікса `-symbolic`: GTK для таких файлів
+     * бере форму шляху і заливає її суцільним кольором, через що лінійні
+     * lucide-іконки перетворюються на плями (fill="none" ігнорується).
+     * Тому кожна іконка має два кольорові варіанти, а ми обираємо потрібний
+     * і одразу перемальовуємо всі зареєстровані місця при зміні теми.
+     */
+    _setupThemedIcons() {
+        this._iconTargets = [];
+
+        this._interfaceSettings = new Gio.Settings({
+            schema_id: 'org.gnome.desktop.interface',
+        });
+
+        const currentTheme = () => {
+            const scheme = this._interfaceSettings.get_string('color-scheme');
+            return scheme === 'prefer-dark' ? 'dark' : 'light';
+        };
+
+        this._iconTheme = currentTheme();
+
+        const apply = () => {
+            const theme = currentTheme();
+            if (theme === this._iconTheme)
+                return;
+            
+            this._iconTheme = theme;
+            
+            // Оновлюємо іконки: для сторінок оновлюємо page.icon_name,
+            // а також синхронізуємо іконки в sidebar
+            for (const [target, base] of this._iconTargets) {
+                const name = `${base}-${theme}`;
+                if (typeof target.set_icon_name === 'function') {
+                    target.set_icon_name(name);
+                } else if ('icon_name' in target) {
+                    target.icon_name = name;
+                }
+                
+                // Якщо це page з sidebar іконкою, оновлюємо і її
+                if (target._sidebarIcon) {
+                    target._sidebarIcon.set_from_icon_name(name);
+                }
+            }
+            
+            // Форсуємо перемалювання sidebar
+            this._sidebarListBox?.queue_draw();
+        };
+
+        // Слухаємо зміну color-scheme через сигнал замість polling
+        this._themeSignalId = this._interfaceSettings.connect('changed::color-scheme', () => {
+            apply();
+        });
+
+        // Залишаємо polling як fallback для compatibility
+        this._themeCheckId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
+            apply();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    _applyIconName(target, name) {
+        if (typeof target.set_icon_name === 'function') {
+            target.set_icon_name(name);
+        } else if ('icon_name' in target) {
+            target.icon_name = name;
+        }
+    }
+
+    /**
+     * Ставить тематичну іконку на віджет і запам'ятовує його, щоб
+     * _setupThemedIcons() міг оновити колір при зміні теми.
+     */
+    _setThemedIcon(target, base) {
+        this._iconTargets.push([target, base]);
+        this._applyIconName(target, `${base}-${this._iconTheme}`);
+    }
+
     fillPreferencesWindow(window) {
         this._window = window;
         this._pages = [];
@@ -155,6 +232,20 @@ export default class WidgetsPrefs extends ExtensionPreferences {
 
         const iconTheme = Gtk.IconTheme.get_for_display(window.get_display());
         iconTheme.add_search_path(this.dir.get_child('icons').get_path());
+
+        this._setupThemedIcons();
+
+        // Збільшуємо іконки в бічній панелі через CSS.
+        const cssProvider = new Gtk.CssProvider();
+        cssProvider.load_from_data(
+            'navigation-sidebar row image { min-width: 32px; min-height: 32px; -gtk-icon-size: 32px; }',
+            -1
+        );
+        Gtk.StyleContext.add_provider_for_display(
+            window.get_display(),
+            cssProvider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        );
 
         const settings = this.getSettings();
 
@@ -169,78 +260,90 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         // General page
         const generalPage = new Adw.PreferencesPage();
         generalPage.set_title(_('General'));
-        generalPage.set_icon_name('dw-settings-symbolic');
+        this._setThemedIcon(generalPage, 'dw-settings');
         this._buildGeneralPage(generalPage, settings);
         this._addSidebarPage(generalPage);
 
         // Photos page
         const photosPage = this._createPhotosPage(settings);
         photosPage.set_title(_('Photos Widget'));
-        photosPage.set_icon_name('dw-image-symbolic');
+        this._setThemedIcon(photosPage, 'dw-image');
         this._addSidebarPage(photosPage);
 
         // Battery page
         const batteryPage = this._createBatteryPage(settings);
         batteryPage.set_title(_('Battery Widget'));
-        batteryPage.set_icon_name('dw-battery-full-symbolic');
+        this._setThemedIcon(batteryPage, 'dw-battery-full');
         this._addSidebarPage(batteryPage);
 
         // Screen Time page
         const screentimePage = this._createScreentimePage(settings);
         screentimePage.set_title(_('Screen Time Widget'));
-        screentimePage.set_icon_name('dw-hourglass-symbolic');
+        this._setThemedIcon(screentimePage, 'dw-hourglass');
         this._addSidebarPage(screentimePage);
 
         // Music page
         const musicPage = this._createMusicPage(settings);
         musicPage.set_title(_('Music Widget'));
-        musicPage.set_icon_name('dw-music-symbolic');
+        this._setThemedIcon(musicPage, 'dw-music');
         this._addSidebarPage(musicPage);
 
         // Calendar page
         const calendarPage = this._createCalendarPage(settings);
         calendarPage.set_title(_('Calendar Widget'));
-        calendarPage.set_icon_name('dw-calendar-days-symbolic');
+        this._setThemedIcon(calendarPage, 'dw-calendar-days');
         this._addSidebarPage(calendarPage);
 
         // Digital Clock page
         const digitalClockPage = this._createDigitalClockPage(settings);
         digitalClockPage.set_title(_('Digital Clock Widget'));
-        digitalClockPage.set_icon_name('dw-clock-plus-symbolic');
+        this._setThemedIcon(digitalClockPage, 'dw-clock-plus');
         this._addSidebarPage(digitalClockPage);
 
         // GitHub page
         const githubPage = this._createGithubPage(settings);
         githubPage.set_title(_('GitHub Widget'));
-        githubPage.set_icon_name('dw-code-xml-symbolic');
+        this._setThemedIcon(githubPage, 'dw-code-xml');
         this._addSidebarPage(githubPage);
 
         // App Launcher page
         const appLauncherPage = this._createAppLauncherPage(settings);
         appLauncherPage.set_title(_('App Launcher Widget'));
-        appLauncherPage.set_icon_name('dw-layout-grid-symbolic');
+        this._setThemedIcon(appLauncherPage, 'dw-layout-grid');
         this._addSidebarPage(appLauncherPage);
 
         // Notes page
         const notesPage = this._createNotesPage(settings);
         notesPage.set_title(_('Notes Widget'));
-        notesPage.set_icon_name('dw-notebook-pen-symbolic');
+        this._setThemedIcon(notesPage, 'dw-notebook-pen');
         this._addSidebarPage(notesPage);
 
         // Appearance page
         const appearancePage = this._createAppearancePage(settings);
         appearancePage.set_title(_('Appearance'));
-        appearancePage.set_icon_name('dw-sparkles-symbolic');
+        this._setThemedIcon(appearancePage, 'dw-sparkles');
         this._addSidebarPage(appearancePage);
 
         // About page
         const aboutPage = this._createAboutPage();
         aboutPage.set_title(_('About'));
-        aboutPage.set_icon_name('dw-info-symbolic');
+        this._setThemedIcon(aboutPage, 'dw-info');
         this._addSidebarPage(aboutPage);
 
         // Handle window close
         window.connect('close-request', () => {
+            // Очищаємо polling та сигнал для іконок
+            if (this._themeCheckId) {
+                GLib.source_remove(this._themeCheckId);
+                this._themeCheckId = 0;
+            }
+            if (this._interfaceSettings && this._themeSignalId) {
+                this._interfaceSettings.disconnect(this._themeSignalId);
+                this._themeSignalId = 0;
+            }
+            this._interfaceSettings = null;
+            this._iconTargets = [];
+            
             for (const page of this._pages)
                 page?.destroy?.();
 
@@ -314,6 +417,10 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         const rowIcon = new Gtk.Image({
             icon_name: page.get_icon_name(),
         });
+        
+        // Зберігаємо зв'язок між page та rowIcon для синхронізації іконок
+        page._sidebarIcon = rowIcon;
+        
         const rowLabel = new Gtk.Label({
             label: row._title,
             xalign: 0,
@@ -2001,11 +2108,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             margin_bottom: 18,
             halign: Gtk.Align.CENTER,
         });
-        headerBox.append(new Gtk.Image({
-            icon_name: 'view-grid-symbolic',
-            pixel_size: 96,
+        const logo = new Gtk.Image({
+            pixel_size: 128,
             margin_bottom: 6,
-        }));
+        });
+        this._setThemedIcon(logo, 'dw-paw-print');
+        headerBox.append(logo);
         headerBox.append(new Gtk.Label({
             label: this.metadata.name,
             css_classes: ['title-1'],
@@ -2031,17 +2139,17 @@ export default class WidgetsPrefs extends ExtensionPreferences {
 
         group.add(this._aboutLinkRow(
             _('Report an Issue'),
-            'dw-bug-symbolic',
+            'dw-bug',
             'https://github.com/r3nhick/desktop-widgets/issues'
         ));
         group.add(this._aboutLinkRow(
             _('View sources on GitHub'),
-            'folder-publicshare-symbolic',
+            'dw-share-2',
             'https://github.com/r3nhick/desktop-widgets'
         ));
         group.add(this._aboutLinkRow(
             _('License'),
-            'text-x-generic-symbolic',
+            'dw-scale',
             'https://github.com/r3nhick/desktop-widgets/blob/main/LICENSE',
             _('GNU General Public License, version 3 or later')
         ));
@@ -2050,6 +2158,11 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         return page;
     }
 
+    /**
+     * Рядок посилання на сторінці «Про розширення».
+     * `iconName` — базова назва нашої іконки (без суфікса теми), її колір
+     * підставляє _setThemedIcon; сторонні іконки лишаються як є.
+     */
     _aboutLinkRow(title, iconName, url, subtitle) {
         const row = new Adw.ActionRow({
             title: title,
@@ -2060,10 +2173,13 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             row.set_subtitle(subtitle);
         }
 
-        row.add_prefix(new Gtk.Image({
-            icon_name: iconName,
-            valign: Gtk.Align.CENTER,
-        }));
+        const icon = new Gtk.Image({valign: Gtk.Align.CENTER});
+        if (iconName.startsWith('dw-'))
+            this._setThemedIcon(icon, iconName);
+        else
+            icon.icon_name = iconName;
+        row.add_prefix(icon);
+
         row.add_suffix(new Gtk.Image({
             icon_name: 'adw-external-link-symbolic',
             valign: Gtk.Align.CENTER,
