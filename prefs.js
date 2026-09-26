@@ -154,14 +154,33 @@ export default class WidgetsPrefs extends ExtensionPreferences {
      */
     _setupThemedIcons() {
         this._iconTargets = [];
+        this._themeSignalIds = [];
 
         this._interfaceSettings = new Gio.Settings({
             schema_id: 'org.gnome.desktop.interface',
         });
 
+        // Adw.StyleManager знає фактично застосовану тему: він враховує і
+        // color-scheme, і gtk-theme (Yaru-dark, Adwaita-dark), і те, що
+        // скінчасно бачить GTK. Одного color-scheme не вистачає — під темною
+        // gtk-темою він лишається 'default', і ми б показували світлі іконки
+        // на темному тлі (і навпаки).
+        const styleManager = Adw.StyleManager.get_default();
+
         const currentTheme = () => {
+            if (styleManager && typeof styleManager.get_dark === 'function') {
+                return styleManager.get_dark() ? 'dark' : 'light';
+            };
+
+            // Fallback для старих libadwaita: суфікси у самій назві теми.
+            const gtkTheme = this._interfaceSettings.get_string('gtk-theme');
             const scheme = this._interfaceSettings.get_string('color-scheme');
-            return scheme === 'prefer-dark' ? 'dark' : 'light';
+
+            if (scheme === 'prefer-dark' || /-dark$/i.test(gtkTheme)) {
+                return 'dark';
+            };
+
+            return 'light';
         };
 
         this._iconTheme = currentTheme();
@@ -170,9 +189,9 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             const theme = currentTheme();
             if (theme === this._iconTheme)
                 return;
-            
+
             this._iconTheme = theme;
-            
+
             // Оновлюємо іконки: для сторінок оновлюємо page.icon_name,
             // а також синхронізуємо іконки в sidebar
             for (const [target, base] of this._iconTargets) {
@@ -182,23 +201,36 @@ export default class WidgetsPrefs extends ExtensionPreferences {
                 } else if ('icon_name' in target) {
                     target.icon_name = name;
                 }
-                
+
                 // Якщо це page з sidebar іконкою, оновлюємо і її
                 if (target._sidebarIcon) {
                     target._sidebarIcon.set_from_icon_name(name);
                 }
-            }
-            
+            };
+
             // Форсуємо перемалювання sidebar
             this._sidebarListBox?.queue_draw();
         };
 
-        // Слухаємо зміну color-scheme через сигнал замість polling
-        this._themeSignalId = this._interfaceSettings.connect('changed::color-scheme', () => {
-            apply();
-        });
+        this._applyIconTheme = apply;
 
-        // Залишаємо polling як fallback для compatibility
+        // Канонічний сигнал: Adw сам знає, коли ефективна тема змінилась.
+        if (styleManager && typeof styleManager.connect === 'function') {
+            this._themeSignalIds.push([
+                styleManager,
+                styleManager.connect('notify::dark', () => apply()),
+            ]);
+        };
+
+        // Додаткові джерела: прямі зміни налаштувань теми.
+        for (const key of ['color-scheme', 'gtk-theme']) {
+            this._themeSignalIds.push([
+                this._interfaceSettings,
+                this._interfaceSettings.connect(`changed::${key}`, () => apply()),
+            ]);
+        };
+
+        // Fallback-полінг на випадок, якщо сигнали не прийдуть.
         this._themeCheckId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
             apply();
             return GLib.SOURCE_CONTINUE;
@@ -332,18 +364,26 @@ export default class WidgetsPrefs extends ExtensionPreferences {
 
         // Handle window close
         window.connect('close-request', () => {
-            // Очищаємо polling та сигнал для іконок
+            // Зупиняємо полінг теми
             if (this._themeCheckId) {
                 GLib.source_remove(this._themeCheckId);
                 this._themeCheckId = 0;
             }
-            if (this._interfaceSettings && this._themeSignalId) {
-                this._interfaceSettings.disconnect(this._themeSignalId);
-                this._themeSignalId = 0;
+
+            // Відписуємо всі сигнали теми (кожен від свого об'єкта)
+            for (const [source, signalId] of this._themeSignalIds ?? []) {
+                try {
+                    source?.disconnect(signalId);
+                } catch (_error) {
+                    // Об'єкт міг уже бути зруйнований
+                }
             }
+
+            this._themeSignalIds = [];
             this._interfaceSettings = null;
+            this._applyIconTheme = null;
             this._iconTargets = [];
-            
+
             for (const page of this._pages)
                 page?.destroy?.();
 
