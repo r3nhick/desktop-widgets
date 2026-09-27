@@ -172,20 +172,29 @@ export function render({body, createLabel, theme, sizeForWidget, widget, setting
 	});
 	body.add_child(splitBox);
 
+	// Glass paints a blurred backdrop BEHIND the widget (utils/glassBlur.js) and
+	// theme.background is already translucent when it is on. These two panels sit
+	// on top of that backdrop, so at full opacity they hide the blur completely -
+	// which is why glass only ever looked like "a blurred rectangle" here. Under
+	// glass they keep just enough tint to stay readable over the wallpaper.
+	const lightGlass = theme?.lightGlass ?? false;
+	const leftBg = lightGlass ? cssColorToRgba(bgColor, 0.25) : bgColor;
+	const sideBase = shadePanelColor(bgColor, SIDE_PANEL_LIGHTEN);
+	const sideBg = lightGlass ? cssColorToRgba(sideBase, 0.25) : sideBase;
+
 	const leftPanel = new St.BoxLayout({
 		orientation: Clutter.Orientation.VERTICAL,
 		y_expand: true,
 		clip_to_allocation: true,
-		style: `background-color: ${bgColor}; border-radius: ${radius}px 0 0 ${radius}px;`,
+		style: `background-color: ${leftBg}; border-radius: ${radius}px 0 0 ${radius}px;`,
 	});
 	splitBox.add_child(leftPanel);
 
-	const sideBgColor = shadePanelColor(bgColor, SIDE_PANEL_LIGHTEN);
 	const rightPanel = new St.BoxLayout({
 		orientation: Clutter.Orientation.VERTICAL,
 		y_expand: true,
 		clip_to_allocation: true,
-		style: `background-color: ${sideBgColor}; border-radius: 0 ${radius}px ${radius}px 0;`,
+		style: `background-color: ${sideBg}; border-radius: 0 ${radius}px ${radius}px 0;`,
 	});
 	splitBox.add_child(rightPanel);
 
@@ -538,10 +547,12 @@ export function render({body, createLabel, theme, sizeForWidget, widget, setting
 		const padLeft = Math.round(20 * s);
 		const padRight = Math.round(12 * s);
 		state.geometry.listHeight = Math.max(0, currentHeight - padTop - padBottom);
-		leftPanel.style = `background-color: ${bgColor}; border-radius: ${radius}px 0 0 ${radius}px;`
+		// Re-assigned on every relayout, so the glass-aware backgrounds have to be
+		// applied here too - setting them once at construction is not enough.
+		leftPanel.style = `background-color: ${leftBg}; border-radius: ${radius}px 0 0 ${radius}px;`
 			+ `padding: ${padTop}px ${padRight}px ${padBottom}px ${padLeft}px;`;
 
-		rightPanel.style = `background-color: ${sideBgColor}; border-radius: 0 ${radius}px ${radius}px 0;`
+		rightPanel.style = `background-color: ${sideBg}; border-radius: 0 ${radius}px ${radius}px 0;`
 			+ `padding: ${padTop}px ${padLeft}px;`;
 
 		headerBox.style = `margin-bottom: ${Math.round(12 * s)}px; padding-right: ${Math.round(5 * s)}px;`;

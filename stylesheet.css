@@ -174,3 +174,52 @@
     icon-size: 16px;
     pointer-events: auto;
 }
+
+/* Меню додавання віджетів */
+.widget-add-menu {
+    pointer-events: auto;
+}
+
+.widget-add-menu-title {
+    pointer-events: auto;
+}
+
+.widget-add-menu-close {
+    pointer-events: auto;
+    transition: background-color 150ms ease-out;
+}
+
+.widget-add-menu-close:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.widget-add-menu-scroll {
+    pointer-events: auto;
+}
+
+.widget-card {
+    pointer-events: auto;
+    transition: all 200ms ease-out;
+}
+
+.widget-card:hover {
+    transform: translateY(-2px);
+}
+
+.widget-card:active {
+    transform: translateY(0px);
+}
+
+/* Кнопка додавання віджетів */
+.widget-add-button {
+    pointer-events: auto;
+    transition: all 200ms ease-out;
+}
+
+.widget-add-button:hover {
+    transform: scale(1.05);
+}
+
+.widget-add-button:active {
+    transform: scale(0.95);
+}

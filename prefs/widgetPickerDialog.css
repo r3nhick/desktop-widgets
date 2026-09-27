@@ -1,0 +1,41 @@
+/* Widget Picker Dialog Styles */
+
+/* Window styling with rounded corners */
+window {
+    border-radius: 12px;
+    background-clip: padding-box;
+}
+
+headerbar {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.widget-picker-card {
+    transition: all 200ms ease-out;
+    border-radius: 12px;
+    padding: 8px;
+}
+
+.widget-picker-card:hover {
+    background: alpha(@accent_bg_color, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.widget-picker-card:active {
+    transform: translateY(0px);
+}
+
+/* Preview image styling */
+.widget-preview-image {
+    border-radius: 8px;
+    background: alpha(@window_bg_color, 0.5);
+}
+
+/* Category headers */
+.widget-picker-category {
+    font-weight: 600;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+}

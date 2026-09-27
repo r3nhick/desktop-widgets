@@ -10,6 +10,7 @@ import {ExtensionPreferences, gettext as _}
     from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import {clearLayout, layoutJson, writeLayout} from './layoutDoc.js';
+import {openWidgetPicker} from './prefs/widgetPickerDialog.js';
 
 const WIDGET_TYPES = [
     {type: 'applauncher'},
@@ -565,8 +566,10 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             margin_top: 12,
         });
 
-        const addRow = new Adw.ActionRow({
-            title: _('Select widget to add'),
+        // Старий dropdown спосіб
+        const dropdownRow = new Adw.ActionRow({
+            title: _('Quick add'),
+            subtitle: _('Select widget type from dropdown'),
         });
 
         const widgetTypesModel = Gtk.StringList.new(WIDGET_TYPES.map(w => widgetTypeLabel(w.type)));
@@ -594,8 +597,29 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         addBox.append(addCombo);
         addBox.append(addButton);
 
-        addRow.add_suffix(addBox);
-        addGroup.add(addRow);
+        dropdownRow.add_suffix(addBox);
+        addGroup.add(dropdownRow);
+
+        // Новий діалог спосіб
+        const galleryRow = new Adw.ActionRow({
+            title: _('Widget gallery'),
+            subtitle: _('Browse all widgets with icons and search'),
+            activatable: true,
+        });
+
+        const chevron = new Gtk.Image({
+            icon_name: 'go-next-symbolic',
+            valign: Gtk.Align.CENTER,
+        });
+        galleryRow.add_suffix(chevron);
+
+        galleryRow.connect('activated', () => {
+            openWidgetPicker(this._window, this.path, _, (widgetType) => {
+                this._addWidget(settings, widgetType);
+            });
+        });
+
+        addGroup.add(galleryRow);
 
         const resetRow = new Adw.ActionRow({
             title: _('Reset default widgets'),
