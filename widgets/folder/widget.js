@@ -133,10 +133,6 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 	
 	const dataFilePath = GLib.build_filenamev([getDataDir('folder'), `folder-${widget?.id}.json`]);
 	
-	// Get file manager setting
-	const fileManager = settings?.get_string('folder-file-manager') ?? 'org.gnome.Nautilus.desktop';
-	const showFolderNames = settings?.get_boolean('folder-show-names') ?? true;
-	
 	let folders = defaultFolders();
 	let foldersLoaded = false;
 
@@ -176,7 +172,8 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 				return;
 			}
 
-			// Try to launch with configured file manager
+			// Try to launch with configured file manager (read from settings each time)
+			const fileManager = settings?.get_string('folder-file-manager') ?? 'org.gnome.Nautilus.desktop';
 			const appInfo = Gio.DesktopAppInfo.new(fileManager);
 			if (appInfo) {
 				appInfo.launch([file], null);
@@ -196,6 +193,9 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 	let destroyed = false;
 
 	const buildGrid = () => {
+		// Read current settings values
+		const showFolderNames = settings?.get_boolean('folder-show-names') ?? true;
+		
 		if (settleTimer) {
 			GLib.source_remove(settleTimer);
 			settleTimer = null;
@@ -453,6 +453,22 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 		console.debug('Failed to watch folder launcher data file:', e);
 	}
 
+	// Watch for settings changes
+	let settingsSignals = [];
+	if (settings) {
+		settingsSignals.push(
+			settings.connect('changed::folder-show-names', () => {
+				if (destroyed) return;
+				buildGrid();
+			})
+		);
+		settingsSignals.push(
+			settings.connect('changed::folder-file-manager', () => {
+				// File manager change doesn't need rebuild, just affects click behavior
+			})
+		);
+	}
+
 	container.connect('destroy', () => {
 		destroyed = true;
 
@@ -484,6 +500,18 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 			}
 			fileMonitor = null;
 		}
+
+		// Disconnect settings signals
+		if (settings) {
+			for (const signalId of settingsSignals) {
+				try {
+					settings.disconnect(signalId);
+				} catch (e) {
+					// Ignore disconnect errors
+				}
+			}
+		}
+		settingsSignals = [];
 	});
 
 	reload();
