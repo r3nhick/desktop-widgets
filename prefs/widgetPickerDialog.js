@@ -135,6 +135,13 @@ const WIDGET_CATALOG_DATA = [
 		category: 'time',
 	},
 	{
+		type: 'timer',
+		labelKey: 'Timer',
+		descKey: 'Countdown timer',
+		icon: 'timer.svg',
+		category: 'time',
+	},
+	{
 		type: 'lava',
 		labelKey: 'Lava Lamp',
 		descKey: 'Animated metaballs',

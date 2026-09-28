@@ -1,0 +1,78 @@
+<svg width="480" height="270" viewBox="0 0 480 270" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="480" height="270" rx="24" fill="#1e1e2e"/>
+  
+  <!-- Timer circle -->
+  <g transform="translate(240, 135)">
+    <!-- Outer ring (background) -->
+    <circle cx="0" cy="0" r="80" fill="none" stroke="#45475a" stroke-width="12"/>
+    
+    <!-- Progress arc (3/4 complete) -->
+    <path d="M 0,-80 A 80,80 0 1,1 -56.57,56.57" 
+          fill="none" 
+          stroke="#89b4fa" 
+          stroke-width="12" 
+          stroke-linecap="round"/>
+    
+    <!-- Center circle -->
+    <circle cx="0" cy="0" r="60" fill="#313244"/>
+    
+    <!-- Time display -->
+    <text x="0" y="10" 
+          font-family="sans-serif" 
+          font-size="36" 
+          font-weight="bold" 
+          fill="#cdd6f4" 
+          text-anchor="middle">
+      16:15
+    </text>
+  </g>
+  
+  <!-- Preset buttons at top -->
+  <g transform="translate(240, 40)">
+    <!-- 5 mins button -->
+    <rect x="-120" y="0" width="70" height="28" rx="14" fill="#45475a"/>
+    <text x="-85" y="18" 
+          font-family="sans-serif" 
+          font-size="13" 
+          font-weight="600" 
+          fill="#bac2de" 
+          text-anchor="middle">
+      5 mins
+    </text>
+    
+    <!-- 10 mins button -->
+    <rect x="-35" y="0" width="70" height="28" rx="14" fill="#45475a"/>
+    <text x="0" y="18" 
+          font-family="sans-serif" 
+          font-size="13" 
+          font-weight="600" 
+          fill="#bac2de" 
+          text-anchor="middle">
+      10 mins
+    </text>
+    
+    <!-- 20 mins button (active) -->
+    <rect x="50" y="0" width="70" height="28" rx="14" fill="#89b4fa"/>
+    <text x="85" y="18" 
+          font-family="sans-serif" 
+          font-size="13" 
+          font-weight="600" 
+          fill="#1e1e2e" 
+          text-anchor="middle">
+      20 mins
+    </text>
+  </g>
+  
+  <!-- Pause button in center -->
+  <g transform="translate(240, 135)">
+    <circle cx="0" cy="0" r="20" fill="#89b4fa"/>
+    <!-- Pause icon -->
+    <rect x="-6" y="-8" width="4" height="16" rx="1" fill="#1e1e2e"/>
+    <rect x="2" y="-8" width="4" height="16" rx="1" fill="#1e1e2e"/>
+  </g>
+  
+  <!-- Decorative elements -->
+  <circle cx="60" cy="220" r="8" fill="#89b4fa" opacity="0.3"/>
+  <circle cx="420" cy="50" r="12" fill="#89b4fa" opacity="0.2"/>
+</svg>

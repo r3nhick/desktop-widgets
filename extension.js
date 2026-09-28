@@ -27,6 +27,7 @@ import * as PomodoroWidget from './widgets/pomodoro/widget.js';
 import * as LavaWidget from './widgets/lava/widget.js';
 import * as StopwatchWidget from './widgets/stopwatch/widget.js';
 import * as FolderWidget from './widgets/folder/widget.js';
+import * as TimerWidget from './widgets/timer/widget.js';
 import { configureLogger, resetLogger, warn } from './logger.js';
 import { assetPath } from './paths.js';
 import { isActorDestroyed } from './utils/actorLifecycle.js';
@@ -63,6 +64,7 @@ const WIDGET_MODULES = [
   LavaWidget,
   StopwatchWidget,
   FolderWidget,
+  TimerWidget,
 ];
 const WIDGETS = new Map(WIDGET_MODULES.map(widgetModule => [widgetModule.type, widgetModule]));
 

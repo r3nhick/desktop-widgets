@@ -31,6 +31,7 @@ const WIDGET_TYPES = [
     {type: 'lava'},
     {type: 'stopwatch'},
     {type: 'folder'},
+    {type: 'timer'},
 ];
 
 const widgetTypeLabel = (type) => ({
@@ -52,6 +53,7 @@ const widgetTypeLabel = (type) => ({
     lava: _('Lava Lamp'),
     stopwatch: _('Stopwatch'),
     folder: _('Folder Launcher'),
+    timer: _('Timer'),
 }[type] ?? type);
 
 const DEFAULT_SIZES = {
@@ -73,6 +75,7 @@ const DEFAULT_SIZES = {
     lava: 'medium',
     stopwatch: 'medium',
     folder: 'medium',
+    timer: 'medium',
 };
 
 const PHOTO_SIZES = ['cover', 'contain', 'fill', 'small'];
