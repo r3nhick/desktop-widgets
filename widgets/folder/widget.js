@@ -15,7 +15,7 @@ import { cssColorToRgba, loadJsonFromFileAsync, getDataDir } from '../../utils/p
 export const type = 'folder';
 export const label = 'Folder Launcher';
 export const defaultSize = 'medium';
-export const supportedSizes = ['mini', 'minilarge', 'medium', 'large'];
+export const supportedSizes = ['mini', 'minilarge', 'compact', 'medium', 'large'];
 
 const MAX_FOLDERS = 16;
 const DEFAULT_FOLDER_ICON = 'folder-symbolic';
