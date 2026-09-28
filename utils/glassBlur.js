@@ -208,10 +208,6 @@ export class GlassBlur {
         // backgroundGroup sits at (x + inset, y + inset) with inset size
         backgroundGroup.set_position(x + inset, y + inset);
         backgroundGroup.set_size(width - inset * 2, height - inset * 2);
-        
-        // Apply border radius and clipping to backgroundGroup
-        backgroundGroup.set_style(`border-radius: ${radius}px;`);
-        backgroundGroup.set_clip_to_allocation(true);
 
         // Background inside the group: fill entire monitor, but positioned relative to group origin
         // Group is at (x + inset, y + inset), monitor is at (monitor.x, monitor.y), so offset is:
