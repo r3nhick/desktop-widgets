@@ -641,10 +641,11 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 			style: 'spacing: 4px;',
 		});
 
+		const weekdayNameColor = useAccentColor ? theme.accent : text;
 		left.add_child(createLabel(
 			uppercaseWeekday(now),
 			'widget-calendar-day-name',
-			`font-size: 15px; font-weight: 700; color: ${theme.accent};`));
+			`font-size: 15px; font-weight: 700; color: ${weekdayNameColor};`));
 		left.add_child(createLabel(
 			String(today),
 			'widget-calendar-day-number',
