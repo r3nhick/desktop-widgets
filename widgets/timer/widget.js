@@ -86,13 +86,13 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	});
 	leftBox.add_child(setupCircleCanvas);
 
-	const circleTimeLabel = new St.Label({
+	const setupCircleTimeLabel = new St.Label({
 		text: '00:00',
 		x_align: Clutter.ActorAlign.CENTER,
 		y_align: Clutter.ActorAlign.CENTER,
 		style: `color: ${textColor}; font-size: ${px(24)}px; font-weight: 700;`,
 	});
-	leftBox.add_child(circleTimeLabel);
+	leftBox.add_child(setupCircleTimeLabel);
 
 	// Center: big time with +/- controls
 	const centerBox = new St.BoxLayout({
@@ -291,6 +291,14 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	});
 	runningLeftBox.add_child(runningCircleCanvas);
 
+	const runningCircleTimeLabel = new St.Label({
+		text: '00:00',
+		x_align: Clutter.ActorAlign.CENTER,
+		y_align: Clutter.ActorAlign.CENTER,
+		style: `color: ${textColor}; font-size: ${px(28)}px; font-weight: 700;`,
+	});
+	runningLeftBox.add_child(runningCircleTimeLabel);
+
 	// Big time display (center)
 	const runningTimeLabel = new St.Label({
 		text: '00:00',
@@ -314,10 +322,10 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		can_focus: true,
 		child: new St.Icon({
 			icon_name: 'media-playback-pause-symbolic',
-			icon_size: px(28),
+			icon_size: px(32),
 			style: `color: ${accentTextColor};`,
 		}),
-		style: `padding: ${px(18)}px; border-radius: 999px; background-color: ${accentHex};`,
+		style: `padding: ${px(20)}px; border-radius: 999px; background-color: ${accentHex}; border: ${px(3)}px solid rgba(255, 255, 255, 0.2);`,
 	});
 	runningRightBox.add_child(pauseBtn);
 
@@ -326,10 +334,10 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		can_focus: true,
 		child: new St.Icon({
 			icon_name: 'media-playback-stop-symbolic',
-			icon_size: px(24),
+			icon_size: px(28),
 			style: `color: ${textColor};`,
 		}),
-		style: `padding: ${px(16)}px; border-radius: 999px; background-color: rgba(255, 255, 255, 0.15); border: ${px(2)}px solid rgba(255, 255, 255, 0.3);`,
+		style: `padding: ${px(18)}px; border-radius: 999px; background-color: rgba(255, 255, 255, 0.12); border: ${px(3)}px solid rgba(255, 255, 255, 0.3);`,
 	});
 	runningRightBox.add_child(stopBtn);
 
@@ -373,7 +381,8 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		const time = formatTime(remainingSeconds);
 		minutesLabel.set_text(time.minutes);
 		secondsLabel.set_text(time.seconds);
-		circleTimeLabel.set_text(`${time.minutes}:${time.seconds}`);
+		setupCircleTimeLabel.set_text(`${time.minutes}:${time.seconds}`);
+		runningCircleTimeLabel.set_text(`${time.minutes}:${time.seconds}`);
 		runningTimeLabel.set_text(`${time.minutes}:${time.seconds}`);
 		
 		if (totalSeconds > 0) {
