@@ -122,7 +122,7 @@ export function style(theme) {
 
 export function render({ body, widget, theme, sizeForWidget, settings }) {
 	const textColor = theme.text;
-	const tileBaseBg = cssColorToRgba(textColor, TILE_BASE_ALPHA);
+	const tileBaseBg = 'transparent'; // No background when not hovered
 	const tileHoverBg = cssColorToRgba(textColor, TILE_HOVER_ALPHA);
 	
 	const sizeKey = widget?.size ?? 'medium';
