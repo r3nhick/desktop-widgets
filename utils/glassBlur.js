@@ -201,8 +201,8 @@ export class GlassBlur {
         }
 
         const radius = this._cornerRadius();
-        // Inset blur area by a few pixels to avoid corner artifacts
-        const inset = Math.max(2, Math.min(4, Math.floor(radius / 4)));
+        // Inset blur area by more pixels to avoid corner artifacts
+        const inset = Math.max(3, Math.min(6, Math.floor(radius / 3)));
 
         // backgroundGroup sits at (x + inset, y + inset) with inset size
         backgroundGroup.set_position(x + inset, y + inset);

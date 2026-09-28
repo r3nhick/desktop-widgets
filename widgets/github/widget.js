@@ -650,6 +650,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                     username,
                     total: { "parsed": yearTotal },
                     contributions: [...byDate.entries()].map(([date, count]) => ({ date, count })),
+                    lastSync: lastSyncTime.to_unix(),
                 });
 
                 if (isLarge) {
@@ -661,9 +662,16 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                 if (!cancelled) {
                     setProfileUrl(false);
                     const cached = latestByDate.size > 0;
-                    setStatus(isMini
-                        ? (cached ? _('Cached') : _('Error'))
-                        : (cached ? _('Offline — cached') : _('Error loading')));
+                    // Показуємо помилку тільки якщо немає кешу
+                    if (cached && lastSyncTime) {
+                        setStatus(isMini
+                            ? lastSyncTime.format('%H:%M')
+                            : _('Synced %s').format(lastSyncTime.format('%H:%M')));
+                    } else {
+                        setStatus(isMini
+                            ? (cached ? _('Cached') : _('Error'))
+                            : (cached ? _('Offline — cached') : _('Error loading')));
+                    }
                 }
             }
         });
@@ -816,8 +824,17 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         const sumAll = [...cached.values()].reduce((a, b) => a + b, 0);
         const yearTotal = latestYear !== null ? (data.total[latestYear] ?? sumAll) : sumAll;
         badgeLabel.text = _('%s commits').format(formatCount(yearTotal));
-        lastSyncTime = null;
-        setStatus(isMini ? _('Cached') : _('Cached offline'));
+        
+        // Відновлюємо lastSyncTime з кешу, якщо є
+        if (data.lastSync) {
+            lastSyncTime = GLib.DateTime.new_from_unix_local(data.lastSync);
+            setStatus(isMini
+                ? lastSyncTime.format('%H:%M')
+                : _('Synced %s').format(lastSyncTime.format('%H:%M')));
+        } else {
+            lastSyncTime = null;
+            setStatus(isMini ? _('Cached') : _('Offline — cached'));
+        }
 
         if (isLarge) {
             computeStats(cached);
