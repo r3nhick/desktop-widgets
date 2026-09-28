@@ -201,12 +201,17 @@ export class GlassBlur {
         }
 
         const radius = this._cornerRadius();
-        // Inset blur area by more pixels to avoid corner artifacts
-        const inset = Math.max(3, Math.min(6, Math.floor(radius / 3)));
+        // Increase inset significantly to hide blur from rounded corners
+        // Use radius/2 to ensure blur doesn't show in corners
+        const inset = Math.max(6, Math.min(12, Math.floor(radius / 2)));
 
         // backgroundGroup sits at (x + inset, y + inset) with inset size
         backgroundGroup.set_position(x + inset, y + inset);
         backgroundGroup.set_size(width - inset * 2, height - inset * 2);
+        
+        // Apply border radius and clipping to backgroundGroup
+        backgroundGroup.set_style(`border-radius: ${radius}px;`);
+        backgroundGroup.set_clip_to_allocation(true);
 
         // Background inside the group: fill entire monitor, but positioned relative to group origin
         // Group is at (x + inset, y + inset), monitor is at (monitor.x, monitor.y), so offset is:
