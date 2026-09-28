@@ -1,6 +1,6 @@
 /*
  * Timer widget (Countdown Timer)
- * Visual countdown timer with preset buttons and circular progress
+ * Clean, minimal countdown timer with preset buttons and smooth progress indicator
  */
 
 import Clutter from 'gi://Clutter';
@@ -13,9 +13,9 @@ import { parseCssColor } from '../../utils/ported.js';
 export const type = 'timer';
 export const label = 'Timer';
 export const defaultSize = 'medium';
-export const supportedSizes = ['medium', 'large'];
+export const supportedSizes = ['small', 'medium', 'large'];
 
-const TICK_INTERVAL_MS = 100; // Update every 100ms for smooth progress
+const TICK_INTERVAL_MS = 100;
 
 function formatTime(seconds) {
 	const mins = Math.floor(seconds / 60);
@@ -37,7 +37,173 @@ function textOnAccentColor(accent) {
 	return lum > 0.55 ? 'rgba(30,30,30,0.92)' : 'rgba(255,255,255,0.92)';
 }
 
-function renderMediumTimer({body, theme, sizeForWidget, widget}) {
+// Small timer (1x1) - minimal view
+function renderSmallTimer({body, theme, sizeForWidget, widget}) {
+	const textColor = theme.text;
+	const mutedColor = theme.muted;
+	const accentHex = accentColor(theme);
+	const accentTextColor = textOnAccentColor(accentHex);
+	const [totalWidth, totalHeight] = sizeForWidget(widget);
+	const width = totalWidth - 34;
+	const height = totalHeight - 34;
+	const scale = Math.min(width / 180, height / 180);
+	const px = (v) => Math.max(1, Math.round(v * scale));
+
+	let totalSeconds = 0;
+	let remainingSeconds = 0;
+	let isRunning = false;
+	let timerId = null;
+
+	const mainBox = new St.BoxLayout({
+		orientation: Clutter.Orientation.VERTICAL,
+		x_expand: true,
+		y_expand: true,
+		x_align: Clutter.ActorAlign.CENTER,
+		y_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(8)}px;`,
+	});
+
+	body.add_child(mainBox);
+
+	// Time display
+	const timeLabel = new St.Label({
+		text: '00:00',
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `color: ${textColor}; font-size: ${px(52)}px; font-weight: 700; line-height: 0.9;`,
+	});
+	mainBox.add_child(timeLabel);
+
+	// Quick presets (horizontal)
+	const quickBox = new St.BoxLayout({
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(6)}px;`,
+	});
+
+	const quickPresets = [5, 10, 15];
+	for (const mins of quickPresets) {
+		const btn = new St.Button({
+			reactive: true,
+			can_focus: true,
+			child: new St.Label({ text: String(mins) }),
+			style: `
+				font-size: ${px(11)}px; 
+				width: ${px(28)}px; 
+				height: ${px(28)}px;
+				border-radius: ${px(14)}px; 
+				background-color: rgba(255, 255, 255, 0.12); 
+				color: ${textColor}; 
+				font-weight: 600;
+			`,
+		});
+		btn.connect('clicked', () => setTimer(mins * 60));
+		quickBox.add_child(btn);
+	}
+	mainBox.add_child(quickBox);
+
+	// Action buttons
+	const actionsBox = new St.BoxLayout({
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(6)}px;`,
+	});
+
+	const pauseBtn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Icon({
+			icon_name: 'media-playback-start-symbolic',
+			icon_size: px(16),
+			style: `color: ${accentTextColor};`,
+		}),
+		style: `padding: ${px(8)}px; border-radius: 999px; background-color: ${accentHex};`,
+	});
+
+	const resetBtn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Icon({
+			icon_name: 'view-refresh-symbolic',
+			icon_size: px(14),
+			style: `color: ${textColor};`,
+		}),
+		style: `padding: ${px(8)}px; border-radius: 999px; background-color: rgba(255, 255, 255, 0.12);`,
+	});
+
+	actionsBox.add_child(pauseBtn);
+	actionsBox.add_child(resetBtn);
+	mainBox.add_child(actionsBox);
+
+	const updateDisplay = () => {
+		const time = formatTime(remainingSeconds);
+		timeLabel.set_text(`${time.minutes}:${time.seconds}`);
+		pauseBtn.child.icon_name = isRunning 
+			? 'media-playback-pause-symbolic' 
+			: 'media-playback-start-symbolic';
+	};
+
+	const setTimer = (seconds) => {
+		stopTimer();
+		totalSeconds = seconds;
+		remainingSeconds = seconds;
+		updateDisplay();
+		startTimer();
+	};
+
+	const startTimer = () => {
+		if (isRunning || remainingSeconds <= 0) return;
+		isRunning = true;
+		const startTime = GLib.get_monotonic_time() / 1000;
+		const targetEndTime = startTime + (remainingSeconds * 1000);
+		timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TICK_INTERVAL_MS, () => {
+			const now = GLib.get_monotonic_time() / 1000;
+			remainingSeconds = Math.max(0, (targetEndTime - now) / 1000);
+			updateDisplay();
+			if (remainingSeconds <= 0) {
+				stopTimer();
+				Main.notify(_('Timer'), _('Timer finished!'));
+				return GLib.SOURCE_REMOVE;
+			}
+			return GLib.SOURCE_CONTINUE;
+		});
+		updateDisplay();
+	};
+
+	const pauseTimer = () => {
+		if (!isRunning) return;
+		isRunning = false;
+		if (timerId) {
+			GLib.Source.remove(timerId);
+			timerId = null;
+		}
+		updateDisplay();
+	};
+
+	const stopTimer = () => {
+		pauseTimer();
+		remainingSeconds = 0;
+		totalSeconds = 0;
+		updateDisplay();
+	};
+
+	pauseBtn.connect('clicked', () => {
+		if (remainingSeconds > 0) {
+			isRunning ? pauseTimer() : startTimer();
+		}
+	});
+
+	resetBtn.connect('clicked', () => stopTimer());
+
+	body.connect('destroy', () => {
+		if (timerId) {
+			GLib.Source.remove(timerId);
+			timerId = null;
+		}
+	});
+
+	updateDisplay();
+}
+
+// Medium/Large timer - full featured
+function renderFullTimer({body, theme, sizeForWidget, widget}) {
 	const textColor = theme.text;
 	const mutedColor = theme.muted;
 	const accentHex = accentColor(theme);
@@ -45,6 +211,8 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const [width, height] = sizeForWidget(widget);
 	const contentW = width - 34;
 	const contentH = height - 34;
+	const sizeKey = widget?.size ?? 'medium';
+	const isLarge = sizeKey === 'large';
 	const scale = Math.min(contentW / 540, contentH / 200);
 	const px = (v) => Math.max(1, Math.round(v * scale));
 
@@ -59,174 +227,138 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		y_expand: true,
 		x_align: Clutter.ActorAlign.CENTER,
 		y_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(16)}px;`,
+		style: `spacing: ${px(isLarge ? 24 : 16)}px;`,
 	});
 
 	body.add_child(mainBox);
 
-	// Preset buttons
+	// Preset buttons (show only when not running)
 	const presetsBox = new St.BoxLayout({
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(8)}px;`,
+		style: `spacing: ${px(10)}px;`,
 	});
 
-	const presets = [
-		{ label: _('5 mins'), seconds: 5 * 60 },
-		{ label: _('10 mins'), seconds: 10 * 60 },
-		{ label: _('20 mins'), seconds: 20 * 60 },
-	];
-
+	const presets = [5, 10, 15, 20, 30];
 	const presetButtons = [];
 
-	for (const preset of presets) {
+	for (const mins of presets) {
 		const btn = new St.Button({
 			reactive: true,
 			can_focus: true,
-			child: new St.Label({
-				text: preset.label,
+			child: new St.Label({ 
+				text: String(mins),
 				x_align: Clutter.ActorAlign.CENTER,
 				y_align: Clutter.ActorAlign.CENTER,
 			}),
-			style: `font-size: ${px(14)}px; padding: ${px(8)}px ${px(16)}px; border-radius: ${px(16)}px; background-color: rgba(255, 255, 255, 0.1); color: ${textColor}; font-weight: 500;`,
+			style: `
+				font-size: ${px(14)}px; 
+				width: ${px(40)}px; 
+				height: ${px(40)}px;
+				border-radius: ${px(20)}px; 
+				background-color: rgba(255, 255, 255, 0.1); 
+				color: ${textColor}; 
+				font-weight: 600;
+			`,
 		});
-
-		btn.connect('button-press-event', (_actor, event) => {
-			if (event.get_button() !== 1) return Clutter.EVENT_PROPAGATE;
-			setTimer(preset.seconds);
-			return Clutter.EVENT_STOP;
-		});
-
-		presetButtons.push({ button: btn, seconds: preset.seconds });
+		btn.connect('clicked', () => setTimer(mins * 60));
 		presetsBox.add_child(btn);
+		presetButtons.push(btn);
 	}
 
 	mainBox.add_child(presetsBox);
 
-	// Timer display and controls
-	const timerBox = new St.BoxLayout({
-		orientation: Clutter.Orientation.HORIZONTAL,
-		x_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(24)}px;`,
-	});
-
-	// Left side: Timer text and stop button
-	const leftBox = new St.BoxLayout({
+	// Time container with progress indicator
+	const timeContainer = new St.BoxLayout({
 		orientation: Clutter.Orientation.VERTICAL,
 		x_align: Clutter.ActorAlign.CENTER,
 		y_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(16)}px;`,
+		x_expand: true,
+		y_expand: true,
+		style: `spacing: ${px(12)}px;`,
 	});
 
-	const titleLabel = new St.Label({
-		text: _('Timer'),
-		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${mutedColor}; font-size: ${px(16)}px; font-weight: 600;`,
-	});
-	leftBox.add_child(titleLabel);
-
+	// Large time display
 	const timeLabel = new St.Label({
 		text: '00:00',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(64)}px; font-weight: 700;`,
+		style: `color: ${textColor}; font-size: ${px(isLarge ? 96 : 72)}px; font-weight: 700; line-height: 0.85;`,
 	});
-	leftBox.add_child(timeLabel);
+	timeContainer.add_child(timeLabel);
 
-	const stopBtn = new St.Button({
-		reactive: true,
-		can_focus: true,
-		child: new St.Label({
-			text: _('Stop'),
-			x_align: Clutter.ActorAlign.CENTER,
-			y_align: Clutter.ActorAlign.CENTER,
-		}),
-		style: `font-size: ${px(16)}px; padding: ${px(12)}px ${px(40)}px; border-radius: ${px(12)}px; background-color: rgba(255, 255, 255, 0.1); color: ${textColor}; font-weight: 500;`,
-	});
-	leftBox.add_child(stopBtn);
-
-	timerBox.add_child(leftBox);
-
-	// Right side: Circular progress with pause button
-	const circleSize = px(140);
-	const circleCanvas = new St.DrawingArea({
-		width: circleSize,
-		height: circleSize,
+	// Thin progress bar
+	const progressBarWidth = px(isLarge ? 280 : 220);
+	const progressBarHeight = px(6);
+	const progressBar = new St.Widget({
+		width: progressBarWidth,
+		height: progressBarHeight,
+		style: `background-color: rgba(255, 255, 255, 0.15); border-radius: ${px(3)}px;`,
 	});
 
-	// Pause button in center of circle
+	const progressFill = new St.Widget({
+		height: progressBarHeight,
+		style: `background-color: ${accentHex}; border-radius: ${px(3)}px;`,
+	});
+	progressBar.add_child(progressFill);
+	timeContainer.add_child(progressBar);
+
+	mainBox.add_child(timeContainer);
+
+	// Control buttons
+	const controlsBox = new St.BoxLayout({
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(12)}px;`,
+	});
+
 	const pauseBtn = new St.Button({
 		reactive: true,
 		can_focus: true,
 		child: new St.Icon({
-			icon_name: 'media-playback-pause-symbolic',
-			icon_size: px(32),
+			icon_name: 'media-playback-start-symbolic',
+			icon_size: px(24),
 			style: `color: ${accentTextColor};`,
 		}),
-		style: `padding: ${px(16)}px; border-radius: 999px; background-color: ${accentHex}; position: absolute;`,
-		x_align: Clutter.ActorAlign.CENTER,
-		y_align: Clutter.ActorAlign.CENTER,
+		style: `padding: ${px(20)}px; border-radius: 999px; background-color: ${accentHex};`,
 	});
 
-	const rightBox = new St.Widget({
-		width: circleSize,
-		height: circleSize,
-		layout_manager: new Clutter.BinLayout(),
+	const resetBtn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Icon({
+			icon_name: 'view-refresh-symbolic',
+			icon_size: px(20),
+			style: `color: ${textColor};`,
+		}),
+		style: `padding: ${px(18)}px; border-radius: 999px; background-color: rgba(255, 255, 255, 0.15);`,
 	});
-	rightBox.add_child(circleCanvas);
-	rightBox.add_child(pauseBtn);
 
-	timerBox.add_child(rightBox);
-	mainBox.add_child(timerBox);
-
-	let progress = 0; // 0 to 1
-
-	circleCanvas.connect('repaint', (canvas) => {
-		const ctx = canvas.get_context();
-		const [w, h] = canvas.get_surface_size();
-		const centerX = w / 2;
-		const centerY = h / 2;
-		const radius = Math.min(w, h) / 2 - px(8);
-		const lineWidth = px(10);
-
-		// Background circle
-		ctx.setSourceRGBA(0.3, 0.3, 0.3, 0.3);
-		ctx.setLineWidth(lineWidth);
-		ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-		ctx.stroke();
-
-		// Progress arc
-		if (progress > 0) {
-			const accentRgb = parseCssColor(accentHex);
-			ctx.setSourceRGBA(accentRgb.r, accentRgb.g, accentRgb.b, 1.0);
-			ctx.setLineWidth(lineWidth);
-			const startAngle = -Math.PI / 2;
-			const endAngle = startAngle + (2 * Math.PI * progress);
-			ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-			ctx.stroke();
-		}
-
-		ctx.$dispose();
-	});
+	controlsBox.add_child(pauseBtn);
+	controlsBox.add_child(resetBtn);
+	mainBox.add_child(controlsBox);
 
 	const updateDisplay = () => {
 		const time = formatTime(remainingSeconds);
 		timeLabel.set_text(`${time.minutes}:${time.seconds}`);
 		
+		// Update progress bar
+		let progress = 0;
 		if (totalSeconds > 0) {
 			progress = Math.max(0, Math.min(1, remainingSeconds / totalSeconds));
-		} else {
-			progress = 0;
 		}
-		
-		circleCanvas.queue_repaint();
+		progressFill.set_width(Math.round(progressBarWidth * progress));
 
-		// Update preset buttons highlight
-		for (const { button, seconds } of presetButtons) {
-			const isActive = totalSeconds === seconds && remainingSeconds > 0;
-			if (isActive) {
-				button.style = `font-size: ${px(14)}px; padding: ${px(8)}px ${px(16)}px; border-radius: ${px(16)}px; background-color: ${accentHex}; color: ${accentTextColor}; font-weight: 600;`;
-			} else {
-				button.style = `font-size: ${px(14)}px; padding: ${px(8)}px ${px(16)}px; border-radius: ${px(16)}px; background-color: rgba(255, 255, 255, 0.1); color: ${textColor}; font-weight: 500;`;
-			}
+		// Update pause button icon
+		pauseBtn.child.icon_name = isRunning 
+			? 'media-playback-pause-symbolic' 
+			: 'media-playback-start-symbolic';
+
+		// Show/hide presets based on running state
+		presetsBox.visible = remainingSeconds === 0;
+		
+		// Adjust time size when running
+		if (remainingSeconds > 0) {
+			timeLabel.style = `color: ${textColor}; font-size: ${px(isLarge ? 112 : 88)}px; font-weight: 700; line-height: 0.85;`;
+		} else {
+			timeLabel.style = `color: ${textColor}; font-size: ${px(isLarge ? 96 : 72)}px; font-weight: 700; line-height: 0.85;`;
 		}
 	};
 
@@ -241,24 +373,20 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const startTimer = () => {
 		if (isRunning || remainingSeconds <= 0) return;
 		isRunning = true;
-		pauseBtn.child.icon_name = 'media-playback-pause-symbolic';
-
 		const startTime = GLib.get_monotonic_time() / 1000;
 		const targetEndTime = startTime + (remainingSeconds * 1000);
-
 		timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TICK_INTERVAL_MS, () => {
 			const now = GLib.get_monotonic_time() / 1000;
 			remainingSeconds = Math.max(0, (targetEndTime - now) / 1000);
 			updateDisplay();
-
 			if (remainingSeconds <= 0) {
 				stopTimer();
-				onTimerComplete();
+				Main.notify(_('Timer'), _('Timer finished!'));
 				return GLib.SOURCE_REMOVE;
 			}
-
 			return GLib.SOURCE_CONTINUE;
 		});
+		updateDisplay();
 	};
 
 	const pauseTimer = () => {
@@ -268,37 +396,23 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			GLib.Source.remove(timerId);
 			timerId = null;
 		}
-		pauseBtn.child.icon_name = 'media-playback-start-symbolic';
+		updateDisplay();
 	};
 
 	const stopTimer = () => {
 		pauseTimer();
-		totalSeconds = 0;
 		remainingSeconds = 0;
-		progress = 0;
+		totalSeconds = 0;
 		updateDisplay();
 	};
 
-	const onTimerComplete = () => {
-		Main.notify(_('Timer'), _('Timer finished!'));
-		// Play system sound or notification
-	};
-
-	pauseBtn.connect('button-press-event', (_actor, event) => {
-		if (event.get_button() !== 1) return Clutter.EVENT_PROPAGATE;
-		if (isRunning) {
-			pauseTimer();
-		} else if (remainingSeconds > 0) {
-			startTimer();
+	pauseBtn.connect('clicked', () => {
+		if (remainingSeconds > 0) {
+			isRunning ? pauseTimer() : startTimer();
 		}
-		return Clutter.EVENT_STOP;
 	});
 
-	stopBtn.connect('button-press-event', (_actor, event) => {
-		if (event.get_button() !== 1) return Clutter.EVENT_PROPAGATE;
-		stopTimer();
-		return Clutter.EVENT_STOP;
-	});
+	resetBtn.connect('clicked', () => stopTimer());
 
 	body.connect('destroy', () => {
 		if (timerId) {
@@ -310,11 +424,6 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	updateDisplay();
 }
 
-function renderLargeTimer({body, theme, sizeForWidget, widget}) {
-	// Large version: same as medium but with bigger scale
-	renderMediumTimer({body, theme, sizeForWidget, widget});
-}
-
 export function style(theme) {
 	return `background-color: ${theme.background}; border-color: ${theme.border};`;
 }
@@ -322,9 +431,9 @@ export function style(theme) {
 export function render({body, theme, sizeForWidget, widget}) {
 	const sizeKey = widget?.size ?? 'medium';
 
-	if (sizeKey === 'large') {
-		renderLargeTimer({body, theme, sizeForWidget, widget});
+	if (sizeKey === 'small') {
+		renderSmallTimer({body, theme, sizeForWidget, widget});
 	} else {
-		renderMediumTimer({body, theme, sizeForWidget, widget});
+		renderFullTimer({body, theme, sizeForWidget, widget});
 	}
 }

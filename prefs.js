@@ -75,7 +75,7 @@ const DEFAULT_SIZES = {
     lava: 'medium',
     stopwatch: 'medium',
     folder: 'medium',
-    timer: 'medium',
+    timer: 'small',
 };
 
 const PHOTO_SIZES = ['cover', 'contain', 'fill', 'small'];

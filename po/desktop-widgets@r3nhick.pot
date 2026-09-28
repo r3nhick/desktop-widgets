@@ -43,10 +43,6 @@ msgstr ""
 msgid "1×2 mini"
 msgstr ""
 
-#: widgets/timer/widget.js:75
-msgid "10 mins"
-msgstr ""
-
 #: prefs.js:1361
 msgid "12-hour"
 msgstr ""
@@ -71,10 +67,6 @@ msgstr ""
 msgid "2×4"
 msgstr ""
 
-#: widgets/timer/widget.js:76
-msgid "20 mins"
-msgstr ""
-
 #: prefs.js:1361
 msgid "24-hour"
 msgstr ""
@@ -85,10 +77,6 @@ msgstr ""
 
 #: extension.js:150
 msgid "4×4"
-msgstr ""
-
-#: widgets/timer/widget.js:74
-msgid "5 mins"
 msgstr ""
 
 #: prefs.js:395
@@ -1173,10 +1161,6 @@ msgstr ""
 msgid "Space between widgets and screen edges"
 msgstr ""
 
-#: widgets/timer/widget.js:138
-msgid "Stop"
-msgstr ""
-
 #: prefs.js:54
 msgid "Stopwatch"
 msgstr ""
@@ -1228,12 +1212,13 @@ msgid "Time format"
 msgstr ""
 
 #: prefs.js:56
-#: widgets/timer/widget.js:121
-#: widgets/timer/widget.js:283
+#: widgets/timer/widget.js:162
+#: widgets/timer/widget.js:384
 msgid "Timer"
 msgstr ""
 
-#: widgets/timer/widget.js:283
+#: widgets/timer/widget.js:162
+#: widgets/timer/widget.js:384
 msgid "Timer finished!"
 msgstr ""
 
