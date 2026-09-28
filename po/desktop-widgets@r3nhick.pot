@@ -414,10 +414,6 @@ msgstr ""
 msgid "Custom app"
 msgstr ""
 
-#: widgets/timer/widget.js:318
-msgid "Custom:"
-msgstr ""
-
 #: prefs.js:2294
 msgid "Customize the appearance of all widgets."
 msgstr ""
@@ -1165,11 +1161,6 @@ msgstr ""
 msgid "Space between widgets and screen edges"
 msgstr ""
 
-#: widgets/timer/widget.js:160
-#: widgets/timer/widget.js:400
-msgid "Stop"
-msgstr ""
-
 #: prefs.js:54
 msgid "Stopwatch"
 msgstr ""
@@ -1221,13 +1212,13 @@ msgid "Time format"
 msgstr ""
 
 #: prefs.js:56
-#: widgets/timer/widget.js:203
-#: widgets/timer/widget.js:450
+#: widgets/timer/widget.js:178
+#: widgets/timer/widget.js:475
 msgid "Timer"
 msgstr ""
 
-#: widgets/timer/widget.js:203
-#: widgets/timer/widget.js:450
+#: widgets/timer/widget.js:178
+#: widgets/timer/widget.js:475
 msgid "Timer finished!"
 msgstr ""
 

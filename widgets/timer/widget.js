@@ -1,6 +1,6 @@
 /*
  * Timer widget (Countdown Timer)
- * Clean countdown timer with preset buttons, custom input, and minimal running view
+ * Modern circular progress timer with increment/decrement controls
  */
 
 import Clutter from 'gi://Clutter';
@@ -37,10 +37,9 @@ function textOnAccentColor(accent) {
 	return lum > 0.55 ? 'rgba(30,30,30,0.92)' : 'rgba(255,255,255,0.92)';
 }
 
-// Small timer (1x1)
+// Small timer (1x1) - circular progress with controls
 function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 	const textColor = theme.text;
-	const mutedColor = theme.muted;
 	const accentHex = accentColor(theme);
 	const accentTextColor = textOnAccentColor(accentHex);
 	const [totalWidth, totalHeight] = sizeForWidget(widget);
@@ -54,130 +53,108 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 	let isRunning = false;
 	let timerId = null;
 
-	const container = new St.Widget({
+	const mainBox = new St.Widget({
 		x_expand: true,
 		y_expand: true,
 		layout_manager: new Clutter.BinLayout(),
 	});
-	body.add_child(container);
+	body.add_child(mainBox);
 
-	// Setup view (presets + custom input)
-	const setupBox = new St.BoxLayout({
-		orientation: Clutter.Orientation.VERTICAL,
-		x_expand: true,
-		y_expand: true,
+	// Circular progress in center
+	const circleSize = px(120);
+	const circleCanvas = new St.DrawingArea({
+		width: circleSize,
+		height: circleSize,
 		x_align: Clutter.ActorAlign.CENTER,
 		y_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(8)}px;`,
 	});
-	container.add_child(setupBox);
+	mainBox.add_child(circleCanvas);
 
-	// Quick presets
-	const presetsBox = new St.BoxLayout({
+	// Time label in center
+	const timeLabel = new St.Label({
+		text: '00:00',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(6)}px;`,
-	});
-
-	const quickPresets = [5, 10, 15];
-	for (const mins of quickPresets) {
-		const btn = new St.Button({
-			reactive: true,
-			can_focus: true,
-			child: new St.Label({ text: String(mins) }),
-			style: `
-				font-size: ${px(11)}px; 
-				width: ${px(28)}px; 
-				height: ${px(28)}px;
-				border-radius: ${px(14)}px; 
-				background-color: rgba(255, 255, 255, 0.12); 
-				color: ${textColor}; 
-				font-weight: 600;
-			`,
-		});
-		btn.connect('clicked', () => setTimer(mins * 60));
-		presetsBox.add_child(btn);
-	}
-	setupBox.add_child(presetsBox);
-
-	// Custom input (minutes only for small)
-	const customBox = new St.BoxLayout({
-		x_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(6)}px;`,
-	});
-
-	const minutesEntry = new St.Entry({
-		hint_text: '0',
-		can_focus: true,
-		style: `width: ${px(40)}px; font-size: ${px(12)}px; text-align: center;`,
-	});
-	minutesEntry.clutter_text.set_max_length(3);
-	customBox.add_child(minutesEntry);
-
-	const minLabel = new St.Label({
-		text: 'min',
 		y_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${mutedColor}; font-size: ${px(11)}px;`,
+		style: `color: ${textColor}; font-size: ${px(32)}px; font-weight: 700;`,
 	});
-	customBox.add_child(minLabel);
+	mainBox.add_child(timeLabel);
 
-	const startCustomBtn = new St.Button({
+	// Play button (bottom-left)
+	const playBtn = new St.Button({
 		reactive: true,
 		can_focus: true,
 		child: new St.Icon({
 			icon_name: 'media-playback-start-symbolic',
-			icon_size: px(14),
+			icon_size: px(18),
 			style: `color: ${accentTextColor};`,
 		}),
-		style: `padding: ${px(6)}px; border-radius: 999px; background-color: ${accentHex};`,
+		style: `padding: ${px(12)}px; border-radius: 999px; background-color: ${accentHex};`,
+		x_align: Clutter.ActorAlign.START,
+		y_align: Clutter.ActorAlign.END,
 	});
-	customBox.add_child(startCustomBtn);
+	mainBox.add_child(playBtn);
 
-	setupBox.add_child(customBox);
-
-	// Running view (only time + stop button)
-	const runningBox = new St.BoxLayout({
-		orientation: Clutter.Orientation.VERTICAL,
-		x_expand: true,
-		y_expand: true,
-		x_align: Clutter.ActorAlign.CENTER,
-		y_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(12)}px;`,
-		visible: false,
-	});
-	container.add_child(runningBox);
-
-	const timeLabel = new St.Label({
-		text: '00:00',
-		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(56)}px; font-weight: 700; line-height: 0.9;`,
-	});
-	runningBox.add_child(timeLabel);
-
+	// Stop button (bottom-right)
 	const stopBtn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({
-			text: _('Stop'),
-			x_align: Clutter.ActorAlign.CENTER,
-			y_align: Clutter.ActorAlign.CENTER,
+		child: new St.Icon({
+			icon_name: 'media-playback-stop-symbolic',
+			icon_size: px(16),
+			style: `color: ${textColor};`,
 		}),
-		style: `font-size: ${px(12)}px; padding: ${px(8)}px ${px(20)}px; border-radius: ${px(12)}px; background-color: rgba(255, 255, 255, 0.15); color: ${textColor}; font-weight: 500;`,
+		style: `padding: ${px(10)}px; border-radius: 999px; background-color: rgba(255, 255, 255, 0.15); border: ${px(2)}px solid rgba(255, 255, 255, 0.3);`,
+		x_align: Clutter.ActorAlign.END,
+		y_align: Clutter.ActorAlign.END,
 	});
-	runningBox.add_child(stopBtn);
+	mainBox.add_child(stopBtn);
+
+	let progress = 0;
+
+	circleCanvas.connect('repaint', (canvas) => {
+		const ctx = canvas.get_context();
+		const [w, h] = canvas.get_surface_size();
+		const centerX = w / 2;
+		const centerY = h / 2;
+		const radius = Math.min(w, h) / 2 - px(8);
+		const lineWidth = px(8);
+
+		// Background circle (light)
+		ctx.setSourceRGBA(0.5, 0.5, 0.5, 0.2);
+		ctx.setLineWidth(lineWidth);
+		ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+		ctx.stroke();
+
+		// Progress arc
+		if (progress > 0) {
+			const accentRgb = parseCssColor(accentHex);
+			ctx.setSourceRGBA(accentRgb.r, accentRgb.g, accentRgb.b, 1.0);
+			ctx.setLineWidth(lineWidth);
+			ctx.setLineCap(1); // ROUND
+			const startAngle = -Math.PI / 2;
+			const endAngle = startAngle + (2 * Math.PI * progress);
+			ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+			ctx.stroke();
+		}
+
+		ctx.$dispose();
+	});
 
 	const updateDisplay = () => {
 		const time = formatTime(remainingSeconds);
 		timeLabel.set_text(`${time.minutes}:${time.seconds}`);
-	};
+		
+		if (totalSeconds > 0) {
+			progress = Math.max(0, Math.min(1, remainingSeconds / totalSeconds));
+		} else {
+			progress = 0;
+		}
+		
+		circleCanvas.queue_repaint();
 
-	const switchToRunning = () => {
-		setupBox.visible = false;
-		runningBox.visible = true;
-	};
-
-	const switchToSetup = () => {
-		setupBox.visible = true;
-		runningBox.visible = false;
+		playBtn.child.icon_name = isRunning 
+			? 'media-playback-pause-symbolic' 
+			: 'media-playback-start-symbolic';
 	};
 
 	const setTimer = (seconds) => {
@@ -185,8 +162,6 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 		totalSeconds = seconds;
 		remainingSeconds = seconds;
 		updateDisplay();
-		switchToRunning();
-		startTimer();
 	};
 
 	const startTimer = () => {
@@ -208,30 +183,33 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 		updateDisplay();
 	};
 
-	const stopTimer = () => {
-		if (isRunning) {
-			isRunning = false;
-			if (timerId) {
-				GLib.Source.remove(timerId);
-				timerId = null;
-			}
+	const pauseTimer = () => {
+		if (!isRunning) return;
+		isRunning = false;
+		if (timerId) {
+			GLib.Source.remove(timerId);
+			timerId = null;
 		}
-		remainingSeconds = 0;
-		totalSeconds = 0;
-		switchToSetup();
 		updateDisplay();
 	};
 
-	startCustomBtn.connect('clicked', () => {
-		const minsText = minutesEntry.get_text().trim();
-		const mins = parseInt(minsText) || 0;
-		if (mins > 0) {
-			setTimer(mins * 60);
-		}
-	});
+	const stopTimer = () => {
+		pauseTimer();
+		remainingSeconds = 0;
+		totalSeconds = 0;
+		updateDisplay();
+	};
 
-	minutesEntry.clutter_text.connect('activate', () => {
-		startCustomBtn.emit('clicked');
+	playBtn.connect('clicked', () => {
+		if (remainingSeconds === 0) {
+			// Start new 3 minute timer
+			setTimer(3 * 60);
+			startTimer();
+		} else if (isRunning) {
+			pauseTimer();
+		} else {
+			startTimer();
+		}
 	});
 
 	stopBtn.connect('clicked', () => stopTimer());
@@ -246,7 +224,7 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 	updateDisplay();
 }
 
-// Medium timer (2x1)
+// Medium timer (2x1) - large display with increment/decrement
 function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const textColor = theme.text;
 	const mutedColor = theme.muted;
@@ -263,177 +241,224 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	let isRunning = false;
 	let timerId = null;
 
-	const container = new St.Widget({
+	const mainBox = new St.BoxLayout({
+		orientation: Clutter.Orientation.HORIZONTAL,
 		x_expand: true,
 		y_expand: true,
+		x_align: Clutter.ActorAlign.FILL,
+		y_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(32)}px; padding: ${px(16)}px;`,
+	});
+	body.add_child(mainBox);
+
+	// Left: circular progress
+	const leftBox = new St.Widget({
+		width: px(140),
+		height: px(140),
 		layout_manager: new Clutter.BinLayout(),
 	});
-	body.add_child(container);
+	mainBox.add_child(leftBox);
 
-	// Setup view
-	const setupBox = new St.BoxLayout({
-		orientation: Clutter.Orientation.VERTICAL,
-		x_expand: true,
-		y_expand: true,
+	const circleSize = px(140);
+	const circleCanvas = new St.DrawingArea({
+		width: circleSize,
+		height: circleSize,
+	});
+	leftBox.add_child(circleCanvas);
+
+	const circleTimeLabel = new St.Label({
+		text: '00:00',
 		x_align: Clutter.ActorAlign.CENTER,
 		y_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(20)}px;`,
+		style: `color: ${textColor}; font-size: ${px(28)}px; font-weight: 700;`,
 	});
-	container.add_child(setupBox);
+	leftBox.add_child(circleTimeLabel);
 
-	// Presets
-	const presetsBox = new St.BoxLayout({
+	// Center: big time with +/- controls
+	const centerBox = new St.BoxLayout({
+		orientation: Clutter.Orientation.HORIZONTAL,
+		x_expand: true,
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(10)}px;`,
+		y_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(8)}px;`,
 	});
+	mainBox.add_child(centerBox);
 
-	const presets = [5, 10, 15, 20, 30];
-	for (const mins of presets) {
-		const btn = new St.Button({
-			reactive: true,
-			can_focus: true,
-			child: new St.Label({ text: String(mins) }),
-			style: `
-				font-size: ${px(14)}px; 
-				width: ${px(40)}px; 
-				height: ${px(40)}px;
-				border-radius: ${px(20)}px; 
-				background-color: rgba(255, 255, 255, 0.1); 
-				color: ${textColor}; 
-				font-weight: 600;
-			`,
-		});
-		btn.connect('clicked', () => setTimer(mins * 60));
-		presetsBox.add_child(btn);
-	}
-	setupBox.add_child(presetsBox);
-
-	// Custom input (minutes:seconds)
-	const customBox = new St.BoxLayout({
+	// Minutes with controls
+	const minutesBox = new St.BoxLayout({
+		orientation: Clutter.Orientation.VERTICAL,
 		x_align: Clutter.ActorAlign.CENTER,
 		style: `spacing: ${px(8)}px;`,
 	});
 
-	const customLabel = new St.Label({
-		text: _('Custom:'),
-		y_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${mutedColor}; font-size: ${px(14)}px; font-weight: 600;`,
-	});
-	customBox.add_child(customLabel);
-
-	const minutesEntry = new St.Entry({
-		hint_text: '0',
+	const minutesPlusBtn = new St.Button({
+		reactive: true,
 		can_focus: true,
-		style: `width: ${px(50)}px; font-size: ${px(14)}px; text-align: center;`,
+		child: new St.Label({ text: '+' }),
+		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(40)}px; color: ${textColor}; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
-	minutesEntry.clutter_text.set_max_length(3);
-	customBox.add_child(minutesEntry);
+	minutesBox.add_child(minutesPlusBtn);
 
+	const minutesLabel = new St.Label({
+		text: '00',
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9;`,
+	});
+	minutesBox.add_child(minutesLabel);
+
+	const minutesMinusBtn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Label({ text: '−' }),
+		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(40)}px; color: ${textColor}; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+	});
+	minutesBox.add_child(minutesMinusBtn);
+
+	centerBox.add_child(minutesBox);
+
+	// Colon
 	const colonLabel = new St.Label({
 		text: ':',
 		y_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(14)}px; font-weight: 600;`,
+		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700;`,
 	});
-	customBox.add_child(colonLabel);
+	centerBox.add_child(colonLabel);
 
-	const secondsEntry = new St.Entry({
-		hint_text: '00',
+	// Seconds with controls
+	const secondsBox = new St.BoxLayout({
+		orientation: Clutter.Orientation.VERTICAL,
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(8)}px;`,
+	});
+
+	const secondsPlusBtn = new St.Button({
+		reactive: true,
 		can_focus: true,
-		style: `width: ${px(50)}px; font-size: ${px(14)}px; text-align: center;`,
+		child: new St.Label({ text: '+' }),
+		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(40)}px; color: ${textColor}; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
-	secondsEntry.clutter_text.set_max_length(2);
-	customBox.add_child(secondsEntry);
+	secondsBox.add_child(secondsPlusBtn);
 
-	const startCustomBtn = new St.Button({
+	const secondsLabel = new St.Label({
+		text: '00',
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9;`,
+	});
+	secondsBox.add_child(secondsLabel);
+
+	const secondsMinusBtn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Label({ text: '−' }),
+		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(40)}px; color: ${textColor}; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+	});
+	secondsBox.add_child(secondsMinusBtn);
+
+	centerBox.add_child(secondsBox);
+
+	// Right: Play and Stop buttons
+	const rightBox = new St.BoxLayout({
+		orientation: Clutter.Orientation.VERTICAL,
+		x_align: Clutter.ActorAlign.END,
+		y_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(12)}px;`,
+	});
+
+	const playBtn = new St.Button({
 		reactive: true,
 		can_focus: true,
 		child: new St.Icon({
 			icon_name: 'media-playback-start-symbolic',
-			icon_size: px(20),
+			icon_size: px(24),
 			style: `color: ${accentTextColor};`,
 		}),
-		style: `padding: ${px(10)}px; border-radius: 999px; background-color: ${accentHex};`,
+		style: `padding: ${px(16)}px; border-radius: 999px; background-color: ${accentHex};`,
 	});
-	customBox.add_child(startCustomBtn);
-
-	setupBox.add_child(customBox);
-
-	// Running view (only time + stop button)
-	const runningBox = new St.BoxLayout({
-		orientation: Clutter.Orientation.VERTICAL,
-		x_expand: true,
-		y_expand: true,
-		x_align: Clutter.ActorAlign.CENTER,
-		y_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(20)}px;`,
-		visible: false,
-	});
-	container.add_child(runningBox);
-
-	const timeLabel = new St.Label({
-		text: '00:00',
-		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(88)}px; font-weight: 700; line-height: 0.85;`,
-	});
-	runningBox.add_child(timeLabel);
-
-	// Thin progress bar
-	const progressBarWidth = px(220);
-	const progressBarHeight = px(6);
-	const progressBar = new St.Widget({
-		width: progressBarWidth,
-		height: progressBarHeight,
-		style: `background-color: rgba(255, 255, 255, 0.15); border-radius: ${px(3)}px;`,
-	});
-
-	const progressFill = new St.Widget({
-		height: progressBarHeight,
-		style: `background-color: ${accentHex}; border-radius: ${px(3)}px;`,
-	});
-	progressBar.add_child(progressFill);
-	runningBox.add_child(progressBar);
+	rightBox.add_child(playBtn);
 
 	const stopBtn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({
-			text: _('Stop'),
-			x_align: Clutter.ActorAlign.CENTER,
-			y_align: Clutter.ActorAlign.CENTER,
+		child: new St.Icon({
+			icon_name: 'media-playback-stop-symbolic',
+			icon_size: px(20),
+			style: `color: ${textColor};`,
 		}),
-		style: `font-size: ${px(16)}px; padding: ${px(12)}px ${px(40)}px; border-radius: ${px(12)}px; background-color: rgba(255, 255, 255, 0.15); color: ${textColor}; font-weight: 500;`,
+		style: `padding: ${px(14)}px; border-radius: 999px; background-color: rgba(255, 255, 255, 0.15); border: ${px(2)}px solid rgba(255, 255, 255, 0.3);`,
 	});
-	runningBox.add_child(stopBtn);
+	rightBox.add_child(stopBtn);
+
+	mainBox.add_child(rightBox);
+
+	let progress = 0;
+
+	circleCanvas.connect('repaint', (canvas) => {
+		const ctx = canvas.get_context();
+		const [w, h] = canvas.get_surface_size();
+		const centerX = w / 2;
+		const centerY = h / 2;
+		const radius = Math.min(w, h) / 2 - px(10);
+		const lineWidth = px(10);
+
+		// Background circle
+		ctx.setSourceRGBA(0.5, 0.5, 0.5, 0.2);
+		ctx.setLineWidth(lineWidth);
+		ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+		ctx.stroke();
+
+		// Progress arc
+		if (progress > 0) {
+			const accentRgb = parseCssColor(accentHex);
+			ctx.setSourceRGBA(accentRgb.r, accentRgb.g, accentRgb.b, 1.0);
+			ctx.setLineWidth(lineWidth);
+			ctx.setLineCap(1);
+			const startAngle = -Math.PI / 2;
+			const endAngle = startAngle + (2 * Math.PI * progress);
+			ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+			ctx.stroke();
+		}
+
+		ctx.$dispose();
+	});
 
 	const updateDisplay = () => {
 		const time = formatTime(remainingSeconds);
-		timeLabel.set_text(`${time.minutes}:${time.seconds}`);
+		minutesLabel.set_text(time.minutes);
+		secondsLabel.set_text(time.seconds);
+		circleTimeLabel.set_text(`${time.minutes}:${time.seconds}`);
 		
-		// Update progress bar
-		let progress = 0;
 		if (totalSeconds > 0) {
 			progress = Math.max(0, Math.min(1, remainingSeconds / totalSeconds));
+		} else {
+			progress = 0;
 		}
-		progressFill.set_width(Math.round(progressBarWidth * progress));
-	};
+		
+		circleCanvas.queue_repaint();
 
-	const switchToRunning = () => {
-		setupBox.visible = false;
-		runningBox.visible = true;
-	};
+		playBtn.child.icon_name = isRunning 
+			? 'media-playback-pause-symbolic' 
+			: 'media-playback-start-symbolic';
 
-	const switchToSetup = () => {
-		setupBox.visible = true;
-		runningBox.visible = false;
+		// Disable +/- buttons when running
+		const controlsEnabled = !isRunning;
+		minutesPlusBtn.reactive = controlsEnabled;
+		minutesMinusBtn.reactive = controlsEnabled;
+		secondsPlusBtn.reactive = controlsEnabled;
+		secondsMinusBtn.reactive = controlsEnabled;
+		
+		const opacity = controlsEnabled ? 1.0 : 0.4;
+		minutesPlusBtn.opacity = opacity * 255;
+		minutesMinusBtn.opacity = opacity * 255;
+		secondsPlusBtn.opacity = opacity * 255;
+		secondsMinusBtn.opacity = opacity * 255;
 	};
 
 	const setTimer = (seconds) => {
-		stopTimer();
-		totalSeconds = seconds;
-		remainingSeconds = seconds;
-		updateDisplay();
-		switchToRunning();
-		startTimer();
+		if (!isRunning) {
+			totalSeconds = Math.max(0, Math.min(5999, seconds)); // Max 99:59
+			remainingSeconds = totalSeconds;
+			updateDisplay();
+		}
 	};
 
 	const startTimer = () => {
@@ -446,7 +471,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			remainingSeconds = Math.max(0, (targetEndTime - now) / 1000);
 			updateDisplay();
 			if (remainingSeconds <= 0) {
-				stopTimer();
+				stopTimerInternal();
 				Main.notify(_('Timer'), _('Timer finished!'));
 				return GLib.SOURCE_REMOVE;
 			}
@@ -455,40 +480,55 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		updateDisplay();
 	};
 
-	const stopTimer = () => {
-		if (isRunning) {
-			isRunning = false;
-			if (timerId) {
-				GLib.Source.remove(timerId);
-				timerId = null;
-			}
+	const pauseTimer = () => {
+		if (!isRunning) return;
+		isRunning = false;
+		if (timerId) {
+			GLib.Source.remove(timerId);
+			timerId = null;
 		}
-		remainingSeconds = 0;
-		totalSeconds = 0;
-		switchToSetup();
 		updateDisplay();
 	};
 
-	startCustomBtn.connect('clicked', () => {
-		const minsText = minutesEntry.get_text().trim();
-		const secsText = secondsEntry.get_text().trim();
-		const mins = parseInt(minsText) || 0;
-		const secs = parseInt(secsText) || 0;
-		const totalSecs = mins * 60 + secs;
-		if (totalSecs > 0) {
-			setTimer(totalSecs);
+	const stopTimerInternal = () => {
+		pauseTimer();
+		remainingSeconds = 0;
+		totalSeconds = 0;
+		updateDisplay();
+	};
+
+	minutesPlusBtn.connect('clicked', () => {
+		const newSeconds = remainingSeconds + 60;
+		setTimer(newSeconds);
+	});
+
+	minutesMinusBtn.connect('clicked', () => {
+		const newSeconds = remainingSeconds - 60;
+		setTimer(newSeconds);
+	});
+
+	secondsPlusBtn.connect('clicked', () => {
+		const newSeconds = remainingSeconds + 1;
+		setTimer(newSeconds);
+	});
+
+	secondsMinusBtn.connect('clicked', () => {
+		const newSeconds = remainingSeconds - 1;
+		setTimer(newSeconds);
+	});
+
+	playBtn.connect('clicked', () => {
+		if (remainingSeconds === 0) {
+			setTimer(3 * 60);
+			startTimer();
+		} else if (isRunning) {
+			pauseTimer();
+		} else {
+			startTimer();
 		}
 	});
 
-	minutesEntry.clutter_text.connect('activate', () => {
-		startCustomBtn.emit('clicked');
-	});
-
-	secondsEntry.clutter_text.connect('activate', () => {
-		startCustomBtn.emit('clicked');
-	});
-
-	stopBtn.connect('clicked', () => stopTimer());
+	stopBtn.connect('clicked', () => stopTimerInternal());
 
 	body.connect('destroy', () => {
 		if (timerId) {
