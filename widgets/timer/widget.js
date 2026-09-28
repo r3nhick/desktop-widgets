@@ -121,7 +121,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
-		style: `font-size: ${px(16)}px; width: ${px(32)}px; height: ${px(28)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(36)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(10)}px; font-weight: 700;`,
 	});
 	minutesPlusBox.add_child(minutesPlus10Btn);
 
@@ -129,17 +129,17 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
-		style: `font-size: ${px(14)}px; width: ${px(28)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+		style: `font-size: ${px(16)}px; width: ${px(36)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
 	minutesPlusBox.add_child(minutesPlus1Btn);
 
 	minutesBox.add_child(minutesPlusBox);
 
-	// Minutes digits
+	// Minutes digits (fixed width to prevent shifting)
 	const minutesLabel = new St.Label({
 		text: '00',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9; padding: ${px(4)}px 0;`,
+		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9; padding: ${px(4)}px 0; min-width: ${px(100)}px;`,
 	});
 	minutesBox.add_child(minutesLabel);
 
@@ -153,7 +153,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
-		style: `font-size: ${px(16)}px; width: ${px(32)}px; height: ${px(28)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(36)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(10)}px; font-weight: 700;`,
 	});
 	minutesMinusBox.add_child(minutesMinus10Btn);
 
@@ -161,7 +161,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
-		style: `font-size: ${px(14)}px; width: ${px(28)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+		style: `font-size: ${px(16)}px; width: ${px(36)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
 	minutesMinusBox.add_child(minutesMinus1Btn);
 
@@ -194,7 +194,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
-		style: `font-size: ${px(16)}px; width: ${px(32)}px; height: ${px(28)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(36)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(10)}px; font-weight: 700;`,
 	});
 	secondsPlusBox.add_child(secondsPlus10Btn);
 
@@ -202,17 +202,17 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
-		style: `font-size: ${px(14)}px; width: ${px(28)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+		style: `font-size: ${px(16)}px; width: ${px(36)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
 	secondsPlusBox.add_child(secondsPlus1Btn);
 
 	secondsBox.add_child(secondsPlusBox);
 
-	// Seconds digits
+	// Seconds digits (fixed width to prevent shifting)
 	const secondsLabel = new St.Label({
 		text: '00',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9; padding: ${px(4)}px 0;`,
+		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9; padding: ${px(4)}px 0; min-width: ${px(100)}px;`,
 	});
 	secondsBox.add_child(secondsLabel);
 
@@ -226,7 +226,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
-		style: `font-size: ${px(16)}px; width: ${px(32)}px; height: ${px(28)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(36)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(10)}px; font-weight: 700;`,
 	});
 	secondsMinusBox.add_child(secondsMinus10Btn);
 
@@ -234,7 +234,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
-		style: `font-size: ${px(14)}px; width: ${px(28)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+		style: `font-size: ${px(16)}px; width: ${px(36)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
 	secondsMinusBox.add_child(secondsMinus1Btn);
 
@@ -305,7 +305,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		x_expand: true,
 		x_align: Clutter.ActorAlign.CENTER,
 		y_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(88)}px; font-weight: 700; line-height: 0.9;`,
+		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9;`,
 	});
 	runningBox.add_child(runningTimeLabel);
 
