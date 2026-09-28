@@ -80,11 +80,11 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	setupBox.add_child(leftBox);
 
 	const circleSize = px(120);
-	const circleCanvas = new St.DrawingArea({
+	const setupCircleCanvas = new St.DrawingArea({
 		width: circleSize,
 		height: circleSize,
 	});
-	leftBox.add_child(circleCanvas);
+	leftBox.add_child(setupCircleCanvas);
 
 	const circleTimeLabel = new St.Label({
 		text: '00:00',
@@ -114,16 +114,16 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const minutesPlus10Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '+10', style: `color: ${textColor};` }),
-		style: `font-size: ${px(12)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 600;`,
+		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
+		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
 	minutesBox.add_child(minutesPlus10Btn);
 
 	const minutesPlus1Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '+1', style: `color: ${textColor};` }),
-		style: `font-size: ${px(11)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 600;`,
+		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
+		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
 	});
 	minutesBox.add_child(minutesPlus1Btn);
 
@@ -137,16 +137,16 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const minutesMinus1Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '-1', style: `color: ${textColor};` }),
-		style: `font-size: ${px(11)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 600;`,
+		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
+		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
 	});
 	minutesBox.add_child(minutesMinus1Btn);
 
 	const minutesMinus10Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '-10', style: `color: ${textColor};` }),
-		style: `font-size: ${px(12)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 600;`,
+		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
+		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
 	minutesBox.add_child(minutesMinus10Btn);
 
@@ -170,16 +170,16 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const secondsPlus10Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '+10', style: `color: ${textColor};` }),
-		style: `font-size: ${px(12)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 600;`,
+		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
+		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
 	secondsBox.add_child(secondsPlus10Btn);
 
 	const secondsPlus1Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '+1', style: `color: ${textColor};` }),
-		style: `font-size: ${px(11)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 600;`,
+		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
+		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
 	});
 	secondsBox.add_child(secondsPlus1Btn);
 
@@ -193,16 +193,16 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const secondsMinus1Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '-1', style: `color: ${textColor};` }),
-		style: `font-size: ${px(11)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 600;`,
+		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
+		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
 	});
 	secondsBox.add_child(secondsMinus1Btn);
 
 	const secondsMinus10Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '-10', style: `color: ${textColor};` }),
-		style: `font-size: ${px(12)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 600;`,
+		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
+		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
 	secondsBox.add_child(secondsMinus10Btn);
 
@@ -235,18 +235,35 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		orientation: Clutter.Orientation.HORIZONTAL,
 		x_expand: true,
 		y_expand: true,
-		x_align: Clutter.ActorAlign.CENTER,
+		x_align: Clutter.ActorAlign.FILL,
 		y_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(32)}px;`,
+		style: `spacing: ${px(32)}px; padding: ${px(16)}px;`,
 		visible: false,
 	});
 	container.add_child(runningBox);
 
-	// Big time display
+	// Left: circular progress (running)
+	const runningLeftBox = new St.Widget({
+		width: px(140),
+		height: px(140),
+		layout_manager: new Clutter.BinLayout(),
+	});
+	runningBox.add_child(runningLeftBox);
+
+	const runningCircleSize = px(140);
+	const runningCircleCanvas = new St.DrawingArea({
+		width: runningCircleSize,
+		height: runningCircleSize,
+	});
+	runningLeftBox.add_child(runningCircleCanvas);
+
+	// Big time display (center)
 	const runningTimeLabel = new St.Label({
 		text: '00:00',
+		x_expand: true,
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(96)}px; font-weight: 700; line-height: 0.9;`,
+		y_align: Clutter.ActorAlign.CENTER,
+		style: `color: ${textColor}; font-size: ${px(88)}px; font-weight: 700; line-height: 0.9;`,
 	});
 	runningBox.add_child(runningTimeLabel);
 
@@ -286,13 +303,13 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 
 	let progress = 0;
 
-	circleCanvas.connect('repaint', (canvas) => {
+	const drawCircle = (canvas) => {
 		const ctx = canvas.get_context();
 		const [w, h] = canvas.get_surface_size();
 		const centerX = w / 2;
 		const centerY = h / 2;
-		const radius = Math.min(w, h) / 2 - px(8);
-		const lineWidth = px(8);
+		const lineWidth = canvas === runningCircleCanvas ? px(10) : px(8);
+		const radius = Math.min(w, h) / 2 - lineWidth;
 
 		// Background circle
 		ctx.setSourceRGBA(0.5, 0.5, 0.5, 0.2);
@@ -313,7 +330,10 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		}
 
 		ctx.$dispose();
-	});
+	};
+
+	setupCircleCanvas.connect('repaint', (canvas) => drawCircle(canvas));
+	runningCircleCanvas.connect('repaint', (canvas) => drawCircle(canvas));
 
 	const updateDisplay = () => {
 		const time = formatTime(remainingSeconds);
@@ -328,7 +348,8 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			progress = 0;
 		}
 		
-		circleCanvas.queue_repaint();
+		setupCircleCanvas.queue_repaint();
+		runningCircleCanvas.queue_repaint();
 
 		// Show/hide views based on running state
 		if (isRunning) {
