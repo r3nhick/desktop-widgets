@@ -443,7 +443,14 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         const sidebarBin = new Adw.Bin();
         this._sidebarListBox = new Gtk.ListBox();
         this._sidebarListBox.add_css_class('navigation-sidebar');
-        sidebarBin.set_child(this._sidebarListBox);
+        const sidebarScrolledWindow = new Gtk.ScrolledWindow({
+            hscrollbar_policy: Gtk.PolicyType.NEVER,
+            vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
+            vexpand: true,
+            hexpand: true,
+        });
+        sidebarScrolledWindow.set_child(this._sidebarListBox);
+        sidebarBin.set_child(sidebarScrolledWindow);
         sidebarToolbar.set_content(sidebarBin);
         sidebarToolbar.add_top_bar(sidebarHeader);
         splitViewSidebar.set_child(sidebarToolbar);
