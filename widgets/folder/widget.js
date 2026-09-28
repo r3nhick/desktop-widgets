@@ -124,6 +124,9 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 	const sizeKey = widget?.size ?? 'medium';
 	const [width, height] = sizeForWidget(widget);
 	
+	// Ensure body clips overflow content
+	body.set_clip_to_allocation(true);
+	
 	const dataFilePath = GLib.build_filenamev([getDataDir('folder'), `folder-${widget?.id}.json`]);
 	
 	// Get file manager setting
