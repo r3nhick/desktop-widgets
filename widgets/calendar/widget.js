@@ -412,6 +412,7 @@ function buildGrid(options) {
 		secondary,
 		accent,
 		weekdays,
+		useAccentColor,
 	} = options;
 	const grid = new St.BoxLayout({
 		vertical: true,
@@ -426,10 +427,11 @@ function buildGrid(options) {
 		style: `spacing: ${gap}px;`,
 	});
 
+	const weekdayColor = useAccentColor ? accent : text;
 	for (const weekday of weekdays) {
 		weekdayRow.add_child(calendarCell(
 			weekday,
-			`font-size: ${Math.max(8, weekdayFont)}px; font-weight: 600; color: ${secondary};`,
+			`font-size: ${Math.max(8, weekdayFont)}px; font-weight: 600; color: ${weekdayColor};`,
 			null,
 			createLabel,
 			cellWidth,
@@ -480,11 +482,12 @@ function buildGrid(options) {
 	return grid;
 };
 
-function monthLabel(now, createLabel, dayFont, theme, scale = 1) {
+function monthLabel(now, createLabel, dayFont, theme, useAccentColor, scale = 1) {
+	const color = useAccentColor ? theme.accent : (theme.text ?? TEXT);
 	const label = createLabel(
 		uppercaseMonth(now),
 		'widget-calendar-month',
-		`font-size: ${Math.max(9, Math.round(13 * scale * (dayFont / 12)))}px; font-weight: 800; color: ${theme.accent};`);
+		`font-size: ${Math.max(9, Math.round(13 * scale * (dayFont / 12)))}px; font-weight: 800; color: ${color};`);
 
 	label.x_expand = true;
 	label.x_align = Clutter.ActorAlign.START;
@@ -600,6 +603,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 	const text = theme?.text ?? TEXT;
 	const secondary = theme?.muted ?? SECONDARY;
 	const weekdayFormat = settings?.get_string('calendar-weekday-format') ?? 'short';
+	const useAccentColor = settings?.get_boolean('calendar-use-accent-color') ?? false;
 	const weekdays = weekdayLabels(weekdayFormat);
 	const now = new Date();
 	const today = now.getDate();
@@ -692,7 +696,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 		});
 
 		right.set_width(rightWidth);
-		right.add_child(monthLabel(now, createLabel, dayFont, theme, cellWidth / 20));
+		right.add_child(monthLabel(now, createLabel, dayFont, theme, useAccentColor, cellWidth / 20));
 
 		right.add_child(buildGrid({
 			now,
@@ -708,6 +712,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 			secondary,
 			accent: theme.accent,
 			weekdays,
+			useAccentColor,
 		}));
 
 		container.add_child(left);
@@ -724,7 +729,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 	const cellHeight = (compact ? COMPACT_CELL_BASE_HEIGHT : CELL_BASE_HEIGHT) * scale;
 	const weekdayFont = fitWeekdayFontSize(weekdays, cellWidth, dayFont);
 
-	body.add_child(monthLabel(now, createLabel, dayFont, theme));
+	body.add_child(monthLabel(now, createLabel, dayFont, theme, useAccentColor));
 
 	body.add_child(buildGrid({
 			now,
@@ -740,6 +745,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 			secondary,
 			accent: theme.accent,
 			weekdays,
+			useAccentColor,
 		}));
 
 	body.add_child(new St.Widget({y_expand: true}));

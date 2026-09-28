@@ -37,7 +37,7 @@ msgstr "%sг %sхв"
 msgid "%sm"
 msgstr "%sхв"
 
-#: prefs.js:2461
+#: prefs.js:2471
 msgid "⚠ Warning: Glass Style increases GPU usage"
 msgstr "⚠ Попередження: Glass Style підвищує навантаження на GPU"
 
@@ -57,7 +57,7 @@ msgstr "1×2"
 msgid "1×2 mini"
 msgstr "1×2 міні"
 
-#: prefs.js:1361
+#: prefs.js:1371
 msgid "12-hour"
 msgstr "12-годинний"
 
@@ -81,7 +81,7 @@ msgstr "2×2 міні"
 msgid "2×4"
 msgstr "2×4"
 
-#: prefs.js:1361
+#: prefs.js:1371
 msgid "24-hour"
 msgstr "24-годинний"
 
@@ -97,15 +97,15 @@ msgstr "4×4"
 msgid "About"
 msgstr "Про розширення"
 
-#: prefs.js:2365
+#: prefs.js:2375
 msgid "Accent Color"
 msgstr "Акцентний колір"
 
-#: prefs/widgetPickerDialog.js:417 prefs.js:631 prefs.js:2052
+#: prefs/widgetPickerDialog.js:417 prefs.js:631 prefs.js:2062
 msgid "Add"
 msgstr "Додати"
 
-#: prefs.js:1646
+#: prefs.js:1656
 msgid "Add a Folder Launcher widget from the General page first"
 msgstr "Спершу додайте віджет Folder Launcher на сторінці «Загальні»"
 
@@ -113,19 +113,19 @@ msgstr "Спершу додайте віджет Folder Launcher на сторі
 msgid "Add a new widget to your desktop."
 msgstr "Додати новий віджет на робочий стіл."
 
-#: prefs.js:2109
+#: prefs.js:2119
 msgid "Add an App Launcher widget from the General page first"
 msgstr "Спершу додайте віджет запуску програм зі сторінки «Загальні»"
 
-#: prefs.js:1929
+#: prefs.js:1939
 msgid "Add Applications"
 msgstr "Додати програми"
 
-#: prefs.js:2255
+#: prefs.js:2265
 msgid "Add Apps"
 msgstr "Додати застосунки"
 
-#: prefs.js:1806
+#: prefs.js:1816
 msgid "Add Folder"
 msgstr "Додати теку"
 
@@ -143,7 +143,7 @@ msgstr "Налаштувати розмір індикаторів пристр�
 msgid "Align all widgets into a grid of columns and rows"
 msgstr "Вирівняти всі віджети в сітку стовпців і рядків"
 
-#: widgets/calendar/widget.js:578
+#: widgets/calendar/widget.js:581
 msgid "All day"
 msgstr "Весь день"
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "App Launcher"
 msgstr "Панель програм"
 
-#: prefs.js:359 prefs.js:2102
+#: prefs.js:359 prefs.js:2112
 msgid "App Launcher Widget"
 msgstr "Віджет запуску програм"
 
@@ -174,29 +174,29 @@ msgstr "Віджет запуску програм"
 msgid "Appearance"
 msgstr "Зовнішній вигляд"
 
-#: prefs.js:1357
+#: prefs.js:1367
 msgid "Appearance of the clock on your desktop."
 msgstr "Вигляд годинника на вашому робочому столі."
 
-#: prefs.js:1600
+#: prefs.js:1610
 msgid "Application to open folders with"
 msgstr "Застосунок для відкриття теку"
 
-#: prefs.js:1422
+#: prefs.js:1432
 msgid "Applied to all GitHub widgets. Empty to set a username per widget"
 msgstr ""
 "Застосовується до всіх віджетів GitHub. Порожнє — щоб задавати ім’я окремо "
 "для кожного віджета"
 
-#: prefs.js:2382
+#: prefs.js:2392
 msgid "Apply a glass effect with transparency and blur to all widgets"
 msgstr "Застосовувати до віджетів ефект скла з прозорістю та розмиттям"
 
-#: prefs.js:2190
+#: prefs.js:2200
 msgid "Apps"
 msgstr "Додатки"
 
-#: prefs.js:2139
+#: prefs.js:2149
 msgid "Apps shown on this widget, in grid order"
 msgstr "Застосунки, що показуються на цьому віджеті, у порядку сітки"
 
@@ -220,11 +220,11 @@ msgstr ""
 "Автоматично призупиняти анімації віджетів, коли вікно на весь екран, для "
 "економії ресурсів"
 
-#: prefs.js:1387
+#: prefs.js:1397
 msgid "Available with the 12-hour format"
 msgstr "Доступно з 12-годинним форматом"
 
-#: prefs.js:2338
+#: prefs.js:2348
 msgid "Background Color"
 msgstr "Колір фону"
 
@@ -252,31 +252,31 @@ msgstr "Бінарний годинник"
 msgid "Bluetooth"
 msgstr "Bluetooth"
 
-#: prefs.js:2389
+#: prefs.js:2399
 msgid "Blur radius of the glass effect"
 msgstr "Радіус розмиття ефекту скла"
 
-#: prefs.js:2483
+#: prefs.js:2493
 msgid "Blur radius of the shadow"
 msgstr "Радіус розмиття тіні"
 
-#: prefs.js:2348
+#: prefs.js:2358
 msgid "Border Color"
 msgstr "Колір рамки"
 
-#: prefs.js:2300
+#: prefs.js:2310
 msgid "Border Radius"
 msgstr "Радіус скруглення"
 
-#: prefs.js:2319
+#: prefs.js:2329
 msgid "Border Width"
 msgstr "Товщина рамки"
 
-#: prefs.js:2477
+#: prefs.js:2487
 msgid "Box Shadow"
 msgstr "Тінь"
 
-#: widgets/pomodoro/widget.js:33
+#: widgets/pomodoro/widget.js:47
 msgid "Break"
 msgstr "Перерва"
 
@@ -296,7 +296,7 @@ msgstr "Календар"
 msgid "Calendar Widget"
 msgstr "Віджет календаря"
 
-#: prefs.js:800 prefs.js:827 prefs.js:920 prefs.js:988 prefs.js:1856
+#: prefs.js:800 prefs.js:827 prefs.js:920 prefs.js:988 prefs.js:1866
 msgid "Cancel"
 msgstr "Скасувати"
 
@@ -312,15 +312,15 @@ msgstr "Змінити фото"
 msgid "Choose application"
 msgstr "Обрати застосунок"
 
-#: prefs.js:2339
+#: prefs.js:2349
 msgid "Choose background color"
 msgstr "Обрати колір фону"
 
-#: prefs.js:2349
+#: prefs.js:2359
 msgid "Choose border color"
 msgstr "Обрати колір рамки"
 
-#: prefs.js:2478
+#: prefs.js:2488
 msgid "Choose shadow color. Leave unset for default."
 msgstr "Обрати колір тіні. Залиште порожнім для стандартного."
 
@@ -344,7 +344,7 @@ msgstr "Годинник"
 msgid "Close"
 msgstr "Закрити"
 
-#: widgets/pomodoro/widget.js:486
+#: widgets/pomodoro/widget.js:495
 msgid "Completed:"
 msgstr "Завершено:"
 
@@ -362,11 +362,11 @@ msgid ""
 "bounds."
 msgstr "Налаштуйте масштабування та обрізку світлин."
 
-#: prefs.js:1558
+#: prefs.js:1568
 msgid "Configure the appearance of animated lava balls."
 msgstr "Налаштуйте вигляд анімованих кульок лави."
 
-#: prefs.js:1482
+#: prefs.js:1492
 msgid "Configure the Pomodoro timer durations and work sessions."
 msgstr "Налаштуйте тривалість таймера Pomodoro та робочі сесії."
 
@@ -374,11 +374,11 @@ msgstr "Налаштуйте тривалість таймера Pomodoro та �
 msgid "Contain"
 msgstr "За розміром"
 
-#: prefs.js:1459
+#: prefs.js:1469
 msgid "Content font size"
 msgstr "Розмір шрифту тексту"
 
-#: prefs.js:2301
+#: prefs.js:2311
 msgid "Corner roundness of widgets"
 msgstr "Скруглення кутів віджетів"
 
@@ -426,7 +426,7 @@ msgstr "Заповнення"
 msgid "Current streak"
 msgstr "Поточна серія"
 
-#: prefs.js:2366
+#: prefs.js:2376
 msgid "Custom accent color used by all widgets"
 msgstr "Власний акцентний колір для всіх віджетів"
 
@@ -434,15 +434,15 @@ msgstr "Власний акцентний колір для всіх відже�
 msgid "Custom app"
 msgstr "Власний застосунок"
 
-#: prefs.js:2294
+#: prefs.js:2304
 msgid "Customize the appearance of all widgets."
 msgstr "Налаштуйте зовнішній вигляд віджетів."
 
-#: prefs.js:1403
+#: prefs.js:1413
 msgid "Customize the GitHub Activity widget appearance."
 msgstr "Налаштування вигляду віджета активності GitHub"
 
-#: prefs.js:1438
+#: prefs.js:1448
 msgid "Customize the Notes widget font sizes."
 msgstr "Налаштування розміру шрифту віджета нотаток."
 
@@ -474,11 +474,11 @@ msgstr "Пристрій"
 msgid "Digital Clock"
 msgstr "Цифровий годинник"
 
-#: prefs.js:347 prefs.js:1356
+#: prefs.js:347 prefs.js:1366
 msgid "Digital Clock Widget"
 msgstr "Віджет цифрового годинника"
 
-#: prefs.js:1589
+#: prefs.js:1599
 msgid "Display folder names below icons"
 msgstr "Показувати назви тек на під іконками"
 
@@ -486,7 +486,7 @@ msgstr "Показувати назви тек на під іконками"
 msgid "Display the charge percentage below each ring"
 msgstr "Показувати відсоток заряду під кожним кільцем"
 
-#: prefs.js:1707 widgets/folder/widget.js:40
+#: prefs.js:1717 widgets/folder/widget.js:40
 msgid "Documents"
 msgstr "Документи"
 
@@ -494,7 +494,7 @@ msgstr "Документи"
 msgid "Download"
 msgstr "Завантаження"
 
-#: prefs.js:1708 widgets/folder/widget.js:41
+#: prefs.js:1718 widgets/folder/widget.js:41
 msgid "Downloads"
 msgstr "Завантаження"
 
@@ -542,7 +542,7 @@ msgstr "Лют"
 msgid "Fetching…"
 msgstr "Отримання…"
 
-#: prefs.js:1599
+#: prefs.js:1609
 msgid "File Manager"
 msgstr "Файловий менеджлер"
 
@@ -554,7 +554,7 @@ msgstr "Файли"
 msgid "Firefox"
 msgstr "Firefox"
 
-#: widgets/pomodoro/widget.js:28
+#: widgets/pomodoro/widget.js:46
 msgid "Focus"
 msgstr "Фокус"
 
@@ -570,23 +570,23 @@ msgstr "Запускник тек"
 msgid "Folder Launcher Widget"
 msgstr "Віджет Запускник тек"
 
-#: prefs.js:1639
+#: prefs.js:1649
 msgid "Folder Launcher Widgets"
 msgstr "Віджети Запускника тек"
 
-#: prefs.js:1739
+#: prefs.js:1749
 msgid "Folders"
 msgstr "Теки"
 
-#: prefs.js:1696
+#: prefs.js:1706
 msgid "Folders shown on this widget, in grid order"
 msgstr "Теки, показані на цьому віджеті, у порядку сітки"
 
-#: prefs.js:1460
+#: prefs.js:1470
 msgid "Font size in pixels for the notes content text"
 msgstr "Розмір шрифту тексту в пікселях"
 
-#: prefs.js:1444
+#: prefs.js:1454
 msgid "Font size in pixels for the notes title"
 msgstr "Розмір шрифту в пікселях для заголовка"
 
@@ -602,27 +602,27 @@ msgstr "Основне"
 msgid "GitHub Activity"
 msgstr "Активність GitHub"
 
-#: prefs.js:1418
+#: prefs.js:1428
 msgid "GitHub username"
 msgstr "Ім’я користувача GitHub"
 
-#: prefs.js:353 prefs.js:1402
+#: prefs.js:353 prefs.js:1412
 msgid "GitHub Widget"
 msgstr "Віджет GitHub"
 
-#: prefs.js:2388
+#: prefs.js:2398
 msgid "Glass Blur"
 msgstr "Розмиття скла"
 
-#: prefs.js:2423
+#: prefs.js:2433
 msgid "Glass Opacity"
 msgstr "Прозорість скла"
 
-#: prefs.js:2381
+#: prefs.js:2391
 msgid "Glass Style"
 msgstr "Стиль «Скло»"
 
-#: prefs.js:2462
+#: prefs.js:2472
 msgid ""
 "Glass widgets are redrawn every frame with transparency effects, which "
 "raises GPU load. If the desktop becomes slow or your GPU heats up, turn "
@@ -632,7 +632,7 @@ msgstr ""
 "підвищує навантаження на GPU. Якщо робочий стіл став повільним або GPU "
 "перегрівається, вимкніть Glass Style."
 
-#: prefs.js:1581
+#: prefs.js:1591
 msgid "Global Settings"
 msgstr "Загальні налаштування"
 
@@ -646,7 +646,7 @@ msgstr ""
 msgid "GNOME Weather"
 msgstr "Погода GNOME"
 
-#: prefs.js:2661
+#: prefs.js:2671
 msgid "GNU General Public License, version 3 or later"
 msgstr "GNU General Public License, версія 3 або новіша"
 
@@ -654,7 +654,7 @@ msgstr "GNU General Public License, версія 3 або новіша"
 msgid "H:%s L:%s"
 msgstr "В:%s Н:%s"
 
-#: prefs.js:1706 widgets/folder/widget.js:39
+#: prefs.js:1716 widgets/folder/widget.js:39
 msgid "Home"
 msgstr "Домівка"
 
@@ -662,7 +662,7 @@ msgstr "Домівка"
 msgid "How large the device icon is inside the charging ring"
 msgstr "Розмір іконки пристрою всередині кільця заряду"
 
-#: prefs.js:1366
+#: prefs.js:1376
 msgid "How the clock shows the hour"
 msgstr "Як годинник показує годину"
 
@@ -726,19 +726,19 @@ msgstr "Запускається при натисканні на віджет: 
 msgid "Lava Lamp"
 msgstr "Лавова лампа"
 
-#: prefs.js:383 prefs.js:1557
+#: prefs.js:383 prefs.js:1567
 msgid "Lava Lamp Widget"
 msgstr "Віджет Лавова лампа"
 
-#: prefs.js:1488
+#: prefs.js:1498
 msgid "Length of the focus/work phase in minutes"
 msgstr "Тривалість фази фокусу/роботи у хвилинах"
 
-#: prefs.js:1520
+#: prefs.js:1530
 msgid "Length of the long break in minutes"
 msgstr "Тривалість великої перерви у хвилинах"
 
-#: prefs.js:1504
+#: prefs.js:1514
 msgid "Length of the short break in minutes"
 msgstr "Тривалість короткої перерви у хвилинах"
 
@@ -746,7 +746,7 @@ msgstr "Тривалість короткої перерви у хвилинах
 msgid "Less"
 msgstr "Менше"
 
-#: prefs.js:2658
+#: prefs.js:2668
 msgid "License"
 msgstr "Ліцензія"
 
@@ -758,11 +758,11 @@ msgstr "ОС Linux"
 msgid "Load a widget layout from a JSON file"
 msgstr "Завантажити розкладку з JSON-файлу"
 
-#: widgets/pomodoro/widget.js:38
+#: widgets/pomodoro/widget.js:48
 msgid "Long Break"
 msgstr "Велика перерва"
 
-#: prefs.js:1519
+#: prefs.js:1529
 msgid "Long break duration"
 msgstr "Тривалість великої перерви"
 
@@ -782,12 +782,12 @@ msgstr "Приготувати торт"
 msgid "Make tea"
 msgstr "Приготувати чай"
 
-#: prefs.js:2103
+#: prefs.js:2113
 msgid "Manage apps for each widget. Changes apply instantly."
 msgstr ""
 "Керуйте застосунками для кожного віджета. Зміни застосовуються миттєво."
 
-#: prefs.js:1640
+#: prefs.js:1650
 msgid "Manage folders for each widget. Changes apply instantly."
 msgstr "Керуйте теками для кожного віджета. Зміни застосовуються миттєво."
 
@@ -795,7 +795,7 @@ msgstr "Керуйте теками для кожного віджета. Змі
 msgid "Mar"
 msgstr "Бер"
 
-#: prefs.js:1993
+#: prefs.js:2003
 msgid "Maximum apps reached"
 msgstr "Досягнуто максимуму застосунків"
 
@@ -831,11 +831,11 @@ msgstr "Більше"
 msgid "Mouse"
 msgstr "Миша"
 
-#: prefs.js:1776 prefs.js:2227
+#: prefs.js:1786 prefs.js:2237
 msgid "Move down"
 msgstr "Вниз"
 
-#: prefs.js:1765 prefs.js:2216
+#: prefs.js:1775 prefs.js:2226
 msgid "Move up"
 msgstr "Вгору"
 
@@ -859,7 +859,7 @@ msgstr "Нове завдання…"
 msgid "No activity recorded"
 msgstr "Активності не зафіксовано"
 
-#: prefs.js:2108
+#: prefs.js:2118
 msgid "No App Launcher widgets found"
 msgstr "Віджети панелі програм не знайдено"
 
@@ -871,7 +871,7 @@ msgstr "Застосунки не налаштовано"
 msgid "No events today"
 msgstr "Сьогодні без подій"
 
-#: prefs.js:1645
+#: prefs.js:1655
 msgid "No Folder Launcher widgets found"
 msgstr "Віджети Запускника тек не знайдено"
 
@@ -879,7 +879,7 @@ msgstr "Віджети Запускника тек не знайдено"
 msgid "No folders configured"
 msgstr "Немає налаштованих тек"
 
-#: prefs.js:1994
+#: prefs.js:2004
 msgid "No matching applications"
 msgstr "Немає відповідних застосунків"
 
@@ -895,7 +895,7 @@ msgstr "Файл розкладки пошкоджений"
 msgid "Notes"
 msgstr "Нотатки"
 
-#: prefs.js:371 prefs.js:1437
+#: prefs.js:371 prefs.js:1447
 msgid "Notes Widget"
 msgstr "Віджет нотаток"
 
@@ -903,7 +903,7 @@ msgstr "Віджет нотаток"
 msgid "Nov"
 msgstr "Лис"
 
-#: prefs.js:1536
+#: prefs.js:1546
 msgid "Number of completed work sessions before a long break"
 msgstr "Кількість завершених робочих сесій перед великою перервою"
 
@@ -915,11 +915,11 @@ msgstr "Жов"
 msgid "Offline — cached"
 msgstr "Офлайн — кеш"
 
-#: prefs.js:1377
+#: prefs.js:1387
 msgid "Only available in the 2×1 and 2×1 mini sizes"
 msgstr "Доступно лише в розмірах 2×1 та 2×1 mini"
 
-#: prefs.js:2424
+#: prefs.js:2434
 msgid "Opacity of the glass background"
 msgstr "Прозорість фону скла"
 
@@ -927,7 +927,7 @@ msgstr "Прозорість фону скла"
 msgid "Open Weather to set a location"
 msgstr "Відкрийте «Погоду» та оберіть місто"
 
-#: prefs.js:2359
+#: prefs.js:2369
 msgid "Override the system accent color for all widgets"
 msgstr "Замінити системний акцентний колір для всіх віджетів"
 
@@ -939,7 +939,7 @@ msgstr "Замінити"
 msgid "Overwrite existing layout?"
 msgstr "Замінити наявну розкладку?"
 
-#: widgets/pomodoro/widget.js:563 widgets/stopwatch/widget.js:352
+#: widgets/pomodoro/widget.js:572 widgets/stopwatch/widget.js:352
 msgid "Pause"
 msgstr "Пауза"
 
@@ -971,7 +971,7 @@ msgstr "Віджет світлин"
 msgid "Pick a saved layout to restore or delete"
 msgstr "Оберіть збережену розкладку для відновлення або видалення"
 
-#: prefs.js:1709 widgets/folder/widget.js:42
+#: prefs.js:1719 widgets/folder/widget.js:42
 msgid "Pictures"
 msgstr "Зображення"
 
@@ -979,11 +979,11 @@ msgstr "Зображення"
 msgid "Pin widget"
 msgstr "Закріпити віджет"
 
-#: prefs.js:2138
+#: prefs.js:2148
 msgid "Pinned Apps"
 msgstr "Закріплені програми"
 
-#: prefs.js:1695
+#: prefs.js:1705
 msgid "Pinned Folders"
 msgstr "Закріплені теки"
 
@@ -999,7 +999,7 @@ msgstr "PM"
 msgid "Pomodoro"
 msgstr "Помодоро"
 
-#: prefs.js:377 prefs.js:1481
+#: prefs.js:377 prefs.js:1491
 msgid "Pomodoro Widget"
 msgstr "Віджет Помодоро"
 
@@ -1028,7 +1028,7 @@ msgstr "Швидке додавання"
 msgid "Quick Notes"
 msgstr "Нотатки"
 
-#: prefs.js:1788 prefs.js:2239
+#: prefs.js:1798 prefs.js:2249
 msgid "Remove"
 msgstr "Видалити"
 
@@ -1036,11 +1036,11 @@ msgstr "Видалити"
 msgid "Remove widget"
 msgstr "Видалити віджет"
 
-#: prefs.js:2648
+#: prefs.js:2658
 msgid "Report an Issue"
 msgstr "Повідомити про проблему"
 
-#: widgets/pomodoro/widget.js:520 widgets/stopwatch/widget.js:326
+#: widgets/pomodoro/widget.js:529 widgets/stopwatch/widget.js:326
 msgid "Reset"
 msgstr "Скинути"
 
@@ -1048,7 +1048,7 @@ msgstr "Скинути"
 msgid "Reset default widgets"
 msgstr "Скинути віджети за замовчуванням"
 
-#: prefs.js:2555
+#: prefs.js:2565
 msgid "Reset Style"
 msgstr "Скинути стиль"
 
@@ -1056,7 +1056,7 @@ msgstr "Скинути стиль"
 msgid "Restore"
 msgstr "Відновити"
 
-#: prefs.js:2556
+#: prefs.js:2566
 msgid "Restore default widget appearance"
 msgstr "Відновити типовий вигляд віджетів"
 
@@ -1096,7 +1096,7 @@ msgstr "Екранний час"
 msgid "Screen Time Widget"
 msgstr "Віджет екранного часу"
 
-#: prefs.js:1950
+#: prefs.js:1960
 msgid "Search applications..."
 msgstr "Пошук застосунків…"
 
@@ -1104,7 +1104,7 @@ msgstr "Пошук застосунків…"
 msgid "Seconds"
 msgstr "Секунди"
 
-#: prefs.js:1855
+#: prefs.js:1865
 msgid "Select"
 msgstr "Вибрати"
 
@@ -1112,7 +1112,7 @@ msgstr "Вибрати"
 msgid "Select a photo"
 msgstr "Обрати фото"
 
-#: prefs.js:1852
+#: prefs.js:1862
 msgid "Select Folder"
 msgstr "Вибрати теку"
 
@@ -1132,7 +1132,7 @@ msgstr "Вибрати тип віджета зі списку"
 msgid "Sep"
 msgstr "Вер"
 
-#: prefs.js:1535
+#: prefs.js:1545
 msgid "Sessions before long break"
 msgstr "Сесій до великої перерви"
 
@@ -1144,19 +1144,19 @@ msgstr "Вказати користувача"
 msgid "Settings"
 msgstr "Параметри"
 
-#: prefs.js:1582
+#: prefs.js:1592
 msgid "Settings that apply to all Folder Launcher widgets."
 msgstr "Налаштування, що застосовуються до всіх віджетів Запускника тек."
 
-#: prefs.js:2482
+#: prefs.js:2492
 msgid "Shadow Size"
 msgstr "Розмір тіні"
 
-#: prefs.js:1503
+#: prefs.js:1513
 msgid "Short break duration"
 msgstr "Тривалість короткої перерви"
 
-#: prefs.js:1386
+#: prefs.js:1396
 msgid "Show AM/PM"
 msgstr "Показувати AM/PM"
 
@@ -1164,11 +1164,11 @@ msgstr "Показувати AM/PM"
 msgid "Show battery percentage"
 msgstr "Показувати відсоток заряду"
 
-#: prefs.js:1588
+#: prefs.js:1598
 msgid "Show folder names"
 msgstr "Показувати назви тек"
 
-#: prefs.js:1376
+#: prefs.js:1386
 msgid "Show seconds"
 msgstr "Показувати секунди"
 
@@ -1184,7 +1184,7 @@ msgstr "Маленька"
 msgid "Space between widgets and screen edges"
 msgstr "Простір між віджетами та краями екрана"
 
-#: widgets/pomodoro/widget.js:509 widgets/pomodoro/widget.js:563
+#: widgets/pomodoro/widget.js:518 widgets/pomodoro/widget.js:572
 #: widgets/stopwatch/widget.js:314 widgets/stopwatch/widget.js:363
 msgid "Start"
 msgstr "Старт"
@@ -1206,11 +1206,11 @@ msgstr "Синхронізовано %s"
 msgid "System Monitor"
 msgstr "Системний монітор"
 
-#: widgets/calendar/widget.js:574
+#: widgets/calendar/widget.js:577
 msgid "T"
 msgstr "T"
 
-#: widgets/calendar/widget.js:575
+#: widgets/calendar/widget.js:578
 msgid "T %s"
 msgstr "T %s"
 
@@ -1226,7 +1226,7 @@ msgstr "Завдання"
 msgid "Terminal"
 msgstr "Термінал"
 
-#: prefs.js:2320
+#: prefs.js:2330
 msgid "Thickness of widget borders"
 msgstr "Товщина рамок віджетів"
 
@@ -1234,7 +1234,7 @@ msgstr "Товщина рамок віджетів"
 msgid "This file is not a valid layout"
 msgstr "Файл не є розкладкою"
 
-#: prefs.js:1365
+#: prefs.js:1375
 msgid "Time format"
 msgstr "Формат часу"
 
@@ -1246,7 +1246,7 @@ msgstr "Таймер"
 msgid "Timer finished!"
 msgstr "Таймер завершено!"
 
-#: prefs.js:1443
+#: prefs.js:1453
 msgid "Title font size"
 msgstr "Розмір шрифту заголовка"
 
@@ -1258,7 +1258,7 @@ msgstr "Заголовок…"
 msgid "Today"
 msgstr "Сьогодні"
 
-#: prefs.js:2521
+#: prefs.js:2531
 msgid "Transparency of all desktop widgets"
 msgstr "Прозорість усіх віджетів"
 
@@ -1290,26 +1290,26 @@ msgstr "Відкріпити віджет"
 msgid "Upload"
 msgstr "Відвантаження"
 
-#: prefs.js:1563
+#: prefs.js:1350 prefs.js:1573
 msgid "Use accent color"
 msgstr "Використати акцентний колір"
 
-#: prefs.js:2358
+#: prefs.js:2368
 msgid "Use Custom Accent Color"
 msgstr "Використовувати власний акцентний колір"
 
-#: prefs.js:1408
+#: prefs.js:1418
 msgid "Use GitHub Green Colors"
 msgstr "Використовувати зелені кольори GitHub"
 
-#: prefs.js:1409
+#: prefs.js:1419
 msgid ""
 "Use GitHub's default green color scheme instead of the theme accent color"
 msgstr ""
 "Використовувати фірмову зелену кольорову схему GitHub замість акцентного "
 "кольору теми"
 
-#: prefs.js:1564
+#: prefs.js:1351 prefs.js:1574
 msgid ""
 "Use system or custom accent color from Appearance settings. When disabled, "
 "uses neutral gray."
@@ -1317,11 +1317,11 @@ msgstr ""
 "Використовувати системний або власний акцентний колір з налаштувань "
 "«Вигляд». Якщо вимкнено, використовується нейтральний сірий."
 
-#: prefs.js:2638
+#: prefs.js:2648
 msgid "Version %s"
 msgstr "Версія %s"
 
-#: prefs.js:2653
+#: prefs.js:2663
 msgid "View sources on GitHub"
 msgstr "Переглянути код на GitHub"
 
@@ -1345,7 +1345,7 @@ msgstr "Ср"
 msgid "Weekday format"
 msgstr "Формат днів тижня"
 
-#: prefs.js:1690 prefs.js:2133
+#: prefs.js:1700 prefs.js:2143
 msgid "Widget"
 msgstr "Віджет"
 
@@ -1357,7 +1357,7 @@ msgstr "Галерея віджетів"
 msgid "Widget gap (px)"
 msgstr "Проміжок між віджетами (px)"
 
-#: prefs.js:2520
+#: prefs.js:2530
 msgid "Widget opacity"
 msgstr "Прозорість віджету"
 
@@ -1365,7 +1365,7 @@ msgstr "Прозорість віджету"
 msgid "Widget size"
 msgstr "Розмір віджету"
 
-#: prefs.js:2293
+#: prefs.js:2303
 msgid "Widget Styling"
 msgstr "Оформлення"
 
@@ -1373,7 +1373,7 @@ msgstr "Оформлення"
 msgid "Widgets"
 msgstr "Віджети"
 
-#: prefs.js:1487
+#: prefs.js:1497
 msgid "Work duration"
 msgstr "Тривалість роботи"
 

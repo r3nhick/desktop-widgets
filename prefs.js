@@ -1346,6 +1346,16 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         });
         group.add(weekdayRow);
 
+        const accentRow = new Adw.SwitchRow({
+            title: _('Use accent color'),
+            subtitle: _('Use system or custom accent color from Appearance settings. When disabled, uses neutral gray.'),
+        });
+        accentRow.set_active(settings.get_boolean('calendar-use-accent-color'));
+        accentRow.connect('notify::active', () => {
+            settings.set_boolean('calendar-use-accent-color', accentRow.get_active());
+        });
+        group.add(accentRow);
+
         page.add(group);
         return page;
     }
