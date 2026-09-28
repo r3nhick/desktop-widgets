@@ -1,6 +1,6 @@
 /*
  * Timer widget (Countdown Timer)
- * Modern circular progress timer with increment/decrement controls
+ * Modern circular progress timer with quick presets and increment controls
  */
 
 import Clutter from 'gi://Clutter';
@@ -37,7 +37,7 @@ function textOnAccentColor(accent) {
 	return lum > 0.55 ? 'rgba(30,30,30,0.92)' : 'rgba(255,255,255,0.92)';
 }
 
-// Small timer (1x1) - circular progress with controls
+// Small timer (1x1) - circular progress with quick add buttons
 function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 	const textColor = theme.text;
 	const accentHex = accentColor(theme);
@@ -70,14 +70,52 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 	});
 	mainBox.add_child(circleCanvas);
 
-	// Time label in center
+	// Time label in center (clickable to add time)
+	const timeButton = new St.Button({
+		reactive: true,
+		can_focus: true,
+		x_align: Clutter.ActorAlign.CENTER,
+		y_align: Clutter.ActorAlign.CENTER,
+		style: `background-color: transparent; border: none; padding: ${px(20)}px;`,
+	});
+	
 	const timeLabel = new St.Label({
 		text: '00:00',
 		x_align: Clutter.ActorAlign.CENTER,
 		y_align: Clutter.ActorAlign.CENTER,
 		style: `color: ${textColor}; font-size: ${px(32)}px; font-weight: 700;`,
 	});
-	mainBox.add_child(timeLabel);
+	timeButton.set_child(timeLabel);
+	mainBox.add_child(timeButton);
+
+	// Quick add buttons at top (only when not running)
+	const quickAddBox = new St.BoxLayout({
+		x_align: Clutter.ActorAlign.CENTER,
+		y_align: Clutter.ActorAlign.START,
+		style: `spacing: ${px(6)}px; padding-top: ${px(8)}px;`,
+	});
+
+	const quickPresets = [1, 5, 10];
+	const quickButtons = [];
+	for (const mins of quickPresets) {
+		const btn = new St.Button({
+			reactive: true,
+			can_focus: true,
+			child: new St.Label({ text: `+${mins}` }),
+			style: `
+				font-size: ${px(10)}px; 
+				padding: ${px(4)}px ${px(8)}px;
+				border-radius: ${px(10)}px; 
+				background-color: rgba(255, 255, 255, 0.12); 
+				color: ${textColor}; 
+				font-weight: 600;
+			`,
+		});
+		btn.connect('clicked', () => addTime(mins * 60));
+		quickAddBox.add_child(btn);
+		quickButtons.push(btn);
+	}
+	mainBox.add_child(quickAddBox);
 
 	// Play button (bottom-left)
 	const playBtn = new St.Button({
@@ -155,13 +193,30 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 		playBtn.child.icon_name = isRunning 
 			? 'media-playback-pause-symbolic' 
 			: 'media-playback-start-symbolic';
+
+		// Hide quick add buttons when running
+		quickAddBox.visible = !isRunning;
+		
+		// Disable time button when running
+		timeButton.reactive = !isRunning;
+		timeButton.opacity = isRunning ? 255 : 255;
+	};
+
+	const addTime = (seconds) => {
+		if (!isRunning) {
+			const newSeconds = Math.min(5999, remainingSeconds + seconds);
+			totalSeconds = newSeconds;
+			remainingSeconds = newSeconds;
+			updateDisplay();
+		}
 	};
 
 	const setTimer = (seconds) => {
-		stopTimer();
-		totalSeconds = seconds;
-		remainingSeconds = seconds;
-		updateDisplay();
+		if (!isRunning) {
+			totalSeconds = Math.max(0, Math.min(5999, seconds));
+			remainingSeconds = totalSeconds;
+			updateDisplay();
+		}
 	};
 
 	const startTimer = () => {
@@ -200,10 +255,17 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 		updateDisplay();
 	};
 
+	// Click on time to add 1 minute
+	timeButton.connect('clicked', () => {
+		if (!isRunning) {
+			addTime(60);
+		}
+	});
+
 	playBtn.connect('clicked', () => {
 		if (remainingSeconds === 0) {
-			// Start new 3 minute timer
-			setTimer(3 * 60);
+			// Start with 5 minutes if empty
+			setTimer(5 * 60);
 			startTimer();
 		} else if (isRunning) {
 			pauseTimer();
@@ -224,7 +286,7 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 	updateDisplay();
 }
 
-// Medium timer (2x1) - large display with increment/decrement
+// Medium timer (2x1) - with quick presets at top
 function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const textColor = theme.text;
 	const mutedColor = theme.muted;
@@ -241,6 +303,13 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	let isRunning = false;
 	let timerId = null;
 
+	const container = new St.Widget({
+		x_expand: true,
+		y_expand: true,
+		layout_manager: new Clutter.BinLayout(),
+	});
+	body.add_child(container);
+
 	const mainBox = new St.BoxLayout({
 		orientation: Clutter.Orientation.HORIZONTAL,
 		x_expand: true,
@@ -249,7 +318,42 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		y_align: Clutter.ActorAlign.CENTER,
 		style: `spacing: ${px(32)}px; padding: ${px(16)}px;`,
 	});
-	body.add_child(mainBox);
+	container.add_child(mainBox);
+
+	// Quick preset buttons at top (only when not running)
+	const presetsBox = new St.BoxLayout({
+		x_align: Clutter.ActorAlign.CENTER,
+		y_align: Clutter.ActorAlign.START,
+		style: `spacing: ${px(8)}px; padding-top: ${px(12)}px;`,
+	});
+
+	const presets = [
+		{ label: '+1', minutes: 1 },
+		{ label: '+5', minutes: 5 },
+		{ label: '+10', minutes: 10 },
+		{ label: '+15', minutes: 15 },
+	];
+
+	const presetButtons = [];
+	for (const preset of presets) {
+		const btn = new St.Button({
+			reactive: true,
+			can_focus: true,
+			child: new St.Label({ text: preset.label }),
+			style: `
+				font-size: ${px(12)}px; 
+				padding: ${px(6)}px ${px(12)}px;
+				border-radius: ${px(12)}px; 
+				background-color: rgba(255, 255, 255, 0.1); 
+				color: ${textColor}; 
+				font-weight: 600;
+			`,
+		});
+		btn.connect('clicked', () => addTime(preset.minutes * 60));
+		presetsBox.add_child(btn);
+		presetButtons.push(btn);
+	}
+	container.add_child(presetsBox);
 
 	// Left: circular progress
 	const leftBox = new St.Widget({
@@ -451,11 +555,24 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		minutesMinusBtn.opacity = opacity * 255;
 		secondsPlusBtn.opacity = opacity * 255;
 		secondsMinusBtn.opacity = opacity * 255;
+
+		// Hide preset buttons when running
+		presetsBox.visible = !isRunning;
+		for (const btn of presetButtons) {
+			btn.reactive = !isRunning;
+		}
+	};
+
+	const addTime = (seconds) => {
+		if (!isRunning) {
+			const newSeconds = Math.min(5999, remainingSeconds + seconds);
+			setTimer(newSeconds);
+		}
 	};
 
 	const setTimer = (seconds) => {
 		if (!isRunning) {
-			totalSeconds = Math.max(0, Math.min(5999, seconds)); // Max 99:59
+			totalSeconds = Math.max(0, Math.min(5999, seconds));
 			remainingSeconds = totalSeconds;
 			updateDisplay();
 		}
@@ -519,7 +636,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 
 	playBtn.connect('clicked', () => {
 		if (remainingSeconds === 0) {
-			setTimer(3 * 60);
+			setTimer(5 * 60);
 			startTimer();
 		} else if (isRunning) {
 			pauseTimer();
