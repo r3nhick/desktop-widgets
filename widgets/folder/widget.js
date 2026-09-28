@@ -270,11 +270,24 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 				});
 
 				const folderIcon = new St.Icon({
-					icon_name: DEFAULT_FOLDER_ICON,
 					icon_size: MIN_ICON_SIZE,
 					style: `color: ${textColor};`,
 					x_align: Clutter.ActorAlign.CENTER,
 				});
+
+				// Get folder icon from file system
+				try {
+					const file = Gio.File.new_for_path(folder.path);
+					const fileInfo = file.query_info('standard::icon', Gio.FileQueryInfoFlags.NONE, null);
+					const gicon = fileInfo.get_icon();
+					if (gicon) {
+						folderIcon.gicon = gicon;
+					} else {
+						folderIcon.icon_name = DEFAULT_FOLDER_ICON;
+					}
+				} catch (e) {
+					folderIcon.icon_name = DEFAULT_FOLDER_ICON;
+				}
 
 				cellBox.add_child(folderIcon);
 				
