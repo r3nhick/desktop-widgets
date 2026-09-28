@@ -113,6 +113,27 @@ const WIDGET_CATALOG_DATA = [
 		icon: 'app_launcher.svg',
 		category: 'productivity',
 	},
+	{
+		type: 'pomodoro',
+		labelKey: 'Pomodoro',
+		descKey: 'Time management timer',
+		icon: 'pomodoro.svg',
+		category: 'productivity',
+	},
+	{
+		type: 'stopwatch',
+		labelKey: 'Stopwatch',
+		descKey: 'Timer with lap tracking',
+		icon: 'stopwatch.svg',
+		category: 'time',
+	},
+	{
+		type: 'lava',
+		labelKey: 'Lava Lamp',
+		descKey: 'Animated metaballs',
+		icon: 'lavat.svg',
+		category: 'media',
+	},
 ];
 
 const CATEGORY_KEYS = {
