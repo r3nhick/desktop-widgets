@@ -412,6 +412,9 @@ class WidgetController {
     this._weatherInfo = null;
     this._weatherUpdating = false;
     this._weatherUpdateTime = 0;
+    this._fullscreenMonitorId = null;
+    this._isFullscreen = false;
+    this._animationsPaused = false;
     this._glass = new GlassBlur({
       isEnabled: () => this._layoutSettings?.get_boolean('style-light-glass') ?? false,
       blur: () => this._layoutSettings?.get_int('style-light-glass-blur') ?? 0,
@@ -522,6 +525,27 @@ class WidgetController {
       this._debounce('battery', () => this._refreshBatteryViews(), 100);
     });
 
+    // Відстеження fullscreen вікон для паузи анімацій
+    const windowManager = global.display.get_window_manager();
+    this._fullscreenMonitorId = global.display.connectObject(
+      'window-created', () => this._debounce('fullscreen-check', () => this._checkFullscreen(), 100),
+      'restacked', () => this._debounce('fullscreen-check', () => this._checkFullscreen(), 100),
+      this
+    );
+    
+    global.workspace_manager.connectObject(
+      'active-workspace-changed', () => this._checkFullscreen(),
+      this
+    );
+
+    this._layoutSettings.connectObject(
+      'changed::pause-animations-fullscreen', () => this._checkFullscreen(),
+      this
+    );
+
+    // Перевірка fullscreen при старті
+    this._checkFullscreen();
+
     if (this._layoutSettings.get_boolean('arrange-widgets')) {
       this._onArrangeRequested();
     };
@@ -542,6 +566,13 @@ class WidgetController {
 
     this._batteryDevicesUnsubscribe?.();
     this._batteryDevicesUnsubscribe = null;
+
+    // Очищення fullscreen підписок
+    if (this._fullscreenMonitorId) {
+      global.display.disconnectObject(this);
+      global.workspace_manager.disconnectObject(this);
+      this._fullscreenMonitorId = null;
+    }
 
     for (const record of Object.values(this._debounceTimers)) {
       if (record?.id) GLib.source_remove(record.id);
@@ -743,6 +774,37 @@ class WidgetController {
 
     this._views.clear();
   };
+
+  _checkFullscreen() {
+    const enabled = this._layoutSettings?.get_boolean('pause-animations-fullscreen') ?? true;
+    if (!enabled) {
+      if (this._animationsPaused) {
+        this._resumeAnimations();
+      }
+      return;
+    }
+
+    const workspace = global.workspace_manager.get_active_workspace();
+    const windows = workspace.list_windows();
+    const hasFullscreen = windows.some(win => win.is_fullscreen());
+
+    if (hasFullscreen && !this._animationsPaused) {
+      this._pauseAnimations();
+    } else if (!hasFullscreen && this._animationsPaused) {
+      this._resumeAnimations();
+    }
+  }
+
+  _pauseAnimations() {
+    this._animationsPaused = true;
+    // Тут можна додати логіку паузи конкретних віджетів
+    // Наразі просто встановлюємо прапорець
+  }
+
+  _resumeAnimations() {
+    this._animationsPaused = false;
+    // Тут можна додати логіку відновлення анімацій віджетів
+  }
 
   _destroyLayer() {
     this._workspaceIntegration.setSource(null);
