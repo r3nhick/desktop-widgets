@@ -1,6 +1,6 @@
 /*
  * Timer widget (Countdown Timer)
- * Modern circular progress timer with quick presets and increment controls
+ * Modern circular progress timer with quick add buttons and increment controls
  */
 
 import Clutter from 'gi://Clutter';
@@ -199,7 +199,6 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 		
 		// Disable time button when running
 		timeButton.reactive = !isRunning;
-		timeButton.opacity = isRunning ? 255 : 255;
 	};
 
 	const addTime = (seconds) => {
@@ -286,10 +285,9 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 	updateDisplay();
 }
 
-// Medium timer (2x1) - with quick presets at top
+// Medium timer (2x1) - manual input with +/- controls
 function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const textColor = theme.text;
-	const mutedColor = theme.muted;
 	const accentHex = accentColor(theme);
 	const accentTextColor = textOnAccentColor(accentHex);
 	const [width, height] = sizeForWidget(widget);
@@ -303,67 +301,25 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	let isRunning = false;
 	let timerId = null;
 
-	const container = new St.Widget({
-		x_expand: true,
-		y_expand: true,
-		layout_manager: new Clutter.BinLayout(),
-	});
-	body.add_child(container);
-
 	const mainBox = new St.BoxLayout({
 		orientation: Clutter.Orientation.HORIZONTAL,
 		x_expand: true,
 		y_expand: true,
 		x_align: Clutter.ActorAlign.FILL,
 		y_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(32)}px; padding: ${px(16)}px;`,
+		style: `spacing: ${px(24)}px; padding: ${px(16)}px;`,
 	});
-	container.add_child(mainBox);
-
-	// Quick preset buttons at top (only when not running)
-	const presetsBox = new St.BoxLayout({
-		x_align: Clutter.ActorAlign.CENTER,
-		y_align: Clutter.ActorAlign.START,
-		style: `spacing: ${px(8)}px; padding-top: ${px(12)}px;`,
-	});
-
-	const presets = [
-		{ label: '+1', minutes: 1 },
-		{ label: '+5', minutes: 5 },
-		{ label: '+10', minutes: 10 },
-		{ label: '+15', minutes: 15 },
-	];
-
-	const presetButtons = [];
-	for (const preset of presets) {
-		const btn = new St.Button({
-			reactive: true,
-			can_focus: true,
-			child: new St.Label({ text: preset.label }),
-			style: `
-				font-size: ${px(12)}px; 
-				padding: ${px(6)}px ${px(12)}px;
-				border-radius: ${px(12)}px; 
-				background-color: rgba(255, 255, 255, 0.1); 
-				color: ${textColor}; 
-				font-weight: 600;
-			`,
-		});
-		btn.connect('clicked', () => addTime(preset.minutes * 60));
-		presetsBox.add_child(btn);
-		presetButtons.push(btn);
-	}
-	container.add_child(presetsBox);
+	body.add_child(mainBox);
 
 	// Left: circular progress
 	const leftBox = new St.Widget({
-		width: px(140),
-		height: px(140),
+		width: px(120),
+		height: px(120),
 		layout_manager: new Clutter.BinLayout(),
 	});
 	mainBox.add_child(leftBox);
 
-	const circleSize = px(140);
+	const circleSize = px(120);
 	const circleCanvas = new St.DrawingArea({
 		width: circleSize,
 		height: circleSize,
@@ -374,7 +330,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		text: '00:00',
 		x_align: Clutter.ActorAlign.CENTER,
 		y_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(28)}px; font-weight: 700;`,
+		style: `color: ${textColor}; font-size: ${px(24)}px; font-weight: 700;`,
 	});
 	leftBox.add_child(circleTimeLabel);
 
@@ -388,35 +344,51 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	});
 	mainBox.add_child(centerBox);
 
-	// Minutes with controls
+	// Minutes column with 4 buttons: +10, +1, digits, -1, -10
 	const minutesBox = new St.BoxLayout({
 		orientation: Clutter.Orientation.VERTICAL,
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(8)}px;`,
+		style: `spacing: ${px(4)}px;`,
 	});
 
-	const minutesPlusBtn = new St.Button({
+	const minutesPlus10Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '+' }),
-		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(40)}px; color: ${textColor}; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
+		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
-	minutesBox.add_child(minutesPlusBtn);
+	minutesBox.add_child(minutesPlus10Btn);
+
+	const minutesPlus1Btn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
+		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+	});
+	minutesBox.add_child(minutesPlus1Btn);
 
 	const minutesLabel = new St.Label({
 		text: '00',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9;`,
+		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9; padding: ${px(8)}px 0;`,
 	});
 	minutesBox.add_child(minutesLabel);
 
-	const minutesMinusBtn = new St.Button({
+	const minutesMinus1Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '−' }),
-		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(40)}px; color: ${textColor}; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
+		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
 	});
-	minutesBox.add_child(minutesMinusBtn);
+	minutesBox.add_child(minutesMinus1Btn);
+
+	const minutesMinus10Btn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
+		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+	});
+	minutesBox.add_child(minutesMinus10Btn);
 
 	centerBox.add_child(minutesBox);
 
@@ -428,35 +400,51 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	});
 	centerBox.add_child(colonLabel);
 
-	// Seconds with controls
+	// Seconds column with 4 buttons: +10, +1, digits, -1, -10
 	const secondsBox = new St.BoxLayout({
 		orientation: Clutter.Orientation.VERTICAL,
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `spacing: ${px(8)}px;`,
+		style: `spacing: ${px(4)}px;`,
 	});
 
-	const secondsPlusBtn = new St.Button({
+	const secondsPlus10Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '+' }),
-		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(40)}px; color: ${textColor}; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
+		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
-	secondsBox.add_child(secondsPlusBtn);
+	secondsBox.add_child(secondsPlus10Btn);
+
+	const secondsPlus1Btn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
+		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+	});
+	secondsBox.add_child(secondsPlus1Btn);
 
 	const secondsLabel = new St.Label({
 		text: '00',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9;`,
+		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9; padding: ${px(8)}px 0;`,
 	});
 	secondsBox.add_child(secondsLabel);
 
-	const secondsMinusBtn = new St.Button({
+	const secondsMinus1Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
-		child: new St.Label({ text: '−' }),
-		style: `font-size: ${px(20)}px; width: ${px(40)}px; height: ${px(40)}px; color: ${textColor}; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
+		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
 	});
-	secondsBox.add_child(secondsMinusBtn);
+	secondsBox.add_child(secondsMinus1Btn);
+
+	const secondsMinus10Btn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
+		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+	});
+	secondsBox.add_child(secondsMinus10Btn);
 
 	centerBox.add_child(secondsBox);
 
@@ -501,8 +489,8 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		const [w, h] = canvas.get_surface_size();
 		const centerX = w / 2;
 		const centerY = h / 2;
-		const radius = Math.min(w, h) / 2 - px(10);
-		const lineWidth = px(10);
+		const radius = Math.min(w, h) / 2 - px(8);
+		const lineWidth = px(8);
 
 		// Background circle
 		ctx.setSourceRGBA(0.5, 0.5, 0.5, 0.2);
@@ -545,28 +533,14 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 
 		// Disable +/- buttons when running
 		const controlsEnabled = !isRunning;
-		minutesPlusBtn.reactive = controlsEnabled;
-		minutesMinusBtn.reactive = controlsEnabled;
-		secondsPlusBtn.reactive = controlsEnabled;
-		secondsMinusBtn.reactive = controlsEnabled;
-		
-		const opacity = controlsEnabled ? 1.0 : 0.4;
-		minutesPlusBtn.opacity = opacity * 255;
-		minutesMinusBtn.opacity = opacity * 255;
-		secondsPlusBtn.opacity = opacity * 255;
-		secondsMinusBtn.opacity = opacity * 255;
-
-		// Hide preset buttons when running
-		presetsBox.visible = !isRunning;
-		for (const btn of presetButtons) {
-			btn.reactive = !isRunning;
-		}
-	};
-
-	const addTime = (seconds) => {
-		if (!isRunning) {
-			const newSeconds = Math.min(5999, remainingSeconds + seconds);
-			setTimer(newSeconds);
+		const buttons = [
+			minutesPlus10Btn, minutesPlus1Btn, minutesMinus1Btn, minutesMinus10Btn,
+			secondsPlus10Btn, secondsPlus1Btn, secondsMinus1Btn, secondsMinus10Btn
+		];
+		const opacity = controlsEnabled ? 1.0 : 0.3;
+		for (const btn of buttons) {
+			btn.reactive = controlsEnabled;
+			btn.opacity = opacity * 255;
 		}
 	};
 
@@ -614,25 +588,17 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		updateDisplay();
 	};
 
-	minutesPlusBtn.connect('clicked', () => {
-		const newSeconds = remainingSeconds + 60;
-		setTimer(newSeconds);
-	});
+	// Minutes controls
+	minutesPlus10Btn.connect('clicked', () => setTimer(remainingSeconds + 600));
+	minutesPlus1Btn.connect('clicked', () => setTimer(remainingSeconds + 60));
+	minutesMinus1Btn.connect('clicked', () => setTimer(remainingSeconds - 60));
+	minutesMinus10Btn.connect('clicked', () => setTimer(remainingSeconds - 600));
 
-	minutesMinusBtn.connect('clicked', () => {
-		const newSeconds = remainingSeconds - 60;
-		setTimer(newSeconds);
-	});
-
-	secondsPlusBtn.connect('clicked', () => {
-		const newSeconds = remainingSeconds + 1;
-		setTimer(newSeconds);
-	});
-
-	secondsMinusBtn.connect('clicked', () => {
-		const newSeconds = remainingSeconds - 1;
-		setTimer(newSeconds);
-	});
+	// Seconds controls
+	secondsPlus10Btn.connect('clicked', () => setTimer(remainingSeconds + 10));
+	secondsPlus1Btn.connect('clicked', () => setTimer(remainingSeconds + 1));
+	secondsMinus1Btn.connect('clicked', () => setTimer(remainingSeconds - 1));
+	secondsMinus10Btn.connect('clicked', () => setTimer(remainingSeconds - 10));
 
 	playBtn.connect('clicked', () => {
 		if (remainingSeconds === 0) {

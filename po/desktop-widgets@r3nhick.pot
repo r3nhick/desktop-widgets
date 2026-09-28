@@ -1212,13 +1212,13 @@ msgid "Time format"
 msgstr ""
 
 #: prefs.js:56
-#: widgets/timer/widget.js:233
-#: widgets/timer/widget.js:592
+#: widgets/timer/widget.js:232
+#: widgets/timer/widget.js:566
 msgid "Timer"
 msgstr ""
 
-#: widgets/timer/widget.js:233
-#: widgets/timer/widget.js:592
+#: widgets/timer/widget.js:232
+#: widgets/timer/widget.js:566
 msgid "Timer finished!"
 msgstr ""
 
