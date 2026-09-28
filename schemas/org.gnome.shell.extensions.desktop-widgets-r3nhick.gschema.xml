@@ -177,5 +177,34 @@
       <description>Space between widgets and screen edges (0-50px)</description>
       <range min="0" max="50"/>
     </key>
+    <key name="pomodoro-work-minutes" type="i">
+      <default>25</default>
+      <summary>Pomodoro work duration</summary>
+      <description>Duration of the work/focus phase in minutes.</description>
+      <range min="1" max="90"/>
+    </key>
+    <key name="pomodoro-short-break-minutes" type="i">
+      <default>5</default>
+      <summary>Pomodoro short break duration</summary>
+      <description>Duration of the short break in minutes.</description>
+      <range min="1" max="30"/>
+    </key>
+    <key name="pomodoro-long-break-minutes" type="i">
+      <default>15</default>
+      <summary>Pomodoro long break duration</summary>
+      <description>Duration of the long break in minutes.</description>
+      <range min="1" max="60"/>
+    </key>
+    <key name="pomodoro-sessions-before-long-break" type="i">
+      <default>4</default>
+      <summary>Sessions before long break</summary>
+      <description>Number of completed work sessions before a long break.</description>
+      <range min="1" max="8"/>
+    </key>
+    <key name="lava-use-accent-color" type="b">
+      <default>false</default>
+      <summary>Lava use accent color</summary>
+      <description>Use system or custom accent color for lava balls. When disabled, uses a neutral gray color.</description>
+    </key>
   </schema>
 </schemalist>

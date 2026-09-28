@@ -23,6 +23,8 @@ import * as GithubWidget from './widgets/github/widget.js';
 import * as ScreenTimeWidget from './widgets/screentime/widget.js';
 import * as SystemWidget from './widgets/system/widget.js';
 import * as NotesWidget from './widgets/notes/widget.js';
+import * as PomodoroWidget from './widgets/pomodoro/widget.js';
+import * as LavaWidget from './widgets/lava/widget.js';
 import { configureLogger, resetLogger, warn } from './logger.js';
 import { assetPath } from './paths.js';
 import { isActorDestroyed } from './utils/actorLifecycle.js';
@@ -55,6 +57,8 @@ const WIDGET_MODULES = [
   ScreenTimeWidget,
   SystemWidget,
   NotesWidget,
+  PomodoroWidget,
+  LavaWidget,
 ];
 const WIDGETS = new Map(WIDGET_MODULES.map(widgetModule => [widgetModule.type, widgetModule]));
 

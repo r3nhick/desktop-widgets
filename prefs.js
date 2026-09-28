@@ -27,6 +27,8 @@ const WIDGET_TYPES = [
     {type: 'screentime'},
     {type: 'system'},
     {type: 'notes'},
+    {type: 'pomodoro'},
+    {type: 'lava'},
 ];
 
 const widgetTypeLabel = (type) => ({
@@ -44,6 +46,8 @@ const widgetTypeLabel = (type) => ({
     screentime: _('Screen Time'),
     system: _('System Monitor'),
     notes: _('Notes'),
+    pomodoro: _('Pomodoro'),
+    lava: _('Lava Lamp'),
 }[type] ?? type);
 
 const DEFAULT_SIZES = {
@@ -61,6 +65,8 @@ const DEFAULT_SIZES = {
     screentime: 'medium',
     system: 'small',
     notes: 'medium',
+    pomodoro: 'small',
+    lava: 'medium',
 };
 
 const PHOTO_SIZES = ['cover', 'contain', 'fill', 'small'];
@@ -350,6 +356,18 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         notesPage.set_title(_('Notes Widget'));
         this._setThemedIcon(notesPage, 'dw-notebook-pen');
         this._addSidebarPage(notesPage);
+
+        // Pomodoro page
+        const pomodoroPage = this._createPomodoroPage(settings);
+        pomodoroPage.set_title(_('Pomodoro Widget'));
+        this._setThemedIcon(pomodoroPage, 'dw-hourglass');
+        this._addSidebarPage(pomodoroPage);
+
+        // Lava page
+        const lavaPage = this._createLavaPage(settings);
+        lavaPage.set_title(_('Lava Lamp Widget'));
+        this._setThemedIcon(lavaPage, 'dw-sparkles');
+        this._addSidebarPage(lavaPage);
 
         // Appearance page
         const appearancePage = this._createAppearancePage(settings);
@@ -1421,6 +1439,104 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         group.add(contentFontSizeRow);
         contentFontSizeRow.connect('notify::value', () => {
             settings.set_int('notes-content-font-size', contentFontSizeRow.get_value());
+        });
+
+        page.add(group);
+        return page;
+    }
+
+    _createPomodoroPage(settings) {
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            title: _('Pomodoro Widget'),
+            description: _('Configure the Pomodoro timer durations and work sessions.'),
+            margin_top: 12,
+        });
+
+        const workMinutesRow = new Adw.SpinRow({
+            title: _('Work duration'),
+            subtitle: _('Length of the focus/work phase in minutes'),
+            adjustment: new Gtk.Adjustment({
+                lower: 1,
+                upper: 90,
+                step_increment: 1,
+                page_increment: 5,
+                value: settings.get_int('pomodoro-work-minutes'),
+            }),
+        });
+        group.add(workMinutesRow);
+        workMinutesRow.connect('notify::value', () => {
+            settings.set_int('pomodoro-work-minutes', workMinutesRow.get_value());
+        });
+
+        const shortBreakRow = new Adw.SpinRow({
+            title: _('Short break duration'),
+            subtitle: _('Length of the short break in minutes'),
+            adjustment: new Gtk.Adjustment({
+                lower: 1,
+                upper: 30,
+                step_increment: 1,
+                page_increment: 5,
+                value: settings.get_int('pomodoro-short-break-minutes'),
+            }),
+        });
+        group.add(shortBreakRow);
+        shortBreakRow.connect('notify::value', () => {
+            settings.set_int('pomodoro-short-break-minutes', shortBreakRow.get_value());
+        });
+
+        const longBreakRow = new Adw.SpinRow({
+            title: _('Long break duration'),
+            subtitle: _('Length of the long break in minutes'),
+            adjustment: new Gtk.Adjustment({
+                lower: 1,
+                upper: 60,
+                step_increment: 1,
+                page_increment: 5,
+                value: settings.get_int('pomodoro-long-break-minutes'),
+            }),
+        });
+        group.add(longBreakRow);
+        longBreakRow.connect('notify::value', () => {
+            settings.set_int('pomodoro-long-break-minutes', longBreakRow.get_value());
+        });
+
+        const sessionsRow = new Adw.SpinRow({
+            title: _('Sessions before long break'),
+            subtitle: _('Number of completed work sessions before a long break'),
+            adjustment: new Gtk.Adjustment({
+                lower: 1,
+                upper: 8,
+                step_increment: 1,
+                page_increment: 1,
+                value: settings.get_int('pomodoro-sessions-before-long-break'),
+            }),
+        });
+        group.add(sessionsRow);
+        sessionsRow.connect('notify::value', () => {
+            settings.set_int('pomodoro-sessions-before-long-break', sessionsRow.get_value());
+        });
+
+        page.add(group);
+        return page;
+    }
+
+    _createLavaPage(settings) {
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup({
+            title: _('Lava Lamp Widget'),
+            description: _('Configure the appearance of animated lava balls.'),
+            margin_top: 12,
+        });
+
+        const useAccentRow = new Adw.SwitchRow({
+            title: _('Use accent color'),
+            subtitle: _('Use system or custom accent color from Appearance settings. When disabled, uses neutral gray.'),
+        });
+        useAccentRow.set_active(settings.get_boolean('lava-use-accent-color'));
+        group.add(useAccentRow);
+        useAccentRow.connect('notify::active', () => {
+            settings.set_boolean('lava-use-accent-color', useAccentRow.get_active());
         });
 
         page.add(group);
