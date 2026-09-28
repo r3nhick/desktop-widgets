@@ -550,6 +550,14 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         });
         widgetsGroup.add(gapRow);
 
+        const pauseAnimationsRow = new Adw.SwitchRow({
+            title: _('Pause animations in fullscreen'),
+            subtitle: _('Automatically pause widget animations when a window is fullscreen to save resources'),
+        });
+        pauseAnimationsRow.set_active(settings.get_boolean('pause-animations-fullscreen'));
+        settings.bind('pause-animations-fullscreen', pauseAnimationsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        widgetsGroup.add(pauseAnimationsRow);
+
         const deleteShortcutButton = new Gtk.Button({
             icon_name: 'edit-delete-symbolic',
             valign: Gtk.Align.CENTER,

@@ -1676,6 +1676,7 @@ class WidgetController {
       style_class: 'widget-body',
       x_expand: true,
       y_expand: true,
+      clip_to_allocation: true,
     });
     actor.add_child(body);
 

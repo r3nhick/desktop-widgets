@@ -206,5 +206,10 @@
       <summary>Lava use accent color</summary>
       <description>Use system or custom accent color for lava balls. When disabled, uses a neutral gray color.</description>
     </key>
+    <key name="pause-animations-fullscreen" type="b">
+      <default>true</default>
+      <summary>Pause animations in fullscreen</summary>
+      <description>Automatically pause widget animations when any window is in fullscreen mode to save system resources.</description>
+    </key>
   </schema>
 </schemalist>
