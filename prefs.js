@@ -29,7 +29,7 @@ const WIDGET_TYPES = [
     {type: 'notes'},
     {type: 'pomodoro'},
     {type: 'lava'},
-    {type: 'timer'},
+    {type: 'stopwatch'},
 ];
 
 const widgetTypeLabel = (type) => ({
@@ -49,7 +49,7 @@ const widgetTypeLabel = (type) => ({
     notes: _('Notes'),
     pomodoro: _('Pomodoro'),
     lava: _('Lava Lamp'),
-    timer: _('Timer'),
+    stopwatch: _('Stopwatch'),
 }[type] ?? type);
 
 const DEFAULT_SIZES = {
@@ -69,7 +69,7 @@ const DEFAULT_SIZES = {
     notes: 'medium',
     pomodoro: 'small',
     lava: 'medium',
-    timer: 'medium',
+    stopwatch: 'medium',
 };
 
 const PHOTO_SIZES = ['cover', 'contain', 'fill', 'small'];

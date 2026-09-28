@@ -25,7 +25,7 @@ import * as SystemWidget from './widgets/system/widget.js';
 import * as NotesWidget from './widgets/notes/widget.js';
 import * as PomodoroWidget from './widgets/pomodoro/widget.js';
 import * as LavaWidget from './widgets/lava/widget.js';
-import * as TimerWidget from './widgets/timer/widget.js';
+import * as StopwatchWidget from './widgets/stopwatch/widget.js';
 import { configureLogger, resetLogger, warn } from './logger.js';
 import { assetPath } from './paths.js';
 import { isActorDestroyed } from './utils/actorLifecycle.js';
@@ -60,7 +60,7 @@ const WIDGET_MODULES = [
   NotesWidget,
   PomodoroWidget,
   LavaWidget,
-  TimerWidget,
+  StopwatchWidget,
 ];
 const WIDGETS = new Map(WIDGET_MODULES.map(widgetModule => [widgetModule.type, widgetModule]));
 
@@ -526,7 +526,6 @@ class WidgetController {
     });
 
     // Відстеження fullscreen вікон для паузи анімацій
-    const windowManager = global.display.get_window_manager();
     this._fullscreenMonitorId = global.display.connectObject(
       'window-created', () => this._debounce('fullscreen-check', () => this._checkFullscreen(), 100),
       'restacked', () => this._debounce('fullscreen-check', () => this._checkFullscreen(), 100),

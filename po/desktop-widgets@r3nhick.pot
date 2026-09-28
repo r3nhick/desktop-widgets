@@ -23,100 +23,102 @@ msgstr ""
 msgid "%sm"
 msgstr ""
 
-#: prefs.js:1845
+#: prefs.js:2145
 msgid "⚠ Warning: Glass Style increases GPU usage"
 msgstr ""
 
-#: extension.js:103
+#: extension.js:134
 msgid "1×1"
 msgstr ""
 
-#: extension.js:95
+#: extension.js:126
 msgid "1×1 mini"
 msgstr ""
 
-#: extension.js:107
+#: extension.js:138
 msgid "1×2"
 msgstr ""
 
-#: extension.js:99
+#: extension.js:130
 msgid "1×2 mini"
 msgstr ""
 
-#: prefs.js:1140
+#: prefs.js:1342
 msgid "12-hour"
 msgstr ""
 
-#: extension.js:105
+#: extension.js:136
 msgid "2×1"
 msgstr ""
 
-#: extension.js:97
+#: extension.js:128
 msgid "2×1 mini"
 msgstr ""
 
-#: extension.js:109
+#: extension.js:140
 msgid "2×2"
 msgstr ""
 
-#: extension.js:101
+#: extension.js:132
 msgid "2×2 mini"
 msgstr ""
 
-#: extension.js:111
+#: extension.js:142
 msgid "2×4"
 msgstr ""
 
-#: prefs.js:1140
+#: prefs.js:1342
 msgid "24-hour"
 msgstr ""
 
-#: extension.js:113
+#: extension.js:144
 msgid "4×2"
 msgstr ""
 
-#: extension.js:115
+#: extension.js:146
 msgid "4×4"
 msgstr ""
 
-#: prefs.js:236
+#: prefs.js:383
 msgid "About"
 msgstr ""
 
-#: prefs.js:1749
+#: prefs.js:2049
 msgid "Accent Color"
 msgstr ""
 
-#: prefs.js:431
-#: prefs.js:1436
+#: prefs/widgetPickerDialog.js:382
+#: prefs.js:612
+#: prefs.js:1736
 msgid "Add"
 msgstr ""
 
-#: prefs.js:415
+#: prefs.js:594
 msgid "Add a new widget to your desktop."
 msgstr ""
 
-#: prefs.js:1493
+#: prefs.js:1793
 msgid "Add an App Launcher widget from the General page first"
 msgstr ""
 
-#: prefs.js:1313
+#: prefs.js:1613
 msgid "Add Applications"
 msgstr ""
 
-#: prefs.js:1639
+#: prefs.js:1939
 msgid "Add Apps"
 msgstr ""
 
-#: prefs.js:414
+#: prefs.js:593
+#: widgetAddMenu.js:160
 msgid "Add Widget"
 msgstr ""
 
-#: prefs.js:908
+#: prefs.js:1110
 msgid "Adjust the visual size of the device indicators displayed inside the battery charge rings."
 msgstr ""
 
-#: prefs.js:463
+#: prefs.js:665
 msgid "Align all widgets into a grid of columns and rows"
 msgstr ""
 
@@ -129,46 +131,46 @@ msgstr ""
 msgid "AM"
 msgstr ""
 
-#: prefs.js:1001
+#: prefs.js:1203
 msgid "Animation shown when no track is playing"
 msgstr ""
 
-#: prefs.js:1015
-#: prefs.js:1073
+#: prefs.js:1217
+#: prefs.js:1275
 msgid "App launched when the widget is clicked. Takes priority over built-in players"
 msgstr ""
 
-#: prefs.js:30
+#: prefs.js:36
 #: widgets/applauncher/widget.js:177
 msgid "App Launcher"
 msgstr ""
 
-#: prefs.js:218
-#: prefs.js:1486
+#: prefs.js:353
+#: prefs.js:1786
 msgid "App Launcher Widget"
 msgstr ""
 
-#: prefs.js:230
+#: prefs.js:377
 msgid "Appearance"
 msgstr ""
 
-#: prefs.js:1136
+#: prefs.js:1338
 msgid "Appearance of the clock on your desktop."
 msgstr ""
 
-#: prefs.js:1201
+#: prefs.js:1403
 msgid "Applied to all GitHub widgets. Empty to set a username per widget"
 msgstr ""
 
-#: prefs.js:1766
+#: prefs.js:2066
 msgid "Apply a glass effect with transparency and blur to all widgets"
 msgstr ""
 
-#: prefs.js:1574
+#: prefs.js:1874
 msgid "Apps"
 msgstr ""
 
-#: prefs.js:1523
+#: prefs.js:1823
 msgid "Apps shown on this widget, in grid order"
 msgstr ""
 
@@ -177,7 +179,7 @@ msgstr ""
 msgid "Apr"
 msgstr ""
 
-#: prefs.js:462
+#: prefs.js:664
 msgid "Arrange widgets"
 msgstr ""
 
@@ -186,32 +188,36 @@ msgstr ""
 msgid "Aug"
 msgstr ""
 
-#: prefs.js:1166
+#: prefs.js:555
+msgid "Automatically pause widget animations when a window is fullscreen to save resources"
+msgstr ""
+
+#: prefs.js:1368
 msgid "Available with the 12-hour format"
 msgstr ""
 
-#: prefs.js:1722
+#: prefs.js:2022
 msgid "Background Color"
 msgstr ""
 
-#: prefs.js:37
+#: prefs.js:43
 msgid "Battery"
 msgstr ""
 
-#: prefs.js:914
+#: prefs.js:1116
 msgid "Battery icon size"
 msgstr ""
 
-#: prefs.js:925
+#: prefs.js:1127
 msgid "Battery slot count"
 msgstr ""
 
-#: prefs.js:182
-#: prefs.js:907
+#: prefs.js:317
+#: prefs.js:1109
 msgid "Battery Widget"
 msgstr ""
 
-#: prefs.js:33
+#: prefs.js:39
 msgid "Binary Clock"
 msgstr ""
 
@@ -219,28 +225,32 @@ msgstr ""
 msgid "Bluetooth"
 msgstr ""
 
-#: prefs.js:1773
+#: prefs.js:2073
 msgid "Blur radius of the glass effect"
 msgstr ""
 
-#: prefs.js:1867
+#: prefs.js:2167
 msgid "Blur radius of the shadow"
 msgstr ""
 
-#: prefs.js:1732
+#: prefs.js:2032
 msgid "Border Color"
 msgstr ""
 
-#: prefs.js:1684
+#: prefs.js:1984
 msgid "Border Radius"
 msgstr ""
 
-#: prefs.js:1703
+#: prefs.js:2003
 msgid "Border Width"
 msgstr ""
 
-#: prefs.js:1861
+#: prefs.js:2161
 msgid "Box Shadow"
+msgstr ""
+
+#: prefs.js:635
+msgid "Browse all widgets with icons and search"
 msgstr ""
 
 #: widgets/github/widget.js:665
@@ -252,44 +262,44 @@ msgstr ""
 msgid "Cached offline"
 msgstr ""
 
-#: prefs.js:34
+#: prefs.js:40
 msgid "Calendar"
 msgstr ""
 
-#: prefs.js:200
-#: prefs.js:1109
+#: prefs.js:335
+#: prefs.js:1311
 msgid "Calendar Widget"
 msgstr ""
 
-#: prefs.js:579
-#: prefs.js:606
-#: prefs.js:699
-#: prefs.js:767
+#: prefs.js:781
+#: prefs.js:808
+#: prefs.js:901
+#: prefs.js:969
 msgid "Cancel"
 msgstr ""
 
-#: extension.js:1915
-#: extension.js:2480
+#: extension.js:2098
+#: extension.js:2663
 msgid "Change photo"
 msgstr ""
 
-#: prefs.js:1035
+#: prefs.js:1237
 msgid "Choose application"
 msgstr ""
 
-#: prefs.js:1723
+#: prefs.js:2023
 msgid "Choose background color"
 msgstr ""
 
-#: prefs.js:1733
+#: prefs.js:2033
 msgid "Choose border color"
 msgstr ""
 
-#: prefs.js:1862
+#: prefs.js:2162
 msgid "Choose shadow color. Leave unset for default."
 msgstr ""
 
-#: prefs.js:1042
+#: prefs.js:1244
 msgid "Clear"
 msgstr ""
 
@@ -302,11 +312,11 @@ msgstr ""
 msgid "Click username to configure"
 msgstr ""
 
-#: prefs.js:31
+#: prefs.js:37
 msgid "Clock"
 msgstr ""
 
-#: prefs.js:790
+#: prefs.js:992
 msgid "Close"
 msgstr ""
 
@@ -314,35 +324,43 @@ msgstr ""
 msgid "Computer"
 msgstr ""
 
-#: prefs.js:346
+#: prefs.js:517
 msgid "Configure desktop widgets. Changes apply immediately."
 msgstr ""
 
-#: prefs.js:884
+#: prefs.js:1086
 msgid "Configure how your pictures are scaled and cropped inside the Photos widget bounds."
 msgstr ""
 
-#: prefs.js:64
+#: prefs.js:1539
+msgid "Configure the appearance of animated lava balls."
+msgstr ""
+
+#: prefs.js:1463
+msgid "Configure the Pomodoro timer durations and work sessions."
+msgstr ""
+
+#: prefs.js:76
 msgid "Contain"
 msgstr ""
 
-#: prefs.js:1238
+#: prefs.js:1440
 msgid "Content font size"
 msgstr ""
 
-#: prefs.js:1685
+#: prefs.js:1985
 msgid "Corner roundness of widgets"
 msgstr ""
 
-#: prefs.js:781
+#: prefs.js:983
 msgid "Could not delete the layout"
 msgstr ""
 
-#: prefs.js:593
+#: prefs.js:795
 msgid "Could not export the layout"
 msgstr ""
 
-#: prefs.js:640
+#: prefs.js:842
 msgid "Could not import the layout"
 msgstr ""
 
@@ -350,24 +368,24 @@ msgstr ""
 msgid "Could not launch %s"
 msgstr ""
 
-#: prefs.js:620
-#: prefs.js:745
+#: prefs.js:822
+#: prefs.js:947
 msgid "Could not read the file"
 msgstr ""
 
-#: prefs.js:758
+#: prefs.js:960
 msgid "Could not restore the layout"
 msgstr ""
 
-#: prefs.js:734
+#: prefs.js:936
 msgid "Could not save the layout"
 msgstr ""
 
-#: prefs.js:729
+#: prefs.js:931
 msgid "Could not write the file"
 msgstr ""
 
-#: prefs.js:64
+#: prefs.js:76
 msgid "Cover"
 msgstr ""
 
@@ -375,27 +393,27 @@ msgstr ""
 msgid "Current streak"
 msgstr ""
 
-#: prefs.js:1750
+#: prefs.js:2050
 msgid "Custom accent color used by all widgets"
 msgstr ""
 
-#: prefs.js:1014
+#: prefs.js:1216
 msgid "Custom app"
 msgstr ""
 
-#: prefs.js:1678
+#: prefs.js:1978
 msgid "Customize the appearance of all widgets."
 msgstr ""
 
-#: prefs.js:1182
+#: prefs.js:1384
 msgid "Customize the GitHub Activity widget appearance."
 msgstr ""
 
-#: prefs.js:1217
+#: prefs.js:1419
 msgid "Customize the Notes widget font sizes."
 msgstr ""
 
-#: prefs.js:964
+#: prefs.js:1166
 msgid "Days of data to keep before older days are deleted"
 msgstr ""
 
@@ -404,17 +422,17 @@ msgstr ""
 msgid "Dec"
 msgstr ""
 
-#: prefs.js:525
-#: prefs.js:767
+#: prefs.js:727
+#: prefs.js:969
 msgid "Delete"
 msgstr ""
 
-#: prefs.js:765
+#: prefs.js:967
 msgid "Delete saved layout?"
 msgstr ""
 
-#: prefs.js:151
 #: prefs.js:272
+#: prefs.js:439
 msgid "Desktop Widgets"
 msgstr ""
 
@@ -422,16 +440,16 @@ msgstr ""
 msgid "Device"
 msgstr ""
 
-#: prefs.js:32
+#: prefs.js:38
 msgid "Digital Clock"
 msgstr ""
 
-#: prefs.js:206
-#: prefs.js:1135
+#: prefs.js:341
+#: prefs.js:1337
 msgid "Digital Clock Widget"
 msgstr ""
 
-#: prefs.js:942
+#: prefs.js:1144
 msgid "Display the charge percentage below each ring"
 msgstr ""
 
@@ -440,20 +458,20 @@ msgstr ""
 msgid "Download"
 msgstr ""
 
-#: prefs.js:351
+#: prefs.js:522
 msgid "Edit mode"
 msgstr ""
 
-#: prefs.js:391
-#: prefs.js:797
+#: prefs.js:570
+#: prefs.js:999
 msgid "Edit Mode Shortcut"
 msgstr ""
 
-#: prefs.js:1000
+#: prefs.js:1202
 msgid "Empty state GIF"
 msgstr ""
 
-#: prefs.js:352
+#: prefs.js:523
 msgid "Enable to move and remove widgets on the desktop"
 msgstr ""
 
@@ -465,12 +483,12 @@ msgstr ""
 msgid "Error loading"
 msgstr ""
 
-#: prefs.js:578
+#: prefs.js:780
 msgid "Export"
 msgstr ""
 
-#: prefs.js:472
-#: prefs.js:575
+#: prefs.js:674
+#: prefs.js:777
 msgid "Export layout"
 msgstr ""
 
@@ -495,11 +513,11 @@ msgstr ""
 msgid "Firefox"
 msgstr ""
 
-#: prefs.js:1239
+#: prefs.js:1441
 msgid "Font size in pixels for the notes content text"
 msgstr ""
 
-#: prefs.js:1223
+#: prefs.js:1425
 msgid "Font size in pixels for the notes title"
 msgstr ""
 
@@ -507,40 +525,40 @@ msgstr ""
 msgid "Fri"
 msgstr ""
 
-#: prefs.js:169
+#: prefs.js:304
 msgid "General"
 msgstr ""
 
-#: prefs.js:40
+#: prefs.js:46
 msgid "GitHub Activity"
 msgstr ""
 
-#: prefs.js:1197
+#: prefs.js:1399
 msgid "GitHub username"
 msgstr ""
 
-#: prefs.js:212
-#: prefs.js:1181
+#: prefs.js:347
+#: prefs.js:1383
 msgid "GitHub Widget"
 msgstr ""
 
-#: prefs.js:1772
+#: prefs.js:2072
 msgid "Glass Blur"
 msgstr ""
 
-#: prefs.js:1807
+#: prefs.js:2107
 msgid "Glass Opacity"
 msgstr ""
 
-#: prefs.js:1765
+#: prefs.js:2065
 msgid "Glass Style"
 msgstr ""
 
-#: prefs.js:1846
+#: prefs.js:2146
 msgid "Glass widgets are redrawn every frame with transparency effects, which raises GPU load. If the desktop becomes slow or your GPU heats up, turn Glass Style off."
 msgstr ""
 
-#: prefs.js:798
+#: prefs.js:1000
 msgid "Global shortcut to toggle edit mode. Press Backspace to clear."
 msgstr ""
 
@@ -548,7 +566,7 @@ msgstr ""
 msgid "GNOME Weather"
 msgstr ""
 
-#: prefs.js:2044
+#: prefs.js:2345
 msgid "GNU General Public License, version 3 or later"
 msgstr ""
 
@@ -556,19 +574,19 @@ msgstr ""
 msgid "H:%s L:%s"
 msgstr ""
 
-#: prefs.js:915
+#: prefs.js:1117
 msgid "How large the device icon is inside the charging ring"
 msgstr ""
 
-#: prefs.js:1145
+#: prefs.js:1347
 msgid "How the clock shows the hour"
 msgstr ""
 
-#: prefs.js:891
+#: prefs.js:1093
 msgid "How the photo fits the widget bounds"
 msgstr ""
 
-#: prefs.js:1119
+#: prefs.js:1321
 msgid "How weekday labels appear in the calendar header"
 msgstr ""
 
@@ -576,16 +594,16 @@ msgstr ""
 msgid "I'm waiting 🐾"
 msgstr ""
 
-#: prefs.js:991
+#: prefs.js:1193
 msgid "Ignore Web Browsers"
 msgstr ""
 
-#: prefs.js:605
+#: prefs.js:807
 msgid "Import"
 msgstr ""
 
-#: prefs.js:482
-#: prefs.js:602
+#: prefs.js:684
+#: prefs.js:804
 msgid "Import layout"
 msgstr ""
 
@@ -608,7 +626,7 @@ msgstr ""
 msgid "Jun"
 msgstr ""
 
-#: prefs.js:963
+#: prefs.js:1165
 msgid "Keep history for"
 msgstr ""
 
@@ -616,19 +634,40 @@ msgstr ""
 msgid "Keyboard"
 msgstr ""
 
-#: prefs.js:67
+#: prefs.js:79
 msgid "Large"
 msgstr ""
 
-#: prefs.js:1072
+#: prefs.js:1274
 msgid "Launched when the widget is clicked: %s"
+msgstr ""
+
+#: prefs.js:51
+msgid "Lava Lamp"
+msgstr ""
+
+#: prefs.js:371
+#: prefs.js:1538
+msgid "Lava Lamp Widget"
+msgstr ""
+
+#: prefs.js:1469
+msgid "Length of the focus/work phase in minutes"
+msgstr ""
+
+#: prefs.js:1501
+msgid "Length of the long break in minutes"
+msgstr ""
+
+#: prefs.js:1485
+msgid "Length of the short break in minutes"
 msgstr ""
 
 #: widgets/github/widget.js:311
 msgid "Less"
 msgstr ""
 
-#: prefs.js:2041
+#: prefs.js:2342
 msgid "License"
 msgstr ""
 
@@ -636,8 +675,12 @@ msgstr ""
 msgid "Linux os"
 msgstr ""
 
-#: prefs.js:483
+#: prefs.js:685
 msgid "Load a widget layout from a JSON file"
+msgstr ""
+
+#: prefs.js:1500
+msgid "Long break duration"
 msgstr ""
 
 #: widgets/github/widget.js:551
@@ -656,7 +699,7 @@ msgstr ""
 msgid "Make tea"
 msgstr ""
 
-#: prefs.js:1487
+#: prefs.js:1787
 msgid "Manage apps for each widget. Changes apply instantly."
 msgstr ""
 
@@ -665,11 +708,11 @@ msgstr ""
 msgid "Mar"
 msgstr ""
 
-#: prefs.js:1377
+#: prefs.js:1677
 msgid "Maximum apps reached"
 msgstr ""
 
-#: prefs.js:926
+#: prefs.js:1128
 msgid "Maximum number of devices shown"
 msgstr ""
 
@@ -678,7 +721,7 @@ msgstr ""
 msgid "May"
 msgstr ""
 
-#: prefs.js:67
+#: prefs.js:79
 msgid "Medium"
 msgstr ""
 
@@ -694,25 +737,25 @@ msgstr ""
 msgid "Mouse"
 msgstr ""
 
-#: prefs.js:1611
+#: prefs.js:1911
 msgid "Move down"
 msgstr ""
 
-#: prefs.js:1600
+#: prefs.js:1900
 msgid "Move up"
 msgstr ""
 
-#: prefs.js:38
+#: prefs.js:44
 msgid "Music"
 msgstr ""
 
-#: prefs.js:194
-#: prefs.js:985
+#: prefs.js:329
+#: prefs.js:1187
 msgid "Music Widget"
 msgstr ""
 
-#: prefs.js:803
-#: prefs.js:830
+#: prefs.js:1005
+#: prefs.js:1032
 msgid "New accelerator…"
 msgstr ""
 
@@ -720,11 +763,11 @@ msgstr ""
 msgid "New task…"
 msgstr ""
 
-#: widgets/screentime/widget.js:464
+#: widgets/screentime/widget.js:473
 msgid "No activity recorded"
 msgstr ""
 
-#: prefs.js:1492
+#: prefs.js:1792
 msgid "No App Launcher widgets found"
 msgstr ""
 
@@ -736,7 +779,7 @@ msgstr ""
 msgid "No events today"
 msgstr ""
 
-#: prefs.js:1378
+#: prefs.js:1678
 msgid "No matching applications"
 msgstr ""
 
@@ -744,22 +787,26 @@ msgstr ""
 msgid "No tasks yet"
 msgstr ""
 
-#: prefs.js:752
+#: prefs.js:954
 msgid "Not a valid widget layout"
 msgstr ""
 
-#: prefs.js:43
+#: prefs.js:49
 msgid "Notes"
 msgstr ""
 
-#: prefs.js:224
-#: prefs.js:1216
+#: prefs.js:359
+#: prefs.js:1418
 msgid "Notes Widget"
 msgstr ""
 
 #: widgets/github/widget.js:43
 #: widgets/screentime/widget.js:50
 msgid "Nov"
+msgstr ""
+
+#: prefs.js:1517
+msgid "Number of completed work sessions before a long break"
 msgstr ""
 
 #: widgets/github/widget.js:43
@@ -771,11 +818,11 @@ msgstr ""
 msgid "Offline — cached"
 msgstr ""
 
-#: prefs.js:1156
+#: prefs.js:1358
 msgid "Only available in the 2×1 and 2×1 mini sizes"
 msgstr ""
 
-#: prefs.js:1808
+#: prefs.js:2108
 msgid "Opacity of the glass background"
 msgstr ""
 
@@ -783,45 +830,49 @@ msgstr ""
 msgid "Open Weather to set a location"
 msgstr ""
 
-#: prefs.js:1743
+#: prefs.js:2043
 msgid "Override the system accent color for all widgets"
 msgstr ""
 
-#: prefs.js:699
+#: prefs.js:901
 msgid "Overwrite"
 msgstr ""
 
-#: prefs.js:697
+#: prefs.js:899
 msgid "Overwrite existing layout?"
 msgstr ""
 
-#: prefs.js:958
+#: prefs.js:554
+msgid "Pause animations in fullscreen"
+msgstr ""
+
+#: prefs.js:1160
 msgid "Per-app screen time is tracked automatically while the widget is on your desktop."
 msgstr ""
 
-#: prefs.js:890
+#: prefs.js:1092
 msgid "Photo size"
 msgstr ""
 
-#: prefs.js:36
+#: prefs.js:42
 msgid "Photos"
 msgstr ""
 
-#: prefs.js:176
-#: prefs.js:883
+#: prefs.js:311
+#: prefs.js:1085
 msgid "Photos Widget"
 msgstr ""
 
-#: prefs.js:518
+#: prefs.js:720
 msgid "Pick a saved layout to restore or delete"
 msgstr ""
 
-#: extension.js:1795
-#: extension.js:2485
+#: extension.js:1978
+#: extension.js:2668
 msgid "Pin widget"
 msgstr ""
 
-#: prefs.js:1522
+#: prefs.js:1822
 msgid "Pinned Apps"
 msgstr ""
 
@@ -834,93 +885,106 @@ msgstr ""
 msgid "PM"
 msgstr ""
 
-#: prefs.js:1110
+#: prefs.js:50
+msgid "Pomodoro"
+msgstr ""
+
+#: prefs.js:365
+#: prefs.js:1462
+msgid "Pomodoro Widget"
+msgstr ""
+
+#: prefs.js:1312
 msgid "Preferences for the date widget on your desktop."
 msgstr ""
 
-#: prefs.js:986
+#: prefs.js:1188
 msgid "Preferences for the media player widget on your desktop."
 msgstr ""
 
-#: prefs.js:500
+#: prefs.js:702
 msgid "Preset name"
 msgstr ""
 
-#: prefs.js:992
+#: prefs.js:1194
 msgid "Prevent browsers (Chrome, Firefox, etc.) from taking over the music widget."
+msgstr ""
+
+#: prefs.js:600
+msgid "Quick add"
 msgstr ""
 
 #: widgets/notes/widget.js:53
 msgid "Quick Notes"
 msgstr ""
 
-#: prefs.js:1623
+#: prefs.js:1923
 msgid "Remove"
 msgstr ""
 
-#: extension.js:1781
-#: extension.js:2490
+#: extension.js:1964
+#: extension.js:2673
 msgid "Remove widget"
 msgstr ""
 
-#: prefs.js:2031
+#: prefs.js:2332
 msgid "Report an Issue"
 msgstr ""
 
-#: prefs.js:452
+#: prefs.js:654
 msgid "Reset default widgets"
 msgstr ""
 
-#: prefs.js:1939
+#: prefs.js:2239
 msgid "Reset Style"
 msgstr ""
 
-#: prefs.js:523
+#: prefs.js:725
 msgid "Restore"
 msgstr ""
 
-#: prefs.js:1940
+#: prefs.js:2240
 msgid "Restore default widget appearance"
 msgstr ""
 
-#: prefs.js:537
+#: prefs.js:739
 msgid "Restore or delete the selected preset"
 msgstr ""
 
-#: prefs.js:453
+#: prefs.js:655
 msgid "Restore the default widget layout"
 msgstr ""
 
-#: prefs.js:502
+#: prefs.js:704
 msgid "Save layout"
 msgstr ""
 
-#: prefs.js:473
+#: prefs.js:675
 msgid "Save the current widget layout to a JSON file"
 msgstr ""
 
-#: prefs.js:496
+#: prefs.js:698
 msgid "Save the current widget positions under a name and restore them later."
 msgstr ""
 
-#: prefs.js:495
+#: prefs.js:697
 msgid "Saved Layouts"
 msgstr ""
 
-#: prefs.js:517
+#: prefs.js:719
 msgid "Saved presets"
 msgstr ""
 
-#: prefs.js:41
+#: prefs.js:47
 msgid "Screen Time"
 msgstr ""
 
-#: prefs.js:188
-#: prefs.js:957
+#: prefs.js:323
+#: prefs.js:1159
 msgid "Screen Time Widget"
 msgstr ""
 
-#: prefs.js:1334
+#: prefs.js:1634
 msgid "Search applications..."
 msgstr ""
 
@@ -928,17 +992,25 @@ msgstr ""
 msgid "Select a photo"
 msgstr ""
 
-#: widgets/photos/widget.js:186
-msgid "Select image"
+#: widgets/photos/widget.js:188
+msgid "Select photo"
 msgstr ""
 
-#: prefs.js:420
-msgid "Select widget to add"
+#: prefs/widgetPickerDialog.js:179
+msgid "Select Widget"
+msgstr ""
+
+#: prefs.js:601
+msgid "Select widget type from dropdown"
 msgstr ""
 
 #: widgets/github/widget.js:43
 #: widgets/screentime/widget.js:50
 msgid "Sep"
+msgstr ""
+
+#: prefs.js:1516
+msgid "Sessions before long break"
 msgstr ""
 
 #: widgets/github/widget.js:237
@@ -949,36 +1021,44 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
-#: prefs.js:1866
+#: prefs.js:2166
 msgid "Shadow Size"
 msgstr ""
 
-#: prefs.js:1165
+#: prefs.js:1484
+msgid "Short break duration"
+msgstr ""
+
+#: prefs.js:1367
 msgid "Show AM/PM"
 msgstr ""
 
-#: prefs.js:941
+#: prefs.js:1143
 msgid "Show battery percentage"
 msgstr ""
 
-#: prefs.js:1155
+#: prefs.js:1357
 msgid "Show seconds"
 msgstr ""
 
-#: prefs.js:1114
+#: prefs.js:1316
 msgid "Single letter (M T W)"
 msgstr ""
 
-#: prefs.js:64
-#: prefs.js:67
+#: prefs.js:76
+#: prefs.js:79
 msgid "Small"
 msgstr ""
 
-#: prefs.js:360
+#: prefs.js:531
 msgid "Space between widgets and screen edges"
 msgstr ""
 
-#: prefs.js:64
+#: prefs.js:52
+msgid "Stopwatch"
+msgstr ""
+
+#: prefs.js:76
 msgid "Stretch"
 msgstr ""
 
@@ -986,7 +1066,7 @@ msgstr ""
 msgid "Synced %s"
 msgstr ""
 
-#: prefs.js:42
+#: prefs.js:48
 msgid "System Monitor"
 msgstr ""
 
@@ -998,7 +1078,7 @@ msgstr ""
 msgid "T %s"
 msgstr ""
 
-#: prefs.js:39
+#: prefs.js:45
 msgid "Task"
 msgstr ""
 
@@ -1010,19 +1090,19 @@ msgstr ""
 msgid "Terminal"
 msgstr ""
 
-#: prefs.js:1704
+#: prefs.js:2004
 msgid "Thickness of widget borders"
 msgstr ""
 
-#: prefs.js:627
+#: prefs.js:829
 msgid "This file is not a valid layout"
 msgstr ""
 
-#: prefs.js:1144
+#: prefs.js:1346
 msgid "Time format"
 msgstr ""
 
-#: prefs.js:1222
+#: prefs.js:1424
 msgid "Title font size"
 msgstr ""
 
@@ -1035,15 +1115,15 @@ msgstr ""
 msgid "Today"
 msgstr ""
 
-#: prefs.js:1905
+#: prefs.js:2205
 msgid "Transparency of all desktop widgets"
 msgstr ""
 
-#: prefs.js:1114
+#: prefs.js:1316
 msgid "Two letters (Mo Tu We)"
 msgstr ""
 
-#: prefs.js:831
+#: prefs.js:1033
 msgid "Type the shortcut to toggle edit mode. Press Backspace to clear."
 msgstr ""
 
@@ -1051,15 +1131,15 @@ msgstr ""
 msgid "Unknown artist"
 msgstr ""
 
-#: extension.js:2510
+#: extension.js:2693
 msgid "Unknown widget"
 msgstr ""
 
-#: prefs.js:634
+#: prefs.js:836
 msgid "Unknown widget type"
 msgstr ""
 
-#: extension.js:2485
+#: extension.js:2668
 msgid "Unpin widget"
 msgstr ""
 
@@ -1068,23 +1148,31 @@ msgstr ""
 msgid "Upload"
 msgstr ""
 
-#: prefs.js:1742
+#: prefs.js:1544
+msgid "Use accent color"
+msgstr ""
+
+#: prefs.js:2042
 msgid "Use Custom Accent Color"
 msgstr ""
 
-#: prefs.js:1187
+#: prefs.js:1389
 msgid "Use GitHub Green Colors"
 msgstr ""
 
-#: prefs.js:1188
+#: prefs.js:1390
 msgid "Use GitHub's default green color scheme instead of the theme accent color"
 msgstr ""
 
-#: prefs.js:2021
+#: prefs.js:1545
+msgid "Use system or custom accent color from Appearance settings. When disabled, uses neutral gray."
+msgstr ""
+
+#: prefs.js:2322
 msgid "Version %s"
 msgstr ""
 
-#: prefs.js:2036
+#: prefs.js:2337
 msgid "View sources on GitHub"
 msgstr ""
 
@@ -1092,7 +1180,7 @@ msgstr ""
 msgid "W"
 msgstr ""
 
-#: prefs.js:35
+#: prefs.js:41
 msgid "Weather"
 msgstr ""
 
@@ -1105,31 +1193,39 @@ msgstr ""
 msgid "Wed"
 msgstr ""
 
-#: prefs.js:1118
+#: prefs.js:1320
 msgid "Weekday format"
 msgstr ""
 
-#: prefs.js:1517
+#: prefs.js:1817
 msgid "Widget"
 msgstr ""
 
-#: prefs.js:359
+#: prefs.js:634
+msgid "Widget gallery"
+msgstr ""
+
+#: prefs.js:530
 msgid "Widget gap (px)"
 msgstr ""
 
-#: prefs.js:1904
+#: prefs.js:2204
 msgid "Widget opacity"
 msgstr ""
 
-#: extension.js:1823
-#: extension.js:2461
+#: extension.js:2006
+#: extension.js:2644
 msgid "Widget size"
 msgstr ""
 
-#: prefs.js:1677
+#: prefs.js:1977
 msgid "Widget Styling"
 msgstr ""
 
-#: prefs.js:345
+#: prefs.js:516
 msgid "Widgets"
+msgstr ""
+
+#: prefs.js:1468
+msgid "Work duration"
 msgstr ""

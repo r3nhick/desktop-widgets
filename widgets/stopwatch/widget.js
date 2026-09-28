@@ -3,8 +3,8 @@ import GLib from 'gi://GLib';
 import St from 'gi://St';
 import { parseCssColor } from '../../utils/ported.js';
 
-export const type = 'timer';
-export const label = 'Timer';
+export const type = 'stopwatch';
+export const label = 'Stopwatch';
 export const defaultSize = 'medium';
 export const supportedSizes = ['small', 'medium'];
 
@@ -77,7 +77,7 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 	const timeCaption = new St.Label({
 		text: 'Min : Sec',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${mutedColor}; font-size: ${px(14)}px; font-weight: 600;`,
+		style: `color: ${mutedColor}; font-size: ${px(20)}px; font-weight: 600;`,
 	});
 
 	timeBox.add_child(timeLabel);
@@ -227,7 +227,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const minutesCaption = new St.Label({
 		text: 'Minutes',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${mutedColor}; font-size: ${px(14)}px; font-weight: 600;`,
+		style: `color: ${mutedColor}; font-size: ${px(20)}px; font-weight: 600;`,
 	});
 
 	minutesBox.add_child(minutesLabel);
@@ -256,7 +256,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const secondsCaption = new St.Label({
 		text: 'Seconds',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${mutedColor}; font-size: ${px(14)}px; font-weight: 600;`,
+		style: `color: ${mutedColor}; font-size: ${px(20)}px; font-weight: 600;`,
 	});
 
 	secondsBox.add_child(secondsLabel);
@@ -285,7 +285,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	const centisecondsCaption = new St.Label({
 		text: 'Centiseconds',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${mutedColor}; font-size: ${px(14)}px; font-weight: 600;`,
+		style: `color: ${mutedColor}; font-size: ${px(23)}px; font-weight: 600;`,
 	});
 
 	centisecondsBox.add_child(centisecondsLabel);
@@ -314,7 +314,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			x_align: Clutter.ActorAlign.CENTER,
 			y_align: Clutter.ActorAlign.CENTER,
 		}),
-		style: `font-size: ${px(16)}px; padding: ${px(12)}px ${px(32)}px; border-radius: ${px(12)}px; background-color: ${accentHex}; color: ${accentTextColor}; font-weight: 500;`,
+		style: `font-size: ${px(19)}px; padding: ${px(12)}px ${px(32)}px; border-radius: ${px(12)}px; background-color: ${accentHex}; color: ${accentTextColor}; font-weight: 600;`,
 	});
 
 	const resetBtn = new St.Button({
@@ -326,7 +326,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			x_align: Clutter.ActorAlign.CENTER,
 			y_align: Clutter.ActorAlign.CENTER,
 		}),
-		style: `font-size: ${px(16)}px; padding: ${px(12)}px ${px(32)}px; border-radius: ${px(12)}px; background-color: transparent; border: 1px solid rgba(255, 255, 255, 0.2); color: ${textColor}; font-weight: 500;`,
+		style: `font-size: ${px(19)}px; padding: ${px(12)}px ${px(32)}px; border-radius: ${px(12)}px; background-color: transparent; border: 1px solid rgba(255, 255, 255, 0.2); color: ${textColor}; font-weight: 600;`,
 	});
 
 	buttonsBox.add_child(pauseBtn);
@@ -349,7 +349,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			return GLib.SOURCE_CONTINUE;
 		});
 		pauseBtn.child.text = 'Pause';
-		pauseBtn.style = `font-size: ${px(16)}px; padding: ${px(12)}px ${px(32)}px; border-radius: ${px(12)}px; background-color: ${accentHex}; color: ${accentTextColor}; font-weight: 500;`;
+		pauseBtn.style = `font-size: ${px(19)}px; padding: ${px(12)}px ${px(32)}px; border-radius: ${px(12)}px; background-color: ${accentHex}; color: ${accentTextColor}; font-weight: 600;`;
 	};
 
 	const stopTimer = () => {
@@ -360,7 +360,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			timerId = null;
 		}
 		pauseBtn.child.text = 'Start';
-		pauseBtn.style = `font-size: ${px(16)}px; padding: ${px(12)}px ${px(32)}px; border-radius: ${px(12)}px; background-color: ${accentHex}; color: ${accentTextColor}; font-weight: 500;`;
+		pauseBtn.style = `font-size: ${px(19)}px; padding: ${px(12)}px ${px(32)}px; border-radius: ${px(12)}px; background-color: ${accentHex}; color: ${accentTextColor}; font-weight: 600;`;
 	};
 
 	const resetTimer = () => {
