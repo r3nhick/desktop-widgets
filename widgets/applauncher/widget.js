@@ -15,7 +15,7 @@ import { cssColorToRgba, loadJsonFromFileAsync, getDataDir } from '../../utils/p
 export const type = 'applauncher';
 export const label = 'App Launcher';
 export const defaultSize = 'medium';
-export const supportedSizes = ['mini', 'minilarge', 'medium', 'large'];
+export const supportedSizes = ['mini', 'minilarge', 'compact', 'medium', 'large'];
 
 const MAX_APPS = 16;
 const DEFAULT_APP_ICON = 'application-x-executable-symbolic';

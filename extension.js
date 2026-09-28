@@ -88,12 +88,18 @@ const WIDGET_CLICK_TYPES = new Set([
 // впритук до двох 1x1 з одним зазором між ними, а не ширше за них.
 const MAIN_FAMILY = 'main';
 const MINI_FAMILY = 'mini';
-const WIDGET_CELL_SIZES = {[MAIN_FAMILY]: CELL_SIZE, [MINI_FAMILY]: MINI_CELL_SIZE};
+const COMPACT_FAMILY = 'compact'; // Широкий але низький
+const WIDGET_CELL_SIZES = {
+  [MAIN_FAMILY]: CELL_SIZE,
+  [MINI_FAMILY]: MINI_CELL_SIZE,
+  [COMPACT_FAMILY]: {width: CELL_SIZE, height: MINI_CELL_SIZE}, // 190×120
+};
 const WIDGET_SIZE_SHAPES = {
   minismall: [1, 1, MINI_FAMILY], // 1x1 mini
   mini: [2, 1, MINI_FAMILY], // 2x1 mini
   portraitmini: [1, 2, MINI_FAMILY], // 1x2 mini
   minilarge: [2, 2, MINI_FAMILY], // 2x2 mini
+  compact: [2, 1, COMPACT_FAMILY], // 2x1 compact (широкий низький)
   small: [1, 1, MAIN_FAMILY], // 1x1
   medium: [2, 1, MAIN_FAMILY], // 2x1
   portrait: [1, 2, MAIN_FAMILY], // 1x2
@@ -295,6 +301,14 @@ function sizeForWidget(widget, gap) {
     : defaultSizeKeyFor(widget.type);
   const [cols, rows, family] = WIDGET_SIZE_SHAPES[key];
   const base = WIDGET_CELL_SIZES[family];
+
+  // Підтримка прямокутних клітинок (COMPACT_FAMILY)
+  if (typeof base === 'object') {
+    return [
+      cols * base.width + (cols - 1) * gap,
+      rows * base.height + (rows - 1) * gap
+    ];
+  }
 
   return [cols * base + (cols - 1) * gap, rows * base + (rows - 1) * gap];
 };
