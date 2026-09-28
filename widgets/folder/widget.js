@@ -50,18 +50,20 @@ function gridContentSize(widgetWidth, widgetHeight) {
 	};
 }
 
-function computeGridLayout(folderCount, widgetWidth, widgetHeight) {
+function computeGridLayout(folderCount, widgetWidth, widgetHeight, showNames = false) {
 	if (folderCount <= 0) {
 		return { cols: 1, rows: 1 };
 	}
 
 	const content = gridContentSize(widgetWidth, widgetHeight);
+	// Reserve space for folder names if they are shown (approximately 20-24px per label)
+	const effectiveHeight = showNames ? content.height - 24 : content.height;
 	let best = null;
 
 	for (let cols = 1; cols <= folderCount; cols++) {
 		const rows = Math.ceil(folderCount / cols);
 		const cellWidth = (content.width - (GRID_GAP * (cols - 1))) / cols;
-		const cellHeight = (content.height - (GRID_GAP * (rows - 1))) / rows;
+		const cellHeight = (effectiveHeight - (GRID_GAP * (rows - 1))) / rows;
 		const minCell = Math.min(cellWidth, cellHeight);
 		const empty = (cols * rows) - folderCount;
 
@@ -93,11 +95,13 @@ function maxFoldersFor(sizeKey) {
 	}
 }
 
-function computeIconMetrics(cols, rows, widgetWidth, widgetHeight) {
+function computeIconMetrics(cols, rows, widgetWidth, widgetHeight, showNames = false) {
 	const content = gridContentSize(widgetWidth, widgetHeight);
+	// Reserve space for folder names if they are shown
+	const effectiveHeight = showNames ? content.height - 24 : content.height;
 
 	const cellWidth = (content.width - (GRID_GAP * (cols - 1))) / cols;
-	const cellHeight = (content.height - (GRID_GAP * (rows - 1))) / rows;
+	const cellHeight = (effectiveHeight - (GRID_GAP * (rows - 1))) / rows;
 	const minCell = Math.max(MIN_ICON_SIZE, Math.min(cellWidth, cellHeight));
 
 	const padding = Math.min(TILE_PADDING_MAX, Math.max(TILE_PADDING_MIN, Math.round(minCell * TILE_PADDING_RATIO)));
@@ -224,7 +228,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
 		const maxFolders = maxFoldersFor(sizeKey);
 		const displayFolders = folders.slice(0, Math.min(maxFolders, MAX_FOLDERS));
-		const { cols, rows } = computeGridLayout(displayFolders.length, width, height);
+		const { cols, rows } = computeGridLayout(displayFolders.length, width, height, showFolderNames);
 
 		const cells = [];
 
@@ -379,7 +383,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 			const currentHeight = body.height || height || 180;
 			measuredWidth = body.width || 0;
 			measuredHeight = body.height || 0;
-			const { padding, iconSize } = computeIconMetrics(cols, rows, currentWidth, currentHeight);
+			const { padding, iconSize } = computeIconMetrics(cols, rows, currentWidth, currentHeight, showFolderNames);
 
 			for (const cell of cells) {
 				updateCell(cell, padding, iconSize);
