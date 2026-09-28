@@ -287,12 +287,28 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 				// Get folder icon from file system
 				try {
 					const file = Gio.File.new_for_path(folder.path);
-					const fileInfo = file.query_info('standard::icon', Gio.FileQueryInfoFlags.NONE, null);
-					const gicon = fileInfo.get_icon();
-					if (gicon) {
-						folderIcon.gicon = gicon;
+					// First try to get custom icon from metadata
+					const fileInfo = file.query_info('standard::icon,metadata::custom-icon,metadata::custom-icon-name', Gio.FileQueryInfoFlags.NONE, null);
+					
+					// Check for custom icon (highest priority)
+					const customIcon = fileInfo.get_attribute_string('metadata::custom-icon');
+					const customIconName = fileInfo.get_attribute_string('metadata::custom-icon-name');
+					
+					if (customIcon) {
+						// Custom icon path (e.g., file:///path/to/icon.png)
+						const iconFile = Gio.File.new_for_uri(customIcon);
+						folderIcon.gicon = new Gio.FileIcon({ file: iconFile });
+					} else if (customIconName) {
+						// Custom icon name from theme
+						folderIcon.icon_name = customIconName;
 					} else {
-						folderIcon.icon_name = DEFAULT_FOLDER_ICON;
+						// Fall back to standard folder icon
+						const gicon = fileInfo.get_icon();
+						if (gicon) {
+							folderIcon.gicon = gicon;
+						} else {
+							folderIcon.icon_name = DEFAULT_FOLDER_ICON;
+						}
 					}
 				} catch (e) {
 					folderIcon.icon_name = DEFAULT_FOLDER_ICON;
