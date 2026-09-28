@@ -140,6 +140,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 		x_align: Clutter.ActorAlign.FILL,
 		y_align: Clutter.ActorAlign.FILL,
 		style: `padding: ${OUTER_MARGIN}px;`,
+		clip_to_allocation: true,
 	});
 	
 	body.add_child(container);
@@ -151,6 +152,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 		x_align: Clutter.ActorAlign.FILL,
 		y_align: Clutter.ActorAlign.FILL,
 		style: `spacing: ${GRID_GAP}px;`,
+		clip_to_allocation: true,
 	});
 
 	container.add_child(grid);
