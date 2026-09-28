@@ -1,0 +1,28 @@
+<svg width="480" height="270" viewBox="0 0 480 270" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="480" height="270" rx="24" fill="#1e1e2e"/>
+  
+  <!-- Folder -->
+  <g transform="translate(120, 60)">
+    <!-- Folder tab -->
+    <path d="M 0 20 L 0 10 C 0 5 5 0 10 0 L 80 0 L 95 20 Z" fill="#89b4fa"/>
+    
+    <!-- Folder body -->
+    <rect x="0" y="20" width="240" height="130" rx="8" fill="#89b4fa" opacity="0.9"/>
+    
+    <!-- Folder front -->
+    <path d="M 10 30 L 10 140 C 10 145 15 150 20 150 L 220 150 C 225 150 230 145 230 140 L 230 30 Z" 
+          fill="#b4befe"/>
+    
+    <!-- Documents inside -->
+    <rect x="30" y="50" width="120" height="6" rx="3" fill="#1e1e2e" opacity="0.2"/>
+    <rect x="30" y="70" width="90" height="6" rx="3" fill="#1e1e2e" opacity="0.2"/>
+    <rect x="30" y="90" width="100" height="6" rx="3" fill="#1e1e2e" opacity="0.2"/>
+    <rect x="30" y="110" width="80" height="6" rx="3" fill="#1e1e2e" opacity="0.2"/>
+  </g>
+  
+  <!-- Decorative elements -->
+  <circle cx="80" cy="200" r="8" fill="#89b4fa" opacity="0.3"/>
+  <circle cx="400" cy="80" r="12" fill="#89b4fa" opacity="0.2"/>
+  <circle cx="420" cy="230" r="6" fill="#89b4fa" opacity="0.25"/>
+</svg>

@@ -211,5 +211,15 @@
       <summary>Pause animations in fullscreen</summary>
       <description>Automatically pause widget animations when any window is in fullscreen mode to save system resources.</description>
     </key>
+    <key name="folder-file-manager" type="s">
+      <default>'org.gnome.Nautilus.desktop'</default>
+      <summary>File manager for Folder Launcher</summary>
+      <description>Desktop file ID of the file manager to use for opening folders.</description>
+    </key>
+    <key name="folder-show-names" type="b">
+      <default>true</default>
+      <summary>Show folder names</summary>
+      <description>Display folder names below icons in the Folder Launcher widget.</description>
+    </key>
   </schema>
 </schemalist>

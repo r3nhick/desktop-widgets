@@ -30,6 +30,7 @@ const WIDGET_TYPES = [
     {type: 'pomodoro'},
     {type: 'lava'},
     {type: 'stopwatch'},
+    {type: 'folder'},
 ];
 
 const widgetTypeLabel = (type) => ({
@@ -50,6 +51,7 @@ const widgetTypeLabel = (type) => ({
     pomodoro: _('Pomodoro'),
     lava: _('Lava Lamp'),
     stopwatch: _('Stopwatch'),
+    folder: _('Folder Launcher'),
 }[type] ?? type);
 
 const DEFAULT_SIZES = {
@@ -70,6 +72,7 @@ const DEFAULT_SIZES = {
     pomodoro: 'small',
     lava: 'medium',
     stopwatch: 'medium',
+    folder: 'medium',
 };
 
 const PHOTO_SIZES = ['cover', 'contain', 'fill', 'small'];
@@ -353,6 +356,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         appLauncherPage.set_title(_('App Launcher Widget'));
         this._setThemedIcon(appLauncherPage, 'dw-layout-grid');
         this._addSidebarPage(appLauncherPage);
+
+        // Folder Launcher page
+        const folderLauncherPage = this._createFolderLauncherPage(settings);
+        folderLauncherPage.set_title(_('Folder Launcher Widget'));
+        this._setThemedIcon(folderLauncherPage, 'dw-folder');
+        this._addSidebarPage(folderLauncherPage);
 
         // Notes page
         const notesPage = this._createNotesPage(settings);
@@ -1559,6 +1568,303 @@ export default class WidgetsPrefs extends ExtensionPreferences {
 
         page.add(group);
         return page;
+    }
+
+    _createFolderLauncherPage(settings) {
+        const page = new Adw.PreferencesPage();
+
+        // Global settings group
+        const globalGroup = new Adw.PreferencesGroup({
+            title: _('Global Settings'),
+            description: _('Settings that apply to all Folder Launcher widgets.'),
+            margin_top: 12,
+        });
+
+        // Show folder names toggle
+        const showNamesRow = new Adw.SwitchRow({
+            title: _('Show folder names'),
+            subtitle: _('Display folder names below icons'),
+        });
+        showNamesRow.set_active(settings.get_boolean('folder-show-names'));
+        showNamesRow.connect('notify::active', () => {
+            settings.set_boolean('folder-show-names', showNamesRow.get_active());
+        });
+        globalGroup.add(showNamesRow);
+
+        // File manager picker
+        const fileManagerRow = new Adw.ComboRow({
+            title: _('File Manager'),
+            subtitle: _('Application to open folders with'),
+        });
+
+        const fileManagers = this._getFileManagers();
+        const fileManagerModel = new Gtk.StringList();
+        for (const fm of fileManagers) {
+            fileManagerModel.append(fm.name);
+        }
+        fileManagerRow.set_model(fileManagerModel);
+
+        const currentFM = settings.get_string('folder-file-manager');
+        const currentIndex = fileManagers.findIndex(fm => fm.id === currentFM);
+        fileManagerRow.set_selected(currentIndex >= 0 ? currentIndex : 0);
+
+        fileManagerRow.connect('notify::selected', () => {
+            const index = fileManagerRow.get_selected();
+            if (index >= 0 && index < fileManagers.length) {
+                settings.set_string('folder-file-manager', fileManagers[index].id);
+            }
+        });
+        globalGroup.add(fileManagerRow);
+
+        page.add(globalGroup);
+
+        // Per-widget folders configuration
+        const groups = [];
+
+        const rebuild = () => {
+            for (const group of groups) {
+                if (group.get_parent())
+                    page.remove(group);
+            }
+            groups.length = 0;
+
+            const widgets = layoutWidgets(settings);
+            const folderWidgets = widgets.filter(w => w.type === 'folder');
+
+            if (folderWidgets.length === 0) {
+                const group = new Adw.PreferencesGroup({
+                    title: _('Folder Launcher Widgets'),
+                    description: _('Manage folders for each widget. Changes apply instantly.'),
+                    margin_top: 12,
+                });
+
+                group.add(new Adw.ActionRow({
+                    title: _('No Folder Launcher widgets found'),
+                    subtitle: _('Add a Folder Launcher widget from the General page first'),
+                }));
+                groups.push(group);
+                page.add(group);
+                return;
+            }
+
+            for (const widget of folderWidgets) {
+                const group = this._buildFolderLauncherWidgetGroup(widget);
+                groups.push(group);
+                page.add(group);
+            }
+        };
+
+        rebuild();
+
+        const signalId = settings.connect('changed::layout-json', rebuild);
+        page.connect('destroy', () => settings.disconnect(signalId));
+
+        return page;
+    }
+
+    _getFileManagers() {
+        const fileManagers = [
+            { id: 'org.gnome.Nautilus.desktop', name: 'Files (Nautilus)' },
+            { id: 'nemo.desktop', name: 'Nemo' },
+            { id: 'thunar.desktop', name: 'Thunar' },
+            { id: 'dolphin.desktop', name: 'Dolphin' },
+            { id: 'pcmanfm.desktop', name: 'PCManFM' },
+        ];
+
+        // Filter to only installed file managers
+        return fileManagers.filter(fm => {
+            try {
+                const appInfo = Gio.DesktopAppInfo.new(fm.id);
+                return appInfo !== null;
+            } catch (e) {
+                return false;
+            }
+        });
+    }
+
+    _buildFolderLauncherWidgetGroup(widget) {
+        const widgetGroup = new Adw.PreferencesGroup({
+            title: `${_('Widget')}: ${widget.id}`,
+            margin_top: 12,
+        });
+
+        const foldersExpander = new Adw.ExpanderRow({
+            title: _('Pinned Folders'),
+            subtitle: _('Folders shown on this widget, in grid order'),
+        });
+
+        const dataFilePath = this._folderLauncherFilePath(widget.id);
+        const selectedFolders = this._loadFolderLauncherFolders(dataFilePath);
+
+        // Defaults only apply when the widget was never saved
+        if (selectedFolders.length === 0
+            && !GLib.file_test(dataFilePath, GLib.FileTest.EXISTS)) {
+            selectedFolders.push(
+                { path: GLib.get_home_dir(), name: _('Home') },
+                { path: GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOCUMENTS) || GLib.get_home_dir(), name: _('Documents') },
+                { path: GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) || GLib.get_home_dir(), name: _('Downloads') },
+                { path: GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES) || GLib.get_home_dir(), name: _('Pictures') }
+            );
+        }
+
+        const saveFolders = () => {
+            const data = { folders: selectedFolders };
+            try {
+                GLib.file_set_contents(dataFilePath, JSON.stringify(data, null, 2));
+            } catch (e) {
+                console.error('Failed to save folders:', e);
+            }
+        };
+
+        const reorderFolder = (index, delta) => {
+            const to = index + delta;
+            if (index < 0 || to < 0 || to >= selectedFolders.length) return;
+            [selectedFolders[index], selectedFolders[to]] = [selectedFolders[to], selectedFolders[index]];
+            saveFolders();
+            renderPinnedFolders();
+        };
+
+        let builtRows = [];
+
+        const renderPinnedFolders = () => {
+            for (const row of builtRows) {
+                if (row && row.get_parent())
+                    foldersExpander.remove(row);
+            }
+            builtRows.length = 0;
+
+            foldersExpander.set_subtitle(`${_('Folders')}: ${selectedFolders.length}`);
+            const lastIndex = selectedFolders.length - 1;
+
+            for (let index = 0; index < selectedFolders.length; index++) {
+                const folder = selectedFolders[index];
+                const folderRow = new Adw.ActionRow({
+                    title: folder.name || GLib.path_get_basename(folder.path),
+                    subtitle: folder.path,
+                });
+
+                const icon = new Gtk.Image({
+                    icon_name: 'folder-symbolic',
+                    pixel_size: 32,
+                });
+                folderRow.add_prefix(icon);
+
+                const reorderBox = new Gtk.Box({
+                    orientation: Gtk.Orientation.HORIZONTAL,
+                    spacing: 2,
+                });
+
+                if (index > 0) {
+                    const upButton = new Gtk.Button({
+                        icon_name: 'go-up-symbolic',
+                        valign: Gtk.Align.CENTER,
+                        css_classes: ['flat'],
+                        tooltip_text: _('Move up'),
+                    });
+                    upButton.connect('clicked', () => reorderFolder(index, -1));
+                    reorderBox.append(upButton);
+                }
+
+                if (index < lastIndex) {
+                    const downButton = new Gtk.Button({
+                        icon_name: 'go-down-symbolic',
+                        valign: Gtk.Align.CENTER,
+                        css_classes: ['flat'],
+                        tooltip_text: _('Move down'),
+                    });
+                    downButton.connect('clicked', () => reorderFolder(index, 1));
+                    reorderBox.append(downButton);
+                }
+
+                folderRow.add_suffix(reorderBox);
+
+                const removeButton = new Gtk.Button({
+                    icon_name: 'user-trash-symbolic',
+                    valign: Gtk.Align.CENTER,
+                    css_classes: ['flat', 'error'],
+                    tooltip_text: _('Remove'),
+                });
+                removeButton.connect('clicked', () => {
+                    selectedFolders.splice(index, 1);
+                    saveFolders();
+                    renderPinnedFolders();
+                });
+                folderRow.add_suffix(removeButton);
+
+                foldersExpander.add_row(folderRow);
+                builtRows.push(folderRow);
+            }
+        };
+
+        renderPinnedFolders();
+
+        // Add folder button
+        const addButton = new Gtk.Button({
+            label: _('Add Folder'),
+            css_classes: ['suggested-action'],
+            valign: Gtk.Align.CENTER,
+        });
+        addButton.connect('clicked', () => {
+            this._openFolderChooser((folderPath, folderName) => {
+                selectedFolders.push({ path: folderPath, name: folderName });
+                saveFolders();
+                renderPinnedFolders();
+            });
+        });
+        foldersExpander.add_action(addButton);
+
+        widgetGroup.add(foldersExpander);
+        return widgetGroup;
+    }
+
+    _folderLauncherFilePath(widgetId) {
+        const dataDir = GLib.build_filenamev([GLib.get_user_data_dir(), 'desktop-widgets@r3nhick', 'folder']);
+        GLib.mkdir_with_parents(dataDir, 0o755);
+        return GLib.build_filenamev([dataDir, `folder-${widgetId}.json`]);
+    }
+
+    _loadFolderLauncherFolders(dataFilePath) {
+        const folders = [];
+        try {
+            if (GLib.file_test(dataFilePath, GLib.FileTest.EXISTS)) {
+                const [success, contents] = GLib.file_get_contents(dataFilePath);
+                if (success) {
+                    const data = JSON.parse(new TextDecoder().decode(contents));
+                    if (Array.isArray(data.folders)) {
+                        for (const folder of data.folders) {
+                            if (!folder.path) continue;
+                            folders.push(folder);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load folders:', e);
+        }
+        return folders;
+    }
+
+    _openFolderChooser(callback) {
+        const chooser = new Gtk.FileChooserNative({
+            title: _('Select Folder'),
+            action: Gtk.FileChooserAction.SELECT_FOLDER,
+            transient_for: this._window,
+            accept_label: _('Select'),
+            cancel_label: _('Cancel'),
+        });
+
+        chooser.connect('response', (dialog, response) => {
+            if (response === Gtk.ResponseType.ACCEPT) {
+                const file = dialog.get_file();
+                if (file) {
+                    const folderPath = file.get_path();
+                    const folderName = GLib.path_get_basename(folderPath);
+                    callback(folderPath, folderName);
+                }
+            }
+        });
+
+        chooser.show();
     }
 
     _launcherAppsFilePath(widgetId) {

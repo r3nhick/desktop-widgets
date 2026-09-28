@@ -114,6 +114,13 @@ const WIDGET_CATALOG_DATA = [
 		category: 'productivity',
 	},
 	{
+		type: 'folder',
+		labelKey: 'Folder Launcher',
+		descKey: 'Quick folder access',
+		icon: 'folder.svg',
+		category: 'productivity',
+	},
+	{
 		type: 'pomodoro',
 		labelKey: 'Pomodoro',
 		descKey: 'Time management timer',
