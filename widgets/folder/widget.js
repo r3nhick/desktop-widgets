@@ -188,6 +188,32 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 		}
 	};
 
+	// Read icon for a folder, preferring custom icon from metadata
+	const getFolderIcon = (folderPath) => {
+		try {
+			const file = Gio.File.new_for_path(folderPath);
+			const fileInfo = file.query_info('standard::icon,metadata::custom-icon,metadata::custom-icon-name', Gio.FileQueryInfoFlags.NONE, null);
+			
+			const customIcon = fileInfo.get_attribute_string('metadata::custom-icon');
+			// custom-icon-name is a stringv, not a plain string
+			const customIconNames = fileInfo.get_attribute_type('metadata::custom-icon-name') === Gio.FileAttributeType.STRINGV
+				? fileInfo.get_attribute_stringv('metadata::custom-icon-name')
+				: null;
+			
+			if (customIcon) {
+				const iconFile = Gio.File.new_for_uri(customIcon);
+				return new Gio.FileIcon({ file: iconFile });
+			} else if (customIconNames?.length) {
+				return new Gio.ThemedIcon({ names: customIconNames });
+			} else {
+				const gicon = fileInfo.get_icon();
+				return gicon || new Gio.ThemedIcon({ name: DEFAULT_FOLDER_ICON });
+			}
+		} catch (e) {
+			return new Gio.ThemedIcon({ name: DEFAULT_FOLDER_ICON });
+		}
+	};
+
 	let sizeWatch = null;
 	let settleTimer = null;
 	let destroyed = false;
@@ -285,32 +311,10 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 				});
 
 				// Get folder icon from file system
-				try {
-					const file = Gio.File.new_for_path(folder.path);
-					// First try to get custom icon from metadata
-					const fileInfo = file.query_info('standard::icon,metadata::custom-icon,metadata::custom-icon-name', Gio.FileQueryInfoFlags.NONE, null);
-					
-					// Check for custom icon (highest priority)
-					const customIcon = fileInfo.get_attribute_string('metadata::custom-icon');
-					const customIconName = fileInfo.get_attribute_string('metadata::custom-icon-name');
-					
-					if (customIcon) {
-						// Custom icon path (e.g., file:///path/to/icon.png)
-						const iconFile = Gio.File.new_for_uri(customIcon);
-						folderIcon.gicon = new Gio.FileIcon({ file: iconFile });
-					} else if (customIconName) {
-						// Custom icon name from theme
-						folderIcon.icon_name = customIconName;
-					} else {
-						// Fall back to standard folder icon
-						const gicon = fileInfo.get_icon();
-						if (gicon) {
-							folderIcon.gicon = gicon;
-						} else {
-							folderIcon.icon_name = DEFAULT_FOLDER_ICON;
-						}
-					}
-				} catch (e) {
+				const gicon = getFolderIcon(folder.path);
+				if (gicon) {
+					folderIcon.gicon = gicon;
+				} else {
 					folderIcon.icon_name = DEFAULT_FOLDER_ICON;
 				}
 
@@ -469,6 +473,47 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 		console.debug('Failed to watch folder launcher data file:', e);
 	}
 
+	// Real-time icon updates: GVFS metadata (custom folder icons) lives in
+	// ~/.local/share/gvfs-metadata/, not on the folder itself, so FileMonitor
+	// cannot detect icon changes. Poll the metadata every 3 seconds instead.
+	let iconPollTimer = null;
+	const iconFingerprints = new Map(); // path -> serialized icon state
+
+	const pollFolderIcons = () => {
+		if (destroyed) return GLib.SOURCE_REMOVE;
+		
+		let changed = false;
+		for (const folder of folders) {
+			try {
+				const gicon = getFolderIcon(folder.path);
+				const current = gicon ? String(gicon) : 'null';
+				const last = iconFingerprints.get(folder.path);
+				
+				if (last === undefined) {
+					iconFingerprints.set(folder.path, current);
+				} else if (current !== last) {
+					iconFingerprints.set(folder.path, current);
+					changed = true;
+				}
+			} catch (e) {
+				// Folder disappeared or inaccessible — ignore
+			}
+		}
+		
+		if (changed) {
+			buildGrid();
+		}
+		
+		return GLib.SOURCE_CONTINUE;
+	};
+
+	// Start polling after a short delay (let buildGrid populate fingerprints first)
+	GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
+		if (destroyed) return GLib.SOURCE_REMOVE;
+		iconPollTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, pollFolderIcons);
+		return GLib.SOURCE_REMOVE;
+	});
+
 	// Watch for settings changes
 	let settingsSignals = [];
 	if (settings) {
@@ -516,6 +561,12 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 			}
 			fileMonitor = null;
 		}
+
+		if (iconPollTimer) {
+			GLib.source_remove(iconPollTimer);
+			iconPollTimer = null;
+		}
+		iconFingerprints.clear();
 
 		// Disconnect settings signals
 		if (settings) {
