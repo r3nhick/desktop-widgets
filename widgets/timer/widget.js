@@ -104,9 +104,15 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	});
 	setupBox.add_child(centerBox);
 
-	// Minutes column with 4 buttons
+	// Minutes column with horizontal button pairs
 	const minutesBox = new St.BoxLayout({
 		orientation: Clutter.Orientation.VERTICAL,
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(6)}px;`,
+	});
+
+	// Top buttons for minutes: [+][+]
+	const minutesPlusBox = new St.BoxLayout({
 		x_align: Clutter.ActorAlign.CENTER,
 		style: `spacing: ${px(4)}px;`,
 	});
@@ -115,40 +121,51 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
-		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		style: `font-size: ${px(16)}px; width: ${px(32)}px; height: ${px(28)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
-	minutesBox.add_child(minutesPlus10Btn);
+	minutesPlusBox.add_child(minutesPlus10Btn);
 
 	const minutesPlus1Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
-		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+		style: `font-size: ${px(14)}px; width: ${px(28)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
 	});
-	minutesBox.add_child(minutesPlus1Btn);
+	minutesPlusBox.add_child(minutesPlus1Btn);
 
+	minutesBox.add_child(minutesPlusBox);
+
+	// Minutes digits
 	const minutesLabel = new St.Label({
 		text: '00',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9; padding: ${px(8)}px 0;`,
+		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9; padding: ${px(4)}px 0;`,
 	});
 	minutesBox.add_child(minutesLabel);
 
-	const minutesMinus1Btn = new St.Button({
-		reactive: true,
-		can_focus: true,
-		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
-		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+	// Bottom buttons for minutes: [-][-]
+	const minutesMinusBox = new St.BoxLayout({
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(4)}px;`,
 	});
-	minutesBox.add_child(minutesMinus1Btn);
 
 	const minutesMinus10Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
-		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		style: `font-size: ${px(16)}px; width: ${px(32)}px; height: ${px(28)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
-	minutesBox.add_child(minutesMinus10Btn);
+	minutesMinusBox.add_child(minutesMinus10Btn);
+
+	const minutesMinus1Btn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
+		style: `font-size: ${px(14)}px; width: ${px(28)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+	});
+	minutesMinusBox.add_child(minutesMinus1Btn);
+
+	minutesBox.add_child(minutesMinusBox);
 
 	centerBox.add_child(minutesBox);
 
@@ -160,9 +177,15 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	});
 	centerBox.add_child(colonLabel);
 
-	// Seconds column with 4 buttons
+	// Seconds column with horizontal button pairs
 	const secondsBox = new St.BoxLayout({
 		orientation: Clutter.Orientation.VERTICAL,
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(6)}px;`,
+	});
+
+	// Top buttons for seconds: [+][+]
+	const secondsPlusBox = new St.BoxLayout({
 		x_align: Clutter.ActorAlign.CENTER,
 		style: `spacing: ${px(4)}px;`,
 	});
@@ -171,40 +194,51 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
-		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		style: `font-size: ${px(16)}px; width: ${px(32)}px; height: ${px(28)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
-	secondsBox.add_child(secondsPlus10Btn);
+	secondsPlusBox.add_child(secondsPlus10Btn);
 
 	const secondsPlus1Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '+', style: `color: ${textColor};` }),
-		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+		style: `font-size: ${px(14)}px; width: ${px(28)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
 	});
-	secondsBox.add_child(secondsPlus1Btn);
+	secondsPlusBox.add_child(secondsPlus1Btn);
 
+	secondsBox.add_child(secondsPlusBox);
+
+	// Seconds digits
 	const secondsLabel = new St.Label({
 		text: '00',
 		x_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9; padding: ${px(8)}px 0;`,
+		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700; line-height: 0.9; padding: ${px(4)}px 0;`,
 	});
 	secondsBox.add_child(secondsLabel);
 
-	const secondsMinus1Btn = new St.Button({
-		reactive: true,
-		can_focus: true,
-		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
-		style: `font-size: ${px(14)}px; width: ${px(50)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+	// Bottom buttons for seconds: [-][-]
+	const secondsMinusBox = new St.BoxLayout({
+		x_align: Clutter.ActorAlign.CENTER,
+		style: `spacing: ${px(4)}px;`,
 	});
-	secondsBox.add_child(secondsMinus1Btn);
 
 	const secondsMinus10Btn = new St.Button({
 		reactive: true,
 		can_focus: true,
 		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
-		style: `font-size: ${px(18)}px; width: ${px(50)}px; height: ${px(32)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
+		style: `font-size: ${px(16)}px; width: ${px(32)}px; height: ${px(28)}px; background-color: rgba(255, 255, 255, 0.1); border-radius: ${px(8)}px; font-weight: 700;`,
 	});
-	secondsBox.add_child(secondsMinus10Btn);
+	secondsMinusBox.add_child(secondsMinus10Btn);
+
+	const secondsMinus1Btn = new St.Button({
+		reactive: true,
+		can_focus: true,
+		child: new St.Label({ text: '−', style: `color: ${textColor};` }),
+		style: `font-size: ${px(14)}px; width: ${px(28)}px; height: ${px(24)}px; background-color: rgba(255, 255, 255, 0.08); border-radius: ${px(6)}px; font-weight: 700;`,
+	});
+	secondsMinusBox.add_child(secondsMinus1Btn);
+
+	secondsBox.add_child(secondsMinusBox);
 
 	centerBox.add_child(secondsBox);
 
@@ -409,14 +443,14 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	// Minutes controls
 	minutesPlus10Btn.connect('clicked', () => setTimer(remainingSeconds + 600));
 	minutesPlus1Btn.connect('clicked', () => setTimer(remainingSeconds + 60));
-	minutesMinus1Btn.connect('clicked', () => setTimer(remainingSeconds - 60));
 	minutesMinus10Btn.connect('clicked', () => setTimer(remainingSeconds - 600));
+	minutesMinus1Btn.connect('clicked', () => setTimer(remainingSeconds - 60));
 
 	// Seconds controls
 	secondsPlus10Btn.connect('clicked', () => setTimer(remainingSeconds + 10));
 	secondsPlus1Btn.connect('clicked', () => setTimer(remainingSeconds + 1));
-	secondsMinus1Btn.connect('clicked', () => setTimer(remainingSeconds - 1));
 	secondsMinus10Btn.connect('clicked', () => setTimer(remainingSeconds - 10));
+	secondsMinus1Btn.connect('clicked', () => setTimer(remainingSeconds - 1));
 
 	startBtn.connect('clicked', () => {
 		if (remainingSeconds > 0) {
