@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
+import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { parseCssColor } from '../../utils/ported.js';
 
 export const type = 'stopwatch';
@@ -75,7 +76,7 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 	});
 
 	const timeCaption = new St.Label({
-		text: 'Min : Sec',
+		text: _('Min : Sec'),
 		x_align: Clutter.ActorAlign.CENTER,
 		style: `color: ${mutedColor}; font-size: ${px(20)}px; font-weight: 600;`,
 	});
@@ -225,7 +226,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	});
 
 	const minutesCaption = new St.Label({
-		text: 'Minutes',
+		text: _('Minutes'),
 		x_align: Clutter.ActorAlign.CENTER,
 		style: `color: ${mutedColor}; font-size: ${px(20)}px; font-weight: 600;`,
 	});
@@ -254,7 +255,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	});
 
 	const secondsCaption = new St.Label({
-		text: 'Seconds',
+		text: _('Seconds'),
 		x_align: Clutter.ActorAlign.CENTER,
 		style: `color: ${mutedColor}; font-size: ${px(20)}px; font-weight: 600;`,
 	});
@@ -283,7 +284,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	});
 
 	const centisecondsCaption = new St.Label({
-		text: 'Centiseconds',
+		text: _('Centiseconds'),
 		x_align: Clutter.ActorAlign.CENTER,
 		style: `color: ${mutedColor}; font-size: ${px(23)}px; font-weight: 600;`,
 	});
@@ -310,7 +311,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		can_focus: true,
 		x_expand: false,
 		child: new St.Label({
-			text: 'Start',
+			text: _('Start'),
 			x_align: Clutter.ActorAlign.CENTER,
 			y_align: Clutter.ActorAlign.CENTER,
 		}),
@@ -322,7 +323,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		can_focus: true,
 		x_expand: false,
 		child: new St.Label({
-			text: 'Reset',
+			text: _('Reset'),
 			x_align: Clutter.ActorAlign.CENTER,
 			y_align: Clutter.ActorAlign.CENTER,
 		}),
@@ -348,7 +349,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			updateDisplay();
 			return GLib.SOURCE_CONTINUE;
 		});
-		pauseBtn.child.text = 'Pause';
+		pauseBtn.child.text = _('Pause');
 		pauseBtn.style = `font-size: ${px(19)}px; padding: ${px(12)}px ${px(32)}px; border-radius: ${px(12)}px; background-color: ${accentHex}; color: ${accentTextColor}; font-weight: 600;`;
 	};
 
@@ -359,7 +360,7 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			GLib.Source.remove(timerId);
 			timerId = null;
 		}
-		pauseBtn.child.text = 'Start';
+		pauseBtn.child.text = _('Start');
 		pauseBtn.style = `font-size: ${px(19)}px; padding: ${px(12)}px ${px(32)}px; border-radius: ${px(12)}px; background-color: ${accentHex}; color: ${accentTextColor}; font-weight: 600;`;
 	};
 

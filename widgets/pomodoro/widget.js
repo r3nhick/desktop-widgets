@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
+import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { parseCssColor } from '../../utils/ported.js';
 
 export const type = 'pomodoro';
@@ -24,21 +25,30 @@ const PHASE_LONG_BREAK = 'long_break';
 
 const PHASE_CONFIG = Object.freeze({
 	[PHASE_WORK]: {
-		label: 'Focus',
+		labelKey: 'focus',
 		minutesField: 'pomodoro-work-minutes',
 		defaultMinutes: POMODORO_DEFAULTS.WORK_MINUTES,
 	},
 	[PHASE_SHORT_BREAK]: {
-		label: 'Break',
+		labelKey: 'break',
 		minutesField: 'pomodoro-short-break-minutes',
 		defaultMinutes: POMODORO_DEFAULTS.SHORT_BREAK_MINUTES,
 	},
 	[PHASE_LONG_BREAK]: {
-		label: 'Long Break',
+		labelKey: 'long_break',
 		minutesField: 'pomodoro-long-break-minutes',
 		defaultMinutes: POMODORO_DEFAULTS.LONG_BREAK_MINUTES,
 	},
 });
+
+function getPhaseLabel(phase) {
+	const labels = {
+		focus: _('Focus'),
+		break: _('Break'),
+		long_break: _('Long Break'),
+	};
+	return labels[PHASE_CONFIG[phase].labelKey] || phase;
+}
 
 function getPhaseDurationSeconds(settings, phase) {
 	const phaseEntry = PHASE_CONFIG[phase];
@@ -241,7 +251,7 @@ function renderSmallTimer({body, theme, sizeForWidget, widget, settings}) {
 	stack.add_child(new St.Widget({y_expand: true}));
 
 	const phaseLabel = new St.Label({
-		text: PHASE_CONFIG[PHASE_WORK].label,
+		text: getPhaseLabel(PHASE_WORK),
 		x_align: Clutter.ActorAlign.CENTER,
 		style: `color: ${textColor}; font-size: ${phaseFontSize}px; font-weight: 800;`,
 	});
@@ -314,7 +324,7 @@ function renderSmallTimer({body, theme, sizeForWidget, widget, settings}) {
 		const activeConfig = PHASE_CONFIG[state.phase];
 
 		timerLabel.set_text(formatSeconds(state.secondsRemaining));
-		phaseLabel.set_text(activeConfig.label);
+		phaseLabel.set_text(getPhaseLabel(state.phase));
 		canvasActor.queue_repaint();
 		updateSessionDots();
 	};
@@ -426,7 +436,7 @@ function renderMediumFocus({body, theme, sizeForWidget, widget, settings}) {
 	});
 
 	const phaseCaption = new St.Label({
-		text: PHASE_CONFIG[state.phase].label,
+		text: getPhaseLabel(state.phase),
 	});
 
 	// Поміняли місцями: спочатку фаза (Focus), потім час
@@ -454,7 +464,7 @@ function renderMediumFocus({body, theme, sizeForWidget, widget, settings}) {
 			can_focus: true,
 			x_expand: true,
 			child: new St.Label({
-				text: PHASE_CONFIG[phase].label,
+				text: getPhaseLabel(phase),
 				x_align: Clutter.ActorAlign.CENTER,
 				y_align: Clutter.ActorAlign.CENTER,
 			}),
@@ -482,7 +492,7 @@ function renderMediumFocus({body, theme, sizeForWidget, widget, settings}) {
 		style: `margin-top: ${px(10)}px;`,
 	});
 
-	const counterPrefixLabel = new St.Label({text: 'Completed:'});
+	const counterPrefixLabel = new St.Label({text: _('Completed:')});
 	const counterValueLabel = new St.Label({text: '0'});
 	const counterTotalLabel = new St.Label({text: `/ ${getSessionsBeforeLongBreak(settings)}`});
 
@@ -505,7 +515,7 @@ function renderMediumFocus({body, theme, sizeForWidget, widget, settings}) {
 		can_focus: true,
 		x_expand: true,
 		child: new St.Label({
-			text: 'Start',
+			text: _('Start'),
 			x_align: Clutter.ActorAlign.CENTER,
 			y_align: Clutter.ActorAlign.CENTER,
 		}),
@@ -516,7 +526,7 @@ function renderMediumFocus({body, theme, sizeForWidget, widget, settings}) {
 		can_focus: true,
 		x_expand: true,
 		child: new St.Label({
-			text: 'Reset',
+			text: _('Reset'),
 			x_align: Clutter.ActorAlign.CENTER,
 			y_align: Clutter.ActorAlign.CENTER,
 		}),
@@ -528,7 +538,7 @@ function renderMediumFocus({body, theme, sizeForWidget, widget, settings}) {
 
 	const updateDisplay = () => {
 		timerLabel.set_text(formatSeconds(state.secondsRemaining));
-		phaseCaption.set_text(PHASE_CONFIG[state.phase].label);
+		phaseCaption.set_text(getPhaseLabel(state.phase));
 		counterValueLabel.set_text(String(state.completedSessions));
 		counterTotalLabel.set_text(`/ ${getSessionsBeforeLongBreak(settings)}`);
 		canvasActor.queue_repaint();
@@ -559,7 +569,7 @@ function renderMediumFocus({body, theme, sizeForWidget, widget, settings}) {
 		timerLabel.style = `font-size: ${px(29)}px; font-weight: 600; color: ${textColor};`;
 		phaseCaption.style = `font-size: ${px(11)}px; color: ${mutedColor}; font-weight: 600; margin-top: ${px(2)}px;`;
 
-		startBtn.child.text = state.isRunning ? 'Pause' : 'Start';
+		startBtn.child.text = state.isRunning ? _('Pause') : _('Start');
 	};
 
 	startBtn.connect('button-press-event', (_actor, event) => {

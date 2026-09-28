@@ -261,6 +261,10 @@ msgstr ""
 msgid "Box Shadow"
 msgstr ""
 
+#: widgets/pomodoro/widget.js:33
+msgid "Break"
+msgstr ""
+
 #: prefs.js:654
 msgid "Browse all widgets with icons and search"
 msgstr ""
@@ -285,6 +289,10 @@ msgstr ""
 #: prefs.js:988
 #: prefs.js:1856
 msgid "Cancel"
+msgstr ""
+
+#: widgets/stopwatch/widget.js:287
+msgid "Centiseconds"
 msgstr ""
 
 #: extension.js:2102
@@ -327,6 +335,10 @@ msgstr ""
 
 #: prefs.js:1011
 msgid "Close"
+msgstr ""
+
+#: widgets/pomodoro/widget.js:486
+msgid "Completed:"
 msgstr ""
 
 #: widgets/battery/widget.js:114
@@ -544,6 +556,10 @@ msgstr ""
 msgid "Firefox"
 msgstr ""
 
+#: widgets/pomodoro/widget.js:28
+msgid "Focus"
+msgstr ""
+
 #: widgets/folder/widget.js:171
 msgid "Folder does not exist: %s"
 msgstr ""
@@ -745,6 +761,10 @@ msgstr ""
 msgid "Load a widget layout from a JSON file"
 msgstr ""
 
+#: widgets/pomodoro/widget.js:38
+msgid "Long Break"
+msgstr ""
+
 #: prefs.js:1519
 msgid "Long break duration"
 msgstr ""
@@ -793,6 +813,14 @@ msgstr ""
 
 #: prefs.js:85
 msgid "Medium"
+msgstr ""
+
+#: widgets/stopwatch/widget.js:79
+msgid "Min : Sec"
+msgstr ""
+
+#: widgets/stopwatch/widget.js:229
+msgid "Minutes"
 msgstr ""
 
 #: widgets/github/widget.js:47
@@ -923,6 +951,11 @@ msgstr ""
 msgid "Overwrite existing layout?"
 msgstr ""
 
+#: widgets/pomodoro/widget.js:563
+#: widgets/stopwatch/widget.js:352
+msgid "Pause"
+msgstr ""
+
 #: prefs.js:573
 msgid "Pause animations in fullscreen"
 msgstr ""
@@ -1022,6 +1055,11 @@ msgstr ""
 msgid "Report an Issue"
 msgstr ""
 
+#: widgets/pomodoro/widget.js:520
+#: widgets/stopwatch/widget.js:326
+msgid "Reset"
+msgstr ""
+
 #: prefs.js:673
 msgid "Reset default widgets"
 msgstr ""
@@ -1077,6 +1115,10 @@ msgstr ""
 
 #: prefs.js:1950
 msgid "Search applications..."
+msgstr ""
+
+#: widgets/stopwatch/widget.js:258
+msgid "Seconds"
 msgstr ""
 
 #: prefs.js:1855
@@ -1159,6 +1201,13 @@ msgstr ""
 
 #: prefs.js:550
 msgid "Space between widgets and screen edges"
+msgstr ""
+
+#: widgets/pomodoro/widget.js:509
+#: widgets/pomodoro/widget.js:563
+#: widgets/stopwatch/widget.js:314
+#: widgets/stopwatch/widget.js:363
+msgid "Start"
 msgstr ""
 
 #: prefs.js:54
