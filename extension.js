@@ -465,6 +465,7 @@ class WidgetController {
       'changed::arrange-widgets', () => this._onArrangeRequested(),
       'changed::edit-mode-binding', () => this._registerEditModeBinding(),
       'changed::calendar-weekday-format', () => this._refreshCalendarWeekdays(),
+      'changed::calendar-use-accent-color', () => this._refreshCalendarWeekdays(),
       'changed::digitalclock-hour-format', () => this._scheduleAppearance('refresh'),
       'changed::digitalclock-show-seconds', () => this._scheduleAppearance('refresh'),
       'changed::digitalclock-show-ampm', () => this._scheduleAppearance('refresh'),

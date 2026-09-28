@@ -427,11 +427,10 @@ function buildGrid(options) {
 		style: `spacing: ${gap}px;`,
 	});
 
-	const weekdayColor = useAccentColor ? accent : text;
 	for (const weekday of weekdays) {
 		weekdayRow.add_child(calendarCell(
 			weekday,
-			`font-size: ${Math.max(8, weekdayFont)}px; font-weight: 600; color: ${weekdayColor};`,
+			`font-size: ${Math.max(8, weekdayFont)}px; font-weight: 600; color: ${secondary};`,
 			null,
 			createLabel,
 			cellWidth,
