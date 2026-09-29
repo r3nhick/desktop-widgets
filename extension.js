@@ -760,7 +760,7 @@ class WidgetController {
 
   _loadWidgets() {
     const serialized = this._layoutSettings.get_string(LAYOUT_KEY);
-    const widgets = serialized ? this._parseWidgets(serialized) : cloneDefaultWidgets(this._widgetGap ?? WIDGET_GAP);
+    const widgets = serialized ? this._parseWidgets(serialized) : []; // Start with empty desktop
 
     if (this._needsLayoutPersist) {
       this._widgets = widgets;

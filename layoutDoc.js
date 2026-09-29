@@ -11,8 +11,8 @@ function layoutJson(widgets) {
   return JSON.stringify({version: LAYOUT_VERSION, widgets});
 };
 
-// Порожній рядок означає «розкладку не задано»: розширення повертає типові
-// віджети. Це не документ, тож версія тут не потрібна.
+// Порожній рядок означає «розкладку не задано»: розширення показує порожній
+// робочий стіл. Це не документ, тож версія тут не потрібна.
 function clearLayout(settings) {
   settings.set_string(LAYOUT_KEY, '');
 };
