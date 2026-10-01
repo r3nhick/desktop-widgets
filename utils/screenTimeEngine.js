@@ -5,7 +5,7 @@ import Shell from 'gi://Shell';
 // Desktop-widgets screen time engine: tracks focused windows and accumulates
 // per-app, per-hour seconds. Persists one JSON file per day.
 
-const TICK_INTERVAL_MS = 1000;
+const TICK_INTERVAL_MS = 2000;
 const SAVE_THROTTLE_MS = 15000;
 const MICROSECONDS_PER_SECOND = 1000000;
 const SECONDS_PER_HOUR = 3600;
@@ -102,6 +102,7 @@ export const screenTimeEngine = {
 	_saveThrottleId: 0,
 	_listeners: new Set(),
 	_retentionDays: DEFAULT_RETENTION_DAYS,
+	_paused: false,
 
 	/** Sets how many days of history to keep; older files are cleaned up on next start/rollover. */
 	setRetentionDays(days) {
@@ -109,6 +110,19 @@ export const screenTimeEngine = {
 		if (value === this._retentionDays) return;
 		this._retentionDays = value;
 		cleanupOldFiles(this._retentionDays);
+	},
+
+	/** Pause/resume screen time tracking (e.g., when fullscreen or screen locked). */
+	setPaused(paused) {
+		if (this._paused === paused) return;
+		this._paused = paused;
+		
+		if (paused) {
+			// При паузі - зберегти поточний фокус та час
+			const now = GLib.get_real_time();
+			this._flushFocused(now);
+			this._saveNow();
+		}
 	},
 
 	acquire() {
@@ -225,6 +239,11 @@ export const screenTimeEngine = {
 	},
 
 	_tick() {
+		// Пропустити tick якщо на паузі (наприклад, при fullscreen)
+		if (this._paused) {
+			return;
+		}
+		
 		const now = GLib.get_real_time();
 		this._flushFocused(now);
 		this._maybeRollover();

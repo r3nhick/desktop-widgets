@@ -10,7 +10,7 @@ export const label = 'System Monitor';
 export const defaultSize = 'small';
 export const supportedSizes = ['small', 'medium', 'large'];
 
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 5000;
 const SWIPE_THRESHOLD = 50;
 const SPARK_SAMPLES = 40;
 const SPARK_LINE_WIDTH = 2;
@@ -297,9 +297,34 @@ class SystemMonitor {
       this.prevTimeMs = 0;
     }
   }
+
+  // Fullscreen optimization: pause/resume polling
+  pausePolling() {
+    this.paused = true;
+    if (this.timerId) {
+      GLib.Source.remove(this.timerId);
+      this.timerId = null;
+    }
+  }
+
+  resumePolling() {
+    this.paused = false;
+    if (this.subscribers.length > 0 && !this.timerId) {
+      this.poll();
+      this.timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, POLL_INTERVAL_MS, () => {
+        if (!this.paused) {
+          this.poll();
+        }
+        return GLib.SOURCE_CONTINUE;
+      });
+    }
+  }
 }
 
 const monitor = new SystemMonitor();
+
+// Export monitor для fullscreen pause optimization
+export { monitor };
 
 function formatBytes(bytes) {
   if (bytes === 0) return ['0.0', 'B/s'];

@@ -475,7 +475,8 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
 	// Real-time icon updates: GVFS metadata (custom folder icons) lives in
 	// ~/.local/share/gvfs-metadata/, not on the folder itself, so FileMonitor
-	// cannot detect icon changes. Poll the metadata every 3 seconds instead.
+	// cannot detect icon changes. Poll the metadata every 30 seconds instead.
+	// OPTIMIZED: 3s → 30s (10x less frequent, custom folder icons change rarely)
 	let iconPollTimer = null;
 	const iconFingerprints = new Map(); // path -> serialized icon state
 
@@ -510,7 +511,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 	// Start polling after a short delay (let buildGrid populate fingerprints first)
 	GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
 		if (destroyed) return GLib.SOURCE_REMOVE;
-		iconPollTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, pollFolderIcons);
+		iconPollTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 30, pollFolderIcons);
 		return GLib.SOURCE_REMOVE;
 	});
 

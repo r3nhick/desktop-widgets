@@ -100,7 +100,19 @@ const DigitalClockFace = GObject.registerClass(
 		};
 
 		_scheduleRepaint() {
-			const delay = 1000 - (Date.now() % 1000);
+			// Адаптивний інтервал: якщо секунди не показуються - оновлювати раз на хвилину
+			const showSeconds = this._showSeconds;
+			let delay;
+			
+			if (showSeconds) {
+				// З секундами - оновлювати кожну секунду
+				delay = 1000 - (Date.now() % 1000);
+			} else {
+				// Без секунд - оновлювати раз на хвилину
+				const now = Date.now();
+				const msInMinute = 60000;
+				delay = msInMinute - (now % msInMinute);
+			}
 
 			this._repaintTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
 				this._repaintTimeoutId = 0;

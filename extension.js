@@ -32,6 +32,7 @@ import { configureLogger, resetLogger, warn } from './logger.js';
 import { assetPath } from './paths.js';
 import { isActorDestroyed } from './utils/actorLifecycle.js';
 import { GlassBlur } from './utils/glassBlur.js';
+import { screenTimeEngine } from './utils/screenTimeEngine.js';
 import { clamp } from './utils.js';
 import { WorkspaceIntegration } from './workspaceIntegration.js';
 import { LAYOUT_KEY, LAYOUT_VERSION, layoutJson } from './layoutDoc.js';
@@ -806,22 +807,100 @@ class WidgetController {
     const windows = workspace.list_windows();
     const hasFullscreen = windows.some(win => win.is_fullscreen());
 
+    // Debug logging
+    console.log(`[desktop-widgets] _checkFullscreen: hasFullscreen=${hasFullscreen}, animationsPaused=${this._animationsPaused}, windowCount=${windows.length}`);
+
     if (hasFullscreen && !this._animationsPaused) {
+      console.log('[desktop-widgets] Detected fullscreen window - pausing animations');
       this._pauseAnimations();
     } else if (!hasFullscreen && this._animationsPaused) {
+      console.log('[desktop-widgets] No fullscreen window - resuming animations');
       this._resumeAnimations();
     }
   }
 
   _pauseAnimations() {
     this._animationsPaused = true;
-    // Тут можна додати логіку паузи конкретних віджетів
-    // Наразі просто встановлюємо прапорець
+    
+    // 🚨 АГРЕСИВНА FULLSCREEN ОПТИМІЗАЦІЯ
+    // Повна зупинка всіх віджетів та таймерів
+    
+    // Debug logging
+    console.log('[desktop-widgets] FULLSCREEN MODE: Pausing all widgets');
+    
+    // 1. Призупинити screen time tracking
+    try {
+      screenTimeEngine.setPaused(true);
+      console.log('[desktop-widgets] ScreenTimeEngine paused');
+    } catch (e) {
+      console.error('Failed to pause screenTimeEngine:', e);
+    }
+    
+    // 2. Призупинити SystemMonitor polling
+    try {
+      if (SystemWidget && SystemWidget.monitor && typeof SystemWidget.monitor.pausePolling === 'function') {
+        SystemWidget.monitor.pausePolling();
+        console.log('[desktop-widgets] SystemMonitor polling paused');
+      }
+    } catch (e) {
+      console.error('Failed to pause SystemMonitor:', e);
+    }
+    
+    // 3. Призупинити всі анімовані віджети
+    let pausedCount = 0;
+    for (const view of this._views.values()) {
+      if (view.widgetInstance && typeof view.widgetInstance.pause === 'function') {
+        try {
+          view.widgetInstance.pause();
+          pausedCount++;
+        } catch (e) {
+          console.error(`Failed to pause widget ${view.widget?.type}:`, e);
+        }
+      }
+    }
+    console.log(`[desktop-widgets] Paused ${pausedCount} widget instances`);
   }
 
   _resumeAnimations() {
     this._animationsPaused = false;
-    // Тут можна додати логіку відновлення анімацій віджетів
+    
+    // 🚨 АГРЕСИВНА FULLSCREEN ОПТИМІЗАЦІЯ
+    // Відновлення всіх віджетів та таймерів
+    
+    // Debug logging
+    console.log('[desktop-widgets] EXITED FULLSCREEN: Resuming all widgets');
+    
+    // 1. Відновити screen time tracking
+    try {
+      screenTimeEngine.setPaused(false);
+      console.log('[desktop-widgets] ScreenTimeEngine resumed');
+    } catch (e) {
+      console.error('Failed to resume screenTimeEngine:', e);
+    }
+    
+    // 2. Відновити SystemMonitor polling
+    try {
+      if (SystemWidget && SystemWidget.monitor && typeof SystemWidget.monitor.resumePolling === 'function') {
+        SystemWidget.monitor.resumePolling();
+        console.log('[desktop-widgets] SystemMonitor polling resumed');
+      }
+    } catch (e) {
+      console.error('Failed to resume SystemMonitor:', e);
+    }
+    
+    // 3. Відновити всі анімовані віджети
+    let resumedCount = 0;
+    for (const view of this._views.values()) {
+      if (view.widgetInstance && typeof view.widgetInstance.resume === 'function') {
+        try {
+          view.widgetInstance.resume();
+          resumedCount++;
+        } catch (e) {
+          console.error(`Failed to resume widget ${view.widget?.type}:`, e);
+        }
+      }
+    }
+    console.log(`[desktop-widgets] Resumed ${resumedCount} widget instances`);
   }
 
   _destroyLayer() {
