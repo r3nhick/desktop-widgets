@@ -8,6 +8,7 @@ import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.j
 
 import { warn } from '../../logger.js';
 import { iconPath } from '../../paths.js';
+import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 
 export const type = 'photos';
 export const label = 'Photos';
@@ -144,7 +145,7 @@ export function openPhotoChooser(widget, onPhotoChange) {
 };
 
 function buildEmptyState(createLabel, onPick, theme, radius = 16) {
-	const container = new St.BoxLayout({
+	const container = new St.BoxLayout(boxLayoutProps({
 		style_class: 'widget-photo-empty',
 		vertical: true,
 		x_expand: true,
@@ -152,7 +153,7 @@ function buildEmptyState(createLabel, onPick, theme, radius = 16) {
 		x_align: Clutter.ActorAlign.CENTER,
 		y_align: Clutter.ActorAlign.CENTER,
 		style: 'spacing: 12px;',
-	});
+	}));
 
 	// Та сама іконка, що й у налаштуваннях: dw-image-light / dw-image-dark.
 	// Вона не має суфікса -symbolic, тому GTK не заливає її суцільним

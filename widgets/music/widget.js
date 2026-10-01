@@ -7,6 +7,7 @@ import St from 'gi://St';
 import { warn } from '../../logger.js';
 import { assetPath } from '../../paths.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 
 export const type = 'music';
 export const label = 'Music';
@@ -427,11 +428,11 @@ function createCard(theme, createLabel, widgetWidth, widgetHeight) {
 		};
 	};
 
-	card.column = new St.BoxLayout({
+	card.column = new St.BoxLayout(boxLayoutProps({
 		vertical: true,
 		x_expand: true,
 		style: 'spacing: 4px;',
-	});
+	}));
 
 	card.title = createLabel('', 'widget-music-title', `font-size: ${titleFont}px; font-weight: 800; color: ${theme.text};`);
 	card.title.clutter_text.single_line_mode = true;

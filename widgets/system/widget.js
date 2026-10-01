@@ -4,6 +4,7 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 
 export const type = 'system';
 export const label = 'System Monitor';
@@ -404,7 +405,7 @@ function drawSparkline(ctx, width, height, samples, maxValue, color, lineAlpha) 
 }
 
 function createSparkTile(theme, label, value, unit, accentColor, samples, maxValue, extraInfo = null) {
-  const tile = new St.BoxLayout({
+  const tile = new St.BoxLayout(boxLayoutProps({
     vertical: true,
     x_expand: false,
     y_expand: false,
@@ -415,12 +416,12 @@ function createSparkTile(theme, label, value, unit, accentColor, samples, maxVal
       padding: 6px;
       spacing: 4px;
     `,
-  });
+  }));
 
-  const headerRow = new St.BoxLayout({
+  const headerRow = new St.BoxLayout(boxLayoutProps({
     x_expand: true,
     style: `spacing: 6px;`,
-  });
+  }));
 
   const iconMap = {
     'CPU': 'system-run-symbolic',
@@ -471,10 +472,10 @@ function createSparkTile(theme, label, value, unit, accentColor, samples, maxVal
 
   tile.add_child(headerRow);
 
-  const valueRow = new St.BoxLayout({
+  const valueRow = new St.BoxLayout(boxLayoutProps({
     x_align: Clutter.ActorAlign.START,
     style: `spacing: 0px;`,
-  });
+  }));
 
   const valueLabel = new St.Label({
     text: value,
@@ -525,13 +526,13 @@ export function render({body, theme, widget, sizeForWidget}) {
   let unsubscribe = null;
   const animatingActors = new Set();
 
-  const container = new St.BoxLayout({
+  const container = new St.BoxLayout(boxLayoutProps({
     vertical: true,
     x_expand: true,
     y_expand: true,
     clip_to_allocation: true,
     style: `padding: 3px;`,
-  });
+  }));
 
   // Explicitly size the tiles: one row of two tiles (medium) or two rows of
   // two tiles (large) get equal halves of the inner width. We read the real
@@ -606,10 +607,10 @@ export function render({body, theme, widget, sizeForWidget}) {
     const rebuild = (enterX = 0) => {
       container.remove_all_children();
       
-      scrollBox = new St.BoxLayout({
+      scrollBox = new St.BoxLayout(boxLayoutProps({
         x_expand: true,
         y_expand: true,
-      });
+      }));
 
       const config = metricConfigs[currentMetric];
       const samples = monitor.lastData[config.samplesKey] || [];
@@ -750,11 +751,11 @@ export function render({body, theme, widget, sizeForWidget}) {
 
     const rebuild = (enterX = 0) => {
       container.remove_all_children();
-      currentRow = new St.BoxLayout({
+      currentRow = new St.BoxLayout(boxLayoutProps({
         x_expand: true,
         y_expand: true,
         style: `spacing: 10px;`,
-      });
+      }));
 
       const view = viewConfigs[currentView];
       tiles = [];
@@ -879,22 +880,22 @@ export function render({body, theme, widget, sizeForWidget}) {
   } else if (size === 'large') {
     layoutMode = 'large';
 
-    const tilesGrid = new St.BoxLayout({
+    const tilesGrid = new St.BoxLayout(boxLayoutProps({
       vertical: true,
       x_expand: true,
       y_expand: true,
       style: `spacing: 10px;`,
-    });
+    }));
 
-    const topRow = new St.BoxLayout({
+    const topRow = new St.BoxLayout(boxLayoutProps({
       x_expand: true,
       style: `spacing: 10px;`,
-    });
+    }));
 
-    const bottomRow = new St.BoxLayout({
+    const bottomRow = new St.BoxLayout(boxLayoutProps({
       x_expand: true,
       style: `spacing: 10px;`,
-    });
+    }));
 
     const cpuExtraInfo = monitor.lastData.cpuTemp > 0 ? `${Math.round(monitor.lastData.cpuTemp)}°C` : null;
     const cpuTile = createSparkTile(theme, 'CPU', '0', '%', accentColor, monitor.lastData.cpuSamples, 1.0, cpuExtraInfo);

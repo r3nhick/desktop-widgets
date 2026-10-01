@@ -34,6 +34,7 @@ import { isActorDestroyed } from './utils/actorLifecycle.js';
 import { GlassBlur } from './utils/glassBlur.js';
 import { screenTimeEngine } from './utils/screenTimeEngine.js';
 import { clamp } from './utils.js';
+import { boxLayoutProps } from './utils/gnomeCompat.js';
 import { WorkspaceIntegration } from './workspaceIntegration.js';
 import { LAYOUT_KEY, LAYOUT_VERSION, layoutJson } from './layoutDoc.js';
 
@@ -1809,13 +1810,13 @@ class WidgetController {
     };
 
     const [width, height] = this._sizeFor(widget);
-    const actorParams = {
+    const actorParams = boxLayoutProps({
       vertical: true,
       style_class: `widget widget-${widget.type}`,
       reactive: true,
       can_focus: true,
       track_hover: true,
-    };
+    });
     const style = this._styleForWidget(widget);
 
     if (style) {
@@ -1830,13 +1831,13 @@ class WidgetController {
     const opacity = this._layoutSettings.get_double('style-widget-opacity');
     actor.opacity = Math.round(clamp(opacity, 0, 1) * 255);
 
-    const body = new St.BoxLayout({
+    const body = new St.BoxLayout(boxLayoutProps({
       vertical: true,
       style_class: 'widget-body',
       x_expand: true,
       y_expand: true,
       clip_to_allocation: true,
-    });
+    }));
     actor.add_child(body);
 
     this._layer.add_child(actor);
@@ -2106,11 +2107,11 @@ class WidgetController {
 
       this._layer.add_child(sizeButton);
 
-      sizeMenu = new St.BoxLayout({
+      sizeMenu = new St.BoxLayout(boxLayoutProps({
         vertical: true,
         style_class: 'widget-size-menu',
         reactive: true,
-      });
+      }));
       this._layer.add_child(sizeMenu);
       sizeMenu.hide();
 
@@ -2727,11 +2728,11 @@ class WidgetController {
     view.contextMenu?.destroy();
     view.contextMenu = null;
 
-    const menu = new St.BoxLayout({
+    const menu = new St.BoxLayout(boxLayoutProps({
       vertical: true,
       style_class: 'widget-size-menu widget-context-menu',
       reactive: true,
-    });
+    }));
     Main.uiGroup.add_child(menu);
 
     const widgetModule = WIDGETS.get(view.widget.type);

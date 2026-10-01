@@ -4,6 +4,7 @@ import St from 'gi://St';
 import Gio from 'gi://Gio';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { boxLayoutProps } from './utils/gnomeCompat.js';
 
 const CARD_WIDTH = 160;
 const CARD_HEIGHT = 180;
@@ -124,13 +125,13 @@ const CATEGORY_KEYS = {
 export const WidgetAddMenu = GObject.registerClass(
 class WidgetAddMenu extends St.BoxLayout {
 	_init(extensionPath, onWidgetAdd, gettextFn) {
-		super._init({
+		super._init(boxLayoutProps({
 			vertical: true,
 			style_class: 'widget-add-menu',
 			reactive: true,
 			can_focus: true,
 			visible: false,
-		});
+		}));
 
 		this._extensionPath = extensionPath;
 		this._onWidgetAdd = onWidgetAdd;
@@ -151,10 +152,10 @@ class WidgetAddMenu extends St.BoxLayout {
 		`);
 
 		// Заголовок
-		const header = new St.BoxLayout({
+		const header = new St.BoxLayout(boxLayoutProps({
 			vertical: false,
 			style: 'spacing: 12px; margin-bottom: 20px;',
-		});
+		}));
 
 		const title = new St.Label({
 			text: _('Add Widget'),
@@ -190,10 +191,10 @@ class WidgetAddMenu extends St.BoxLayout {
 			overlay_scrollbars: true,
 		});
 
-		const contentBox = new St.BoxLayout({
+		const contentBox = new St.BoxLayout(boxLayoutProps({
 			vertical: true,
 			style: 'spacing: 24px;',
-		});
+		}));
 
 		// Групуємо віджети за категоріями
 		const categorized = {};
@@ -230,10 +231,10 @@ class WidgetAddMenu extends St.BoxLayout {
 	}
 
 	_buildCategory(categoryName, widgets) {
-		const section = new St.BoxLayout({
+		const section = new St.BoxLayout(boxLayoutProps({
 			vertical: true,
 			style: 'spacing: 12px;',
-		});
+		}));
 
 		// Назва категорії
 		const categoryLabel = new St.Label({
@@ -278,7 +279,7 @@ class WidgetAddMenu extends St.BoxLayout {
 		card.set_width(CARD_WIDTH);
 		card.set_height(CARD_HEIGHT);
 
-		const cardBox = new St.BoxLayout({
+		const cardBox = new St.BoxLayout(boxLayoutProps({
 			vertical: true,
 			style: `
 				background-color: rgba(255, 255, 255, 0.08);
@@ -286,7 +287,7 @@ class WidgetAddMenu extends St.BoxLayout {
 				padding: 16px;
 				spacing: 8px;
 			`,
-		});
+		}));
 
 		// SVG іконка
 		const iconPath = `${this._extensionPath}/assets/icons/${widgetMeta.icon}`;

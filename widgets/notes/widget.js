@@ -11,6 +11,7 @@ import St from 'gi://St';
 import Pango from 'gi://Pango';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { getDataDir, isActorDestroyed, loadJsonFromFileAsync, saveJsonToFile, parseCssColor } from '../../utils/ported.js';
+import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 
 export const type = 'notes';
 export const label = 'Quick Notes';
@@ -55,18 +56,18 @@ export function render({ body, widget, theme, settings }) {
     let isEditing = false;
     const state = { saveTimerId: null, settingsHandlers: [] };
 
-    const mainBox = new St.BoxLayout({
+    const mainBox = new St.BoxLayout(boxLayoutProps({
         vertical: true,
         x_expand: true,
         y_expand: true,
         style: `padding: 8px;`,
-    });
+    }));
 
     // Header with editable title and edit button
-    const headerBox = new St.BoxLayout({
+    const headerBox = new St.BoxLayout(boxLayoutProps({
         x_expand: true,
         style: 'margin-bottom: 6px;',
-    });
+    }));
 
     const titleLabel = new St.Label({
         text: noteTitle,
@@ -112,18 +113,18 @@ export function render({ body, widget, theme, settings }) {
     });
     scrollView.set_policy(St.PolicyType.NEVER, St.PolicyType.EXTERNAL);
 
-    const scrollContent = new St.BoxLayout({
+    const scrollContent = new St.BoxLayout(boxLayoutProps({
         vertical: true,
         x_expand: true,
-    });
+    }));
     scrollView.set_child(scrollContent);
     mainBox.add_child(scrollView);
 
     // Display container (for view mode with markdown) - inside scroll
-    const viewerContainer = new St.BoxLayout({
+    const viewerContainer = new St.BoxLayout(boxLayoutProps({
         style: `color: ${textColor};`,
         x_expand: true,
-    });
+    }));
 
     const displayLabel = new Clutter.Text({
         font_name: `${contentFontSize}px`,
@@ -157,10 +158,10 @@ export function render({ body, widget, theme, settings }) {
     });
 
     // Editor container (for edit mode)
-    const editorContainer = new St.BoxLayout({
+    const editorContainer = new St.BoxLayout(boxLayoutProps({
         style: `color: ${textColor};`,
         x_expand: true,
-    });
+    }));
 
     const textEditor = new Clutter.Text({
         font_name: `${contentFontSize}px`,

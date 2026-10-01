@@ -7,6 +7,7 @@ import St from 'gi://St';
 
 import { warn } from '../../logger.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 
 export const type = 'weather';
 export const label = 'Weather';
@@ -352,21 +353,21 @@ function buildHourlyStrip(hours, theme, createLabel, stripScale, cellCount, opts
 	const tempFontBase = opts.tempFont ?? 13;
 	const tempWeight = opts.tempWeight ?? 700;
 	const timeColor = opts.timeColor ?? theme.muted;
-	const strip = new St.BoxLayout({
+	const strip = new St.BoxLayout(boxLayoutProps({
 		style_class: 'widget-weather-hourly',
 		x_expand: true,
 		x_align: Clutter.ActorAlign.FILL,
 		style: `spacing: ${Math.round(6 * stripScale)}px;`,
-	});
+	}));
 
 	for (let index = 0; index < cellCount; index++) {
 		const hour = hours[index];
-		const cell = new St.BoxLayout({
+		const cell = new St.BoxLayout(boxLayoutProps({
 			vertical: true,
 			style_class: 'widget-weather-hour',
 			x_expand: true,
 			y_align: Clutter.ActorAlign.CENTER,
-		});
+		}));
 
 		const timeLabel = createLabel(
 			hour ? hour.label : '',
@@ -426,11 +427,11 @@ function buildHeader(rendered, theme, createLabel, scale, opts = {}) {
 	const condWeight = opts.condWeight ?? 700;
 	const condIcon = opts.condIcon ?? false;
 	const condIconSize = opts.condIconSize ?? 16;
-	const left = new St.BoxLayout({
+	const left = new St.BoxLayout(boxLayoutProps({
 		vertical: true,
 		x_align: Clutter.ActorAlign.START,
 		style: 'spacing: 0px;',
-	});
+	}));
 
 	left.add_child(createLabel(
 		rendered.location,
@@ -441,12 +442,12 @@ function buildHeader(rendered, theme, createLabel, scale, opts = {}) {
 		'widget-weather-temp-main',
 		`color: ${theme.text}; font-size: ${scaledFont(tempFont, scale)}px; font-weight: ${tempWeight};`));
 
-	const right = new St.BoxLayout({
+	const right = new St.BoxLayout(boxLayoutProps({
 		vertical: true,
 		x_align: Clutter.ActorAlign.END,
 		y_align: Clutter.ActorAlign.START,
 		style: 'spacing: 0px;',
-	});
+	}));
 
 	if (condIcon) {
 		const iconParams = {
@@ -466,11 +467,11 @@ function buildHeader(rendered, theme, createLabel, scale, opts = {}) {
 		right.add_child(new St.Icon(iconParams));
 	};
 
-	const condRow = new St.BoxLayout({
+	const condRow = new St.BoxLayout(boxLayoutProps({
 		x_align: Clutter.ActorAlign.END,
 		y_align: Clutter.ActorAlign.CENTER,
 		style: 'spacing: 4px;',
-	});
+	}));
 
 	condRow.add_child(createLabel(
 		rendered.summary,
@@ -485,12 +486,12 @@ function buildHeader(rendered, theme, createLabel, scale, opts = {}) {
 		right.add_child(range);
 	};
 
-	const header = new St.BoxLayout({
+	const header = new St.BoxLayout(boxLayoutProps({
 		style_class: 'widget-weather-header',
 		x_expand: true,
 		y_align: Clutter.ActorAlign.START,
 		style: 'spacing: 8px;',
-	});
+	}));
 
 	header.add_child(left);
 	header.add_child(new St.Widget({x_expand: true}));
@@ -519,11 +520,11 @@ function buildTempBar(day, allDays, trackWidth = 110) {
 	start = Math.max(0, Math.min(0.92, start));
 	width = Math.max(0.08, Math.min(1 - start, width));
 
-	const track = new St.BoxLayout({
+	const track = new St.BoxLayout(boxLayoutProps({
 		style: `width: ${trackWidth}px; height: ${trackHeight}px; background-color: rgba(255, 255, 255, 0.12); border-radius: 2px;`,
 		x_align: Clutter.ActorAlign.START,
 		x_expand: false,
-	});
+	}));
 
 	track.set_size(trackWidth, trackHeight);
 
@@ -547,20 +548,20 @@ function buildTempBar(day, allDays, trackWidth = 110) {
 };
 
 function buildWeekList(days, theme, createLabel, scale, barWidth = 110) {
-	const list = new St.BoxLayout({
+	const list = new St.BoxLayout(boxLayoutProps({
 		vertical: true,
 		style_class: 'widget-weather-week',
 		style: `spacing: ${Math.round(6 * scale)}px;`,
-	});
+	}));
 
 	for (const day of days) {
-		const row = new St.BoxLayout({
+		const row = new St.BoxLayout(boxLayoutProps({
 			style_class: 'widget-weather-day-row',
 			x_expand: true,
 			x_align: Clutter.ActorAlign.FILL,
 			y_align: Clutter.ActorAlign.CENTER,
 			style: `spacing: ${Math.round(6 * scale)}px;`,
-		});
+		}));
 		const name = createLabel(
 			day.day,
 			'widget-weather-day-name',
@@ -612,12 +613,12 @@ function buildCompactRegime(body, rendered, theme, createLabel, scale) {
 		`color: ${theme.text}; font-size: ${scaledFont(42, scale)}px; font-weight: 500;`));
 	body.add_child(new St.Widget({y_expand: true}));
 
-	const bottom = new St.BoxLayout({
+	const bottom = new St.BoxLayout(boxLayoutProps({
 		vertical: true,
 		x_align: Clutter.ActorAlign.START,
 		y_align: Clutter.ActorAlign.END,
 		style: 'spacing: 2px;',
-	});
+	}));
 	const iconParams = {
 		style_class: 'widget-weather-icon',
 		style: `icon-size: ${scaledFont(24, scale)}px; icon-shadow: 0 2px 4px rgba(0, 0, 0, 0.42);`,

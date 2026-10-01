@@ -8,6 +8,7 @@ import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.j
 
 import { clamp } from '../../utils.js';
 import { warn } from '../../logger.js';
+import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 
 export const type = 'calendar';
 export const label = 'Calendar';
@@ -414,18 +415,18 @@ function buildGrid(options) {
 		weekdays,
 		useAccentColor,
 	} = options;
-	const grid = new St.BoxLayout({
+	const grid = new St.BoxLayout(boxLayoutProps({
 		vertical: true,
 		style_class: 'widget-calendar-grid',
 		x_expand: true,
 		x_align: Clutter.ActorAlign.CENTER,
 		style: `spacing: ${gap}px;`,
-	});
-	const weekdayRow = new St.BoxLayout({
+	}));
+	const weekdayRow = new St.BoxLayout(boxLayoutProps({
 		style_class: 'widget-calendar-row',
 		x_expand: true,
 		style: `spacing: ${gap}px;`,
-	});
+	}));
 
 	for (const weekday of weekdays) {
 		weekdayRow.add_child(calendarCell(
@@ -451,11 +452,11 @@ function buildGrid(options) {
 	let day = 1;
 
 	for (let rowIndex = 0; rowIndex < weekCount; rowIndex++) {
-		const row = new St.BoxLayout({
+		const row = new St.BoxLayout(boxLayoutProps({
 			style_class: 'widget-calendar-row',
 			x_expand: true,
 			style: `spacing: ${gap}px;`,
-		});
+		}));
 
 		for (let column = 0; column < 7; column++) {
 			if ((rowIndex === 0 && column < start) || day > days) {
@@ -544,11 +545,11 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel, se
 		const eventColor = sourceColor(event.id);
 
 		// Event item container with border and dark background
-		const eventItem = new St.BoxLayout({
+		const eventItem = new St.BoxLayout(boxLayoutProps({
 			vertical: false,
 			style_class: 'widget-calendar-event-item',
 			style: `background-color: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 0; spacing: 0;`,
-		});
+		}));
 
 		// Colored vertical indicator line on the left
 		const colorBar = new St.Widget({
@@ -628,17 +629,17 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 		const weekdayFont = fitWeekdayFontSize(weekdays, cellWidth, dayFont);
 		const gap = GAP_BASE;
 
-		const container = new St.BoxLayout({
+		const container = new St.BoxLayout(boxLayoutProps({
 			x_expand: true,
 			y_expand: true,
 			style: `spacing: 20px;`,
-		});
+		}));
 
-		const left = new St.BoxLayout({
+		const left = new St.BoxLayout(boxLayoutProps({
 			vertical: true,
 			x_expand: true,
 			style: 'spacing: 4px;',
-		});
+		}));
 
 		const weekdayNameColor = useAccentColor ? theme.accent : text;
 		left.add_child(createLabel(
@@ -660,10 +661,10 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 		});
 		eventsScroll.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
 
-		const eventsBox = new St.BoxLayout({
+		const eventsBox = new St.BoxLayout(boxLayoutProps({
 			vertical: true,
 			style: 'spacing: 4px;',
-		});
+		}));
 		eventsScroll.set_child(eventsBox);
 		left.add_child(eventsScroll);
 
@@ -690,10 +691,10 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 			fillEventsBox(eventsBox, {eventsClient: null, now, secondary, createLabel, settings});
 		};
 
-		const right = new St.BoxLayout({
+		const right = new St.BoxLayout(boxLayoutProps({
 			vertical: true,
 			style: 'spacing: 4px;',
-		});
+		}));
 
 		right.set_width(rightWidth);
 		right.add_child(monthLabel(now, createLabel, dayFont, theme, useAccentColor, cellWidth / 20));

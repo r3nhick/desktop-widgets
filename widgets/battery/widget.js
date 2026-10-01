@@ -6,6 +6,7 @@ import St from 'gi://St';
 
 import { warn } from '../../logger.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 
 export const type = 'battery';
 export const label = 'Battery';
@@ -426,13 +427,13 @@ function batteryPlan(width, height, iconRatio, count) {
 };
 
 function createSlot(device, theme, createLabel, plan, showPercent) {
-	const slot = new St.BoxLayout({
+	const slot = new St.BoxLayout(boxLayoutProps({
 		vertical: true,
 		style_class: 'widget-battery-slot',
 		x_expand: true,
 		x_align: Clutter.ActorAlign.CENTER,
 		style: 'spacing: 6px;',
-	});
+	}));
 	const gaugeWidget = new St.Widget({style_class: 'widget-battery-gauge'});
 	const ring = new BatteryRing(device, theme);
 	const icon = new St.Icon({
@@ -472,13 +473,13 @@ export function render({body, createLabel, theme, sizeForWidget, widget, setting
 	const iconRatio = ICON_RATIOS[iconKey] ?? ICON_RATIOS.medium;
 	const [width, height] = sizeForWidget(widget);
 	const plan = batteryPlan(width, height, iconRatio, devices.length);
-	const tray = new St.BoxLayout({
+	const tray = new St.BoxLayout(boxLayoutProps({
 		style_class: 'widget-battery-tray',
 		x_expand: true,
 		y_expand: true,
 		y_align: Clutter.ActorAlign.CENTER,
 		style: `spacing: ${plan.gap}px;`,
-	});
+	}));
 
 	for (let index = 0; index < devices.length; index++) {
 		tray.add_child(createSlot(devices[index], theme, createLabel, plan, showPercent));
