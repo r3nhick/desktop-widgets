@@ -414,6 +414,8 @@ class WidgetController {
     this._debounceTimers = {};
     this._pendingAppearance = {rebuild: false, refresh: false};
     this._dragSafetyId = 0;
+    this._raiseIdleId = 0;
+    this._layerStackDirty = false;
     this._editMode = false;
     this._dragActor = null;
     this._layerX = null;
@@ -602,6 +604,11 @@ class WidgetController {
     if (this._dragSafetyId) {
       GLib.source_remove(this._dragSafetyId);
       this._dragSafetyId = 0;
+    };
+
+    if (this._raiseIdleId) {
+      GLib.source_remove(this._raiseIdleId);
+      this._raiseIdleId = 0;
     };
 
     global.stage.disconnectObject(this);
@@ -905,6 +912,17 @@ class WidgetController {
   }
 
   _destroyLayer() {
+    Main.layoutManager._backgroundGroup?.disconnectObject(this);
+    global.window_group?.disconnectObject(this);
+    global.display?.disconnectObject(this);
+    global.stage?.disconnectObject(this);
+    this._layerStackDirty = false;
+
+    if (this._raiseIdleId) {
+      GLib.source_remove(this._raiseIdleId);
+      this._raiseIdleId = 0;
+    };
+
     this._workspaceIntegration.setSource(null);
     this._cancelActiveDrag();
     this._clearViews();
@@ -924,17 +942,102 @@ class WidgetController {
 
     this._layer = new St.Widget({
       style_class: 'widget-layer',
-      // Not reactive: the layer spans the whole desktop, so making it reactive
-      // would swallow every left-click meant for GNOME (desktop menu, etc.).
-      // Widget actors are reactive on their own, so clicks on them still work.
+      //Oh my god the bitch stole my money
       reactive: false,
       x_expand: true,
       y_expand: true,
     });
 
     backgroundGroup.add_child(this._layer);
+    this._keepLayerAboveDesktopIcons(backgroundGroup);
     this._syncLayerGeometry();
     this._workspaceIntegration.setSource(this._layer);
+  };
+
+  // Behold a thousand cereals I call it the cereals it took me 9 yeareals to
+  // call it the cereals nyum nyum cereals good
+  _isDingWindow(metaWindow) {
+    if (!metaWindow) {
+      return false;
+    };
+
+    const title = metaWindow.get_title() ?? '';
+    const appId = metaWindow.get_gtk_application_id?.() ?? '';
+    const wmClass = metaWindow.get_wm_class?.() ?? '';
+
+    // What am I working on? I have zero idea this code is kept up
+    // by my hopes and dreams
+    const dingToken = /(^|[._-])ding($|[._-])/i;
+
+    return title.startsWith('@!') ||
+      dingToken.test(appId) ||
+      dingToken.test(wmClass);
+  };
+
+  // I have some simple idea on what to do but this code does not guarantee it
+  // be careful comrade
+  _placeLayerAboveDesktopIcons() {
+    const layer = this._layer;
+    const windowGroup = global.window_group;
+    const backgroundGroup = Main.layoutManager._backgroundGroup;
+
+    if (!layer || !windowGroup || !backgroundGroup) {
+      return;
+    };
+
+    let topDing = null;
+
+    for (const child of windowGroup.get_children()) {
+      if (child !== layer && this._isDingWindow(child.meta_window)) {
+        topDing = child;
+      };
+    };
+
+    if (topDing) {
+      if (layer.get_parent() !== windowGroup) {
+        layer.get_parent()?.remove_child(layer);
+        windowGroup.add_child(layer);
+      };
+
+      windowGroup.set_child_above_sibling(layer, topDing);
+    } else {
+      if (layer.get_parent() !== backgroundGroup) {
+        layer.get_parent()?.remove_child(layer);
+        backgroundGroup.add_child(layer);
+      };
+
+      backgroundGroup.set_child_above_sibling(layer, null);
+    };
+  };
+
+  _keepLayerAboveDesktopIcons(_backgroundGroup) {
+    // Mutter is a CIA psyop
+    const markDirty = () => {
+      this._layerStackDirty = true;
+
+      if (!this._raiseIdleId) {
+        this._raiseIdleId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+          this._raiseIdleId = 0;
+          this._layerStackDirty = false;
+          this._placeLayerAboveDesktopIcons();
+
+          return GLib.SOURCE_REMOVE;
+        });
+      };
+    };
+
+    global.window_group.connectObject('child-added', markDirty, 'child-removed', markDirty, this);
+    global.display.connectObject('restacked', markDirty, this);
+    global.stage.connectObject('before-update', () => {
+      if (!this._layerStackDirty) {
+        return;
+      };
+
+      this._layerStackDirty = false;
+      this._placeLayerAboveDesktopIcons();
+    }, this);
+
+    markDirty();
   };
 
   _syncLayerGeometry() {

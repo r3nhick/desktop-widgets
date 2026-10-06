@@ -14,13 +14,6 @@ A fork of [Widgets](https://github.com/TheRealSourcer/widgets) by TheRealSourcer
 
 ![Desktop Widgets](assets/widgets-3.png)
 
-> **⚠️ Desktop Icons NG (DING) conflict**
->
-> If you have the **Desktop Icons NG (DING)** extension enabled, the desktop
-> widgets are **not clickable** — the icons layer sits on top of them. To get
-> fully interactive widgets, **disable DING** (Extensions app → Desktop Icons
-> NG → switch off, or run `gnome-extensions disable ding@rastersoft.com`).
-
 ## Features
 
 - **Grid layout** — widgets snap to a desktop grid and can be freely arranged in edit mode.
