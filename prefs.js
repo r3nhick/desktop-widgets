@@ -303,6 +303,18 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             return false;
         });
 
+        // Check if widget picker should be opened automatically
+        if (settings.get_boolean('open-widget-picker')) {
+            settings.set_boolean('open-widget-picker', false);
+            // Open widget picker after window is shown
+            GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                openWidgetPicker(window, this.path, _, (widgetType) => {
+                    this._addWidget(settings, widgetType);
+                });
+                return GLib.SOURCE_REMOVE;
+            });
+        }
+
         this._switchToSidebar(window);
 
         // General page
@@ -576,6 +588,14 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         pauseAnimationsRow.set_active(settings.get_boolean('pause-animations-fullscreen'));
         settings.bind('pause-animations-fullscreen', pauseAnimationsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         widgetsGroup.add(pauseAnimationsRow);
+
+        const showPanelIconRow = new Adw.SwitchRow({
+            title: _('Show panel icon'),
+            subtitle: _('Display icon in top panel for quick access to edit mode'),
+        });
+        showPanelIconRow.set_active(settings.get_boolean('show-panel-icon'));
+        settings.bind('show-panel-icon', showPanelIconRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        widgetsGroup.add(showPanelIconRow);
 
         const deleteShortcutButton = new Gtk.Button({
             icon_name: 'edit-delete-symbolic',

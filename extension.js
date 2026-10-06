@@ -8,6 +8,8 @@ import St from 'gi://St';
 
 import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import * as AppLauncherWidget from './widgets/applauncher/widget.js';
 import * as BatteryWidget from './widgets/battery/widget.js';
@@ -142,6 +144,8 @@ function sizeLabel(sizeKey) {
             return _('1×2 mini');
         case 'minilarge':
             return _('2×2 mini');
+        case 'compact':
+            return _('2×1 (compact)');
         case 'small':
             return _('1×1');
         case 'medium':
@@ -425,6 +429,7 @@ class WidgetController {
     this._eventsClient = new CalendarWidget.CalendarEventsClient();
     this._lastAppLaunchAt = 0;
     this._suppressAppClickUntil = 0;
+    this._indicator = null;
     this._workspaceIntegration = new WorkspaceIntegration();
     this._layoutSettings = extension.getSettings();
     this._interfaceSettings = new Gio.Settings({schema_id: INTERFACE_SCHEMA});
@@ -505,8 +510,10 @@ class WidgetController {
       'changed::style-light-glass-blur', () => this._syncGlass(),
       'changed::style-light-glass-opacity', () => this._restyleWidgets(),
       'changed::drag-active', () => this._onDragActiveChanged(),
+      'changed::show-panel-icon', () => this._syncPanelIcon(),
       this
     );
+    this._createIndicator();
     this._createLayer();
     this._rebuildWidgets();
 
@@ -626,6 +633,10 @@ class WidgetController {
 
     this._cancelActiveDrag();
 
+    this._indicator?.destroy();
+    this._indicator = null;
+    this._editModeMenuItem = null;
+
     this._clearWeatherInfo();
 
     this._destroyLayer();
@@ -699,6 +710,62 @@ class WidgetController {
       if (this._pendingAppearance[kind]) {
         this._scheduleAppearance(kind);
       };
+    };
+  };
+
+  _createIndicator() {
+    if (!this._layoutSettings.get_boolean('show-panel-icon')) {
+      return;
+    };
+
+    this._indicator = new PanelMenu.Button(0.0, _('Desktop Widgets'));
+    this._indicator.add_child(new St.Icon({
+      icon_name: 'view-grid-symbolic',
+      style_class: 'system-status-icon',
+    }));
+
+    const editItem = new PopupMenu.PopupSwitchMenuItem(_('Edit Mode'), this._editMode);
+    editItem.connectObject('toggled', (_item, state) => {
+      this._layoutSettings.set_boolean('edit-mode', state);
+    }, this);
+
+    this._editModeMenuItem = editItem;
+    this._indicator.menu.addMenuItem(editItem);
+    this._indicator.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+    const addWidgetsItem = new PopupMenu.PopupMenuItem(_('Add Widgets'));
+    addWidgetsItem.connectObject('activate', () => {
+      this._layoutSettings.set_boolean('open-widget-picker', true);
+      this._extension.openPreferences();
+    }, this);
+    this._indicator.menu.addMenuItem(addWidgetsItem);
+
+    this._indicator.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+    const arrangeItem = new PopupMenu.PopupMenuItem(_('Arrange Widgets'));
+    arrangeItem.connectObject('activate', () => {
+      this._layoutSettings.set_boolean('arrange-widgets', true);
+    }, this);
+    this._indicator.menu.addMenuItem(arrangeItem);
+
+    Main.panel.addToStatusArea(this._extension.uuid, this._indicator);
+  };
+
+  _syncPanelIcon() {
+    const shouldShow = this._layoutSettings.get_boolean('show-panel-icon');
+
+    if (shouldShow && !this._indicator) {
+      this._createIndicator();
+    } else if (!shouldShow && this._indicator) {
+      this._indicator.destroy();
+      this._indicator = null;
+      this._editModeMenuItem = null;
+    };
+  };
+
+  _updatePanelEditModeState() {
+    if (this._editModeMenuItem && !this._editModeMenuItem.is_destroyed?.()) {
+      this._editModeMenuItem.setToggleState(this._editMode);
     };
   };
 
@@ -1240,6 +1307,7 @@ class WidgetController {
 
   setEditMode(enabled) {
     this._editMode = enabled;
+    this._updatePanelEditModeState();
 
     for (const view of this._views.values()) {
       if (enabled) {

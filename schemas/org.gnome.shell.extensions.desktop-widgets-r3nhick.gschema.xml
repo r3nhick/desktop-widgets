@@ -226,5 +226,15 @@
       <summary>Show folder names</summary>
       <description>Display folder names below icons in the Folder Launcher widget.</description>
     </key>
+    <key name="show-panel-icon" type="b">
+      <default>true</default>
+      <summary>Show panel icon</summary>
+      <description>Display the Desktop Widgets icon in the top panel for quick access to edit mode.</description>
+    </key>
+    <key name="open-widget-picker" type="b">
+      <default>false</default>
+      <summary>Open widget picker on preferences launch</summary>
+      <description>Internal flag to trigger widget picker dialog when preferences window opens.</description>
+    </key>
   </schema>
 </schemalist>

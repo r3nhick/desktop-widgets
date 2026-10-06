@@ -95,6 +95,8 @@ function maxAppsFor(sizeKey) {
             return 4;
         case 'minilarge':
             return 6;
+        case 'compact':
+            return 4;  // Compact розмір - 4 іконки як у mini
         case 'medium':
             return 8;
         case 'large':
@@ -104,7 +106,7 @@ function maxAppsFor(sizeKey) {
     }
 }
 
-function computeIconMetrics(cols, rows, widgetWidth, widgetHeight) {
+function computeIconMetrics(cols, rows, widgetWidth, widgetHeight, sizeKey) {
     const content = gridContentSize(widgetWidth, widgetHeight);
 
     const cellWidth = (content.width - (GRID_GAP * (cols - 1))) / cols;
@@ -114,7 +116,9 @@ function computeIconMetrics(cols, rows, widgetWidth, widgetHeight) {
     const padding = Math.min(TILE_PADDING_MAX, Math.max(TILE_PADDING_MIN, Math.round(minCell * TILE_PADDING_RATIO)));
     const available = Math.max(MIN_ICON_SIZE, minCell - (padding * 2));
 
-    const iconSize = Math.min(MAX_ICON_SIZE, Math.max(MIN_ICON_SIZE, Math.round(available * ICON_SIZE_RATIO)));
+    // Для compact розміру збільшуємо іконки
+    const iconSizeRatio = sizeKey === 'compact' ? 0.95 : ICON_SIZE_RATIO;
+    const iconSize = Math.min(MAX_ICON_SIZE, Math.max(MIN_ICON_SIZE, Math.round(available * iconSizeRatio)));
 
     return { padding, iconSize };
 }
@@ -336,7 +340,7 @@ export function render({ body, widget, theme, sizeForWidget }) {
             const currentHeight = body.height || height || 180;
             measuredWidth = body.width || 0;
             measuredHeight = body.height || 0;
-            const { padding, iconSize } = computeIconMetrics(cols, rows, currentWidth, currentHeight);
+            const { padding, iconSize } = computeIconMetrics(cols, rows, currentWidth, currentHeight, sizeKey);
 
             for (const cell of cells) {
                 updateCell(cell, padding, iconSize);
