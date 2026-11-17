@@ -48,6 +48,8 @@ import * as TimerWidget from './widgets/timer/widget.js';
 import { configureLogger, resetLogger, warn } from './logger.js';
 import { assetPath } from './paths.js';
 import { LiquidGlass } from './lib/glass.js';
+import { UpdateChecker } from './lib/updates.js';
+import { createHoldWatch, BUTTON1_MASK } from './lib/pager.js';
 // (The screen-time engine runs inside the screentime widget; extension.js no
 // longer pauses it on fullscreen — fullscreen is real screen time.)
 import { clamp } from './utils.js';
@@ -64,6 +66,11 @@ const EXTENSION_PATH = GLib.path_get_dirname(GLib.filename_from_uri(import.meta.
 const GRID_SIZE = 20;
 const WIDGET_GAP = 15;
 const SNAP_DISTANCE = 12;
+// Alignment guides while dragging: edges (or centers) within this distance
+// of another widget's edge (center) snap to it and show a thin white line.
+const ALIGN_SNAP_PX = 6;
+const ALIGN_GUIDE_OVERHANG = 6;
+const ALIGN_GUIDE_FADE_MS = 110;
 const CELL_SIZE = 190;
 const MINI_CELL_SIZE = 120;
 const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
@@ -557,6 +564,7 @@ class WidgetController {
       'changed::calendar-first-day', () => this._scheduleAppearance('refresh'),
       'changed::calendar-lookahead', () => this._scheduleAppearance('refresh'),
       'changed::calendar-show-page-dots', () => this._scheduleAppearance('refresh'),
+      'changed::calendar-hide-date-many-events', () => this._scheduleAppearance('refresh'),
       'changed::page-indicator-style', () => this._scheduleAppearance('refresh'),
       'changed::calendar-page-indicator-accent', () => this._scheduleAppearance('refresh'),
       'changed::system-show-page-dashes', () => this._scheduleAppearance('refresh'),
@@ -693,6 +701,12 @@ class WidgetController {
       global.workspace_manager.disconnectObject(this);
       this._fullscreenMonitorId = null;
     }
+    // Module-level pause flags outlive disable(): reset them so a re-enable
+    // does not start with frozen animations.
+    if (this._animationsPaused) {
+      this._animationsPaused = false;
+      this._setWidgetAnimationsPaused(false);
+    }
 
     for (const record of Object.values(this._debounceTimers)) {
       if (record?.id) GLib.source_remove(record.id);
@@ -762,14 +776,22 @@ class WidgetController {
       GLib.source_remove(this._debounceTimers[key].id);
     }
 
-    this._debounceTimers[key] = {
-      since: Date.now(),
-      id: GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
-        callback();
+    const record = {since: Date.now(), id: 0};
+    record.id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
+      // Clear BEFORE running: a callback that re-debounces the same key
+      // must keep its new record (clearing after it orphaned that timer),
+      // and a throwing callback must not leave a dead source id behind
+      // (the next source_remove would hit a removed source).
+      if (this._debounceTimers[key] === record)
         this._debounceTimers[key] = 0;
-        return GLib.SOURCE_REMOVE;
-      }),
-    };
+      try {
+        callback();
+      } catch (e) {
+        warn('debounce', `Deferred '${key}' failed: ${e}`);
+      };
+      return GLib.SOURCE_REMOVE;
+    });
+    this._debounceTimers[key] = record;
   };
 
   _scheduleAppearance(kind) {
@@ -1047,14 +1069,20 @@ class WidgetController {
       warn('system-monitor', `Failed to pause SystemMonitor: ${e}`);
     }
 
-    // 3. Pause every animated widget
-    for (const view of this._views.values()) {
-      if (view.widgetInstance && typeof view.widgetInstance.pause === 'function') {
-        try {
-          view.widgetInstance.pause();
-        } catch (e) {
-          warn('widget-pause', `Failed to pause widget ${view.widget?.type}: ${e}`);
-        }
+    // 2. Pause every animated widget. Views never carried a widgetInstance,
+    // so the old per-view pause() loop was a no-op; widget modules expose a
+    // module-level setAnimationsPaused() hook instead.
+    this._setWidgetAnimationsPaused(true);
+  }
+
+  _setWidgetAnimationsPaused(paused) {
+    for (const widgetModule of WIDGET_MODULES) {
+      if (typeof widgetModule.setAnimationsPaused !== 'function')
+        continue;
+      try {
+        widgetModule.setAnimationsPaused(paused);
+      } catch (e) {
+        warn(paused ? 'widget-pause' : 'widget-resume', `Failed to ${paused ? 'pause' : 'resume'} widget ${widgetModule.type}: ${e}`);
       }
     }
   }
@@ -1077,16 +1105,8 @@ class WidgetController {
       warn('system-monitor', `Failed to resume SystemMonitor: ${e}`);
     }
 
-    // 3. Resume every animated widget
-    for (const view of this._views.values()) {
-      if (view.widgetInstance && typeof view.widgetInstance.resume === 'function') {
-        try {
-          view.widgetInstance.resume();
-        } catch (e) {
-          warn('widget-resume', `Failed to resume widget ${view.widget?.type}: ${e}`);
-        }
-      }
-    }
+    // 2. Resume every animated widget
+    this._setWidgetAnimationsPaused(false);
   }
 
   _destroyLayer() {
@@ -1373,10 +1393,13 @@ class WidgetController {
     }
     if (theme.shadow) {
       styleStr += ` box-shadow: ${theme.shadow};`;
-    } else if (glassRoot) {
+    } else if (theme.isGlass) {
       // Glass carries no shadow: the blur is the whole effect, and a shadow
       // only reads as a halo spilling past the widget's own edges. This also
       // cancels the drop shadow stylesheet.css puts on every widget.
+      // It must cover widgets that skip the glass backdrop too (a photo):
+      // the wrapper clips to its RECTANGLE, so the stylesheet shadow showed
+      // up exactly in the rounded corners and the card looked square.
       styleStr += ' box-shadow: none;';
     }
 
@@ -2352,7 +2375,11 @@ class WidgetController {
           continue;
         };
 
-        this._fillWidgetBody(view.widget, view.body);
+        // A render error is NOT a stale view: log it and keep the view.
+        // Dropping it here disconnected its drag/context-menu handlers, so
+        // one failing refresh (e.g. after a calendar setting change) left
+        // the widget impossible to drag until the next rebuild.
+        this._safeFillWidgetBody(view.widget, view.body);
       } catch (error) {
         warn('stale-widget-view', `Dropping stale widget view: ${error.message}`);
         view.actor.disconnectObject(this);
@@ -3369,8 +3396,14 @@ sizeButton.connectObject('destroy', () => {
       const maxX = Math.max(minX, monitor.x + monitor.width - width - gap);
       const maxY = Math.max(minY, monitor.y + monitor.height - height - gap);
 
-      widget.x = clamp(drag.baseStageX + stageX - drag.stageX, minX, maxX) - (this._layerX ?? 0);
-      widget.y = clamp(drag.baseStageY + stageY - drag.stageY, minY, maxY) - (this._layerY ?? 0);
+      const layerX = this._layerX ?? 0;
+      const layerY = this._layerY ?? 0;
+      widget.x = clamp(drag.baseStageX + stageX - drag.stageX, minX, maxX) - layerX;
+      widget.y = clamp(drag.baseStageY + stageY - drag.stageY, minY, maxY) - layerY;
+      this._alignDraggedWidget(widget, {
+        minX: minX - layerX, maxX: maxX - layerX,
+        minY: minY - layerY, maxY: maxY - layerY,
+      });
 
       // Move freely during drag (no snap-to-edges quantization — that made
       // the widget feel sluggish/unresponsive). Snapping to neighbours and
@@ -3432,14 +3465,28 @@ sizeButton.connectObject('destroy', () => {
         stageY,
         baseStageX: widget.x + (this._layerX ?? 0),
         baseStageY: widget.y + (this._layerY ?? 0),
+        hold: createHoldWatch(BUTTON1_MASK),
       };
 
       raiseActor(actor);
       this._syncEditControls(widget);
 
-      // Capture pointer events globally while dragging. No pushModal needed —
-      // captured-event on stage works without it, like music widget seek.
+      // Capture pointer events globally while dragging. A stage
+      // captured-event alone is NOT enough: without a Clutter grab, Mutter
+      // routes pointer events over a window straight to that Wayland
+      // client. Dragging a widget across a window then lost the release
+      // (the widget kept following the cursor forever) and the window got
+      // a stray press/release pair (it locked up or started moving with
+      // the pointer). A stage grab keeps every event inside the shell for
+      // the whole drag — same approach as the music seek bar.
       this._dragActor = actor;
+      this._dragGrab?.dismiss();
+      this._dragGrab = null;
+      try {
+        this._dragGrab = global.stage.grab(global.stage);
+      } catch (e) {
+        warn('widget-drag', `Could not grab the pointer for a drag: ${e}`);
+      }
       global.stage.connectObject('captured-event', (_stage, capturedEvent) => {
         if (!drag) {
           return Clutter.EVENT_PROPAGATE;
@@ -3451,11 +3498,20 @@ sizeButton.connectObject('destroy', () => {
         const isKeyPress = eventType === Clutter.EventType.KEY_PRESS;
 
         if (isMotion) {
+          // Safety net: if the release was ever lost, the first motion
+          // without the primary button ends the drag instead of leaving
+          // the widget glued to the cursor.
+          if (!drag.hold.held(capturedEvent)) {
+            finishDrag();
+            return Clutter.EVENT_STOP;
+          };
           moveDrag(capturedEvent);
           return Clutter.EVENT_STOP;
         };
 
         if (isRelease) {
+          if (capturedEvent.get_button() !== Clutter.BUTTON_PRIMARY)
+            return Clutter.EVENT_STOP;
           finishDrag();
           return Clutter.EVENT_STOP;
         };
@@ -3480,7 +3536,151 @@ sizeButton.connectObject('destroy', () => {
     view.draggable = true;
   };
 
+  // Figma-style alignment while dragging: snaps the dragged widget's edges
+  // (start/end) and center to the matching lines of the other widgets and
+  // draws thin white guides along every line that ends up aligned.
+  _alignDraggedWidget(widget, bounds) {
+    const [width, height] = this._sizeFor(widget);
+    const others = [];
+    for (const view of this._views.values()) {
+      if (view.widget && view.widget !== widget)
+        others.push(this._rectFor(view.widget));
+    };
+
+    // [offset of the line inside the widget, kind]; edges only pair with
+    // edges and centers with centers, so guides stay meaningful.
+    const linesOf = (pos, size) => [[pos, 'edge'], [pos + size, 'edge'], [pos + size / 2, 'center']];
+
+    const bestShift = (pos, size, key, sizeKey) => {
+      let best = null;
+      for (const [line, kind] of linesOf(pos, size)) {
+        for (const other of others) {
+          for (const [target, otherKind] of linesOf(other[key], other[sizeKey])) {
+            if (kind !== otherKind)
+              continue;
+            const delta = target - line;
+            if (Math.abs(delta) <= ALIGN_SNAP_PX && (best === null || Math.abs(delta) < Math.abs(best)))
+              best = delta;
+          };
+        };
+      };
+      return best;
+    };
+
+    const dx = bestShift(widget.x, width, 'x', 'width');
+    if (dx !== null)
+      widget.x = clamp(widget.x + dx, bounds.minX, bounds.maxX);
+    const dy = bestShift(widget.y, height, 'y', 'height');
+    if (dy !== null)
+      widget.y = clamp(widget.y + dy, bounds.minY, bounds.maxY);
+
+    // Collect the aligned lines (after snapping) and the span they cover.
+    const me = {x: widget.x, y: widget.y, width, height};
+    const collect = (key, sizeKey, crossKey, crossSizeKey) => {
+      const lines = new Map();
+      for (const [line, kind] of linesOf(me[key], me[sizeKey])) {
+        for (const other of others) {
+          for (const [target, otherKind] of linesOf(other[key], other[sizeKey])) {
+            if (kind !== otherKind || Math.abs(target - line) > 0.5)
+              continue;
+            const at = Math.round(line);
+            const from = Math.min(me[crossKey], other[crossKey]) - ALIGN_GUIDE_OVERHANG;
+            const to = Math.max(me[crossKey] + me[crossSizeKey], other[crossKey] + other[crossSizeKey]) + ALIGN_GUIDE_OVERHANG;
+            const prev = lines.get(at);
+            lines.set(at, prev ? [Math.min(prev[0], from), Math.max(prev[1], to)] : [from, to]);
+          };
+        };
+      };
+      return lines;
+    };
+
+    const guides = [];
+    for (const [x, [from, to]] of collect('x', 'width', 'y', 'height'))
+      guides.push({x: x === Math.round(me.x + width) ? x - 1 : x, y: from, w: 1, h: to - from});
+    for (const [y, [from, to]] of collect('y', 'height', 'x', 'width'))
+      guides.push({x: from, y: y === Math.round(me.y + height) ? y - 1 : y, w: to - from, h: 1});
+    this._showDragGuides(guides);
+  };
+
+  _showDragGuides(guides) {
+    if (!this._layer)
+      return;
+    // The pool lives in the layer; a layer refill destroys it.
+    this._dragGuides = (this._dragGuides ?? []).filter(g =>
+      !isActorDestroyed(g) && g.get_parent() === this._layer);
+
+    while (this._dragGuides.length < guides.length) {
+      // Apple-style smart guide: a crisp 1px hairline (no blurry glow)
+      // with a faint dark rim so it stays visible on light wallpapers.
+      const guide = new St.Widget({
+        reactive: false,
+        visible: false,
+        opacity: 0,
+        style: 'background-color: rgba(255, 255, 255, 0.95);'
+          + ' box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.22);',
+      });
+      this._layer.add_child(guide);
+      this._dragGuides.push(guide);
+    };
+
+    this._dragGuides.forEach((guide, i) => {
+      const g = guides[i];
+      if (!g) {
+        this._fadeOutGuide(guide);
+        return;
+      };
+      guide.set_position(Math.round(g.x), Math.round(g.y));
+      guide.set_size(Math.max(1, Math.round(g.w)), Math.max(1, Math.round(g.h)));
+      this._layer.set_child_above_sibling(guide, null);
+      if (!guide.visible || guide._fadingOut) {
+        guide._fadingOut = false;
+        guide.remove_transition('opacity');
+        guide.show();
+        guide.ease({
+          opacity: 255,
+          duration: ALIGN_GUIDE_FADE_MS,
+          mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+      };
+    });
+  };
+
+  _fadeOutGuide(guide) {
+    if (isActorDestroyed(guide) || !guide.visible || guide._fadingOut)
+      return;
+    guide._fadingOut = true;
+    guide.remove_transition('opacity');
+    guide.ease({
+      opacity: 0,
+      duration: ALIGN_GUIDE_FADE_MS,
+      mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+      onStopped: () => {
+        if (guide._fadingOut && !isActorDestroyed(guide)) {
+          guide._fadingOut = false;
+          guide.hide();
+        }
+      },
+    });
+  };
+
+  _hideDragGuides() {
+    for (const guide of this._dragGuides ?? []) {
+      this._fadeOutGuide(guide);
+    };
+  };
+
   _cancelActiveDrag() {
+    this._hideDragGuides();
+
+    // Always drop the pointer grab first: a leaked grab would freeze every
+    // window's input until the shell restarts.
+    if (this._dragGrab) {
+      try {
+        this._dragGrab.dismiss();
+      } catch (_e) {}
+      this._dragGrab = null;
+    };
+
     if (!this._dragActor) {
       return;
     };
@@ -4656,7 +4856,29 @@ sizeButton.connectObject('destroy', () => {
 
 
 
+  // Runs (and disconnects) the 'destroy' handlers the previous render hung
+  // on this body. A refill (resize, refresh, theme) destroys only the
+  // body's CHILDREN — the body survives — so those handlers never fired:
+  // a running stopwatch/timer/pomodoro kept ticking into disposed labels
+  // after a resize (and persisted stale state), notes kept its settings
+  // handlers, etc. This gives every render the teardown it expects.
+  _runBodyDisposers(body) {
+    const disposers = body._dwDisposers ?? [];
+    body._dwDisposers = [];
+    for (const {id, handler} of disposers) {
+      try {
+        body.disconnect(id);
+      } catch (_e) {}
+      try {
+        handler(body);
+      } catch (e) {
+        warn('widget-teardown', `Widget teardown failed: ${e}`);
+      };
+    };
+  };
+
   _fillWidgetBody(widget, body, paneRootOverride = null) {
+    this._runBodyDisposers(body);
     body.destroy_all_children();
     const widgetModule = WIDGETS.get(widget.type);
 
@@ -4665,6 +4887,36 @@ sizeButton.connectObject('destroy', () => {
       return;
     };
 
+    // Record the 'destroy' handlers this render connects on the body, so
+    // the next refill can run them (see _runBodyDisposers).
+    body._dwDisposers = [];
+    const nativeConnect = body.connect;
+    let patched = false;
+    try {
+      body.connect = function (signal, handler, ...rest) {
+        const id = nativeConnect.call(this, signal, handler, ...rest);
+        if (signal === 'destroy' && typeof handler === 'function')
+          this._dwDisposers.push({id, handler});
+        return id;
+      };
+      patched = Object.prototype.hasOwnProperty.call(body, 'connect');
+    } catch (_e) {
+      // The wrapper refused the override: render without recording
+      // (old behaviour) rather than failing the whole refill.
+      patched = false;
+    };
+    try {
+      this._renderWidgetModule(widgetModule, widget, body, paneRootOverride);
+    } finally {
+      if (patched) {
+        try {
+          delete body.connect;
+        } catch (_e) {}
+      };
+    };
+  };
+
+  _renderWidgetModule(widgetModule, widget, body, paneRootOverride) {
     widgetModule.render({
         body,
         widget,
@@ -5018,9 +5270,13 @@ export default class DesktopWidgetsExtension extends Extension {
     this._loadWidgetStylesheets();
     this._controller = new WidgetController(this);
     this._controller.enable();
+    // Opt-in daily "is a newer version out?" check (Settings → About).
+    this._updateChecker = new UpdateChecker(this, this.getSettings());
   };
 
   disable() {
+    this._updateChecker?.destroy();
+    this._updateChecker = null;
     this._controller?.destroy();
     this._controller = null;
     PhotosWidget.cleanup();

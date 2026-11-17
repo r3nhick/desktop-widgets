@@ -85,6 +85,7 @@ function createPomodoroTimer(settings, onChange) {
 		isRunning: false,
 		completedSessions: 0,
 		timerId: null,
+		deadlineMono: 0,
 	};
 
 	const stopTimer = () => {
@@ -116,8 +117,13 @@ function createPomodoroTimer(settings, onChange) {
 			return;
 		};
 		state.isRunning = true;
+		// Count down against a monotonic deadline: decrementing once per
+		// timeout lost every delayed tick (busy shell, heavy load), so a
+		// 25-minute focus phase regularly ran longer than 25 minutes.
+		state.deadlineMono = GLib.get_monotonic_time() + state.secondsRemaining * 1e6;
 		state.timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, POMODORO_TICK_INTERVAL_MS, () => {
-			state.secondsRemaining--;
+			state.secondsRemaining = Math.max(0,
+				Math.ceil((state.deadlineMono - GLib.get_monotonic_time()) / 1e6));
 			if (state.secondsRemaining <= 0) {
 				stopTimer();
 				advanceToNextPhase();
@@ -186,6 +192,10 @@ function openPomodoroState({body, widget, settings, timer, extraRepaint}) {
 		} else {
 			state.secondsRemaining = getPhaseDurationSeconds(settings, hadPhase ? saved.phase : state.phase);
 		}
+		// Already running (Start pressed before the load landed): move the
+		// countdown deadline to the restored remainder.
+		if (state.isRunning)
+			state.deadlineMono = GLib.get_monotonic_time() + state.secondsRemaining * 1e6;
 		if (saved?.running && !state.isRunning) {
 			if (state.secondsRemaining <= 0) {
 				// The phase ticked past zero while nobody was looking —

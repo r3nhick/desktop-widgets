@@ -27,6 +27,13 @@ export const supportedSizes = ['medium'];
 
 const TICK_INTERVAL_MS = 100;
 
+// Skips the GI round-trip when the text did not change: the 100 ms tick
+// changes the mm:ss text only once a second.
+function setTextIfChanged(label, text) {
+	if (label.text !== text)
+		label.set_text(text);
+}
+
 function formatTime(seconds) {
 	const mins = Math.floor(seconds / 60);
 	const secs = Math.floor(seconds % 60);
@@ -228,7 +235,27 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			x_align: Clutter.ActorAlign.CENTER,
 			style: `color: ${textColor}; font-family: Ubuntu; font-size: ${px(72)}px; font-weight: 700; padding: 0 ${px(4)}px; width: ${px(88)}px; min-height: ${px(60)}px; line-height: 1;`,
 		});
-		label.translation_y = -px(1);
+		// Center the digits' INK in the label box (paint-only translation,
+		// layout untouched): the line box carries descender room under the
+		// digits, so their ink sat ~7px above the middle — closer to the +
+		// row than to the − row. The label box itself is exactly midway
+		// between the rows (equal column spacing), so ink-centering makes
+		// both gaps equal at any font or scale.
+		const centerInk = () => {
+			try {
+				const text = label.clutter_text;
+				const [ink] = text.get_layout().get_pixel_extents();
+				if (!(ink.height > 0) || !label.has_allocation())
+					return;
+				const box = label.get_allocation_box();
+				const inkMid = text.get_allocation_box().y1 + ink.y + ink.height / 2;
+				const ty = Math.round((box.y2 - box.y1) / 2 - inkMid);
+				if (label.translation_y !== ty)
+					label.translation_y = ty;
+			} catch (_e) {}
+		};
+		label.connect('notify::allocation', centerInk);
+		label.clutter_text.connect('notify::allocation', centerInk);
 
 		const minusRow = new St.BoxLayout({ style: `spacing: ${px(4)}px;` });
 		const minus10Btn = makeRowButton('−', true);
@@ -258,17 +285,45 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	} = buildStepper();
 	centerBox.add_child(minutesBox);
 
-	// Colon. Paint-only nudge: the ':' glyph's ink sits a couple of px right
-	// of the midpoint between the two digit groups, so shift the painting
-	// only — translation does not touch the layout (same trick as the
-	// system-widget icon alignment).
-	const colonLabel = new St.Label({
-		text: ':',
-		y_align: Clutter.ActorAlign.CENTER,
-		style: `color: ${textColor}; font-size: ${px(72)}px; font-weight: 700;`,
+	// Colon: two round dots drawn on the digits' ink midline (the stopwatch
+	// does the same). The ':' font glyph sat at x-height, ~14 px below the
+	// middle of the 72 px digits. The midline is summed from allocations
+	// relative to the shared row (column → label → text → glyph ink).
+	const colonW = px(18);
+	const colonArea = new St.DrawingArea({y_expand: true});
+	colonArea.set_width(colonW);
+	const digitMidline = () => {
+		try {
+			const text = minutesLabel.clutter_text;
+			const [ink] = text.get_layout().get_pixel_extents();
+			if (!(ink.height > 0) || !minutesBox.has_allocation() || !colonArea.has_allocation())
+				return null;
+			const y = minutesBox.get_allocation_box().y1
+				+ minutesLabel.get_allocation_box().y1 + minutesLabel.translation_y
+				+ text.get_allocation_box().y1
+				+ ink.y + ink.height / 2
+				- colonArea.get_allocation_box().y1;
+			return Number.isFinite(y) ? y : null;
+		} catch (_e) {
+			return null;
+		}
+	};
+	colonArea.connect('repaint', canvas => {
+		const ctx = canvas.get_context();
+		const [w, h] = canvas.get_surface_size();
+		const rgb = parseCssColor(textColor) ?? {r: 1, g: 1, b: 1};
+		ctx.setSourceRGBA(rgb.r, rgb.g, rgb.b, 1);
+		const cy = Math.round(digitMidline() ?? h / 2);
+		const fontPx = px(72);
+		const r = Math.max(1, Math.round(fontPx * 6 / 64));
+		const dy = Math.max(2, Math.round(fontPx * 9 / 64));
+		for (const offset of [-dy, dy]) {
+			ctx.arc(w / 2, cy + offset, r, 0, 2 * Math.PI);
+			ctx.fill();
+		}
+		ctx.$dispose();
 	});
-	colonLabel.translation_x = -px(3);
-	centerBox.add_child(colonLabel);
+	centerBox.add_child(colonArea);
 
 	const {
 		column: secondsBox,
@@ -279,6 +334,10 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		label: secondsLabel,
 	} = buildStepper();
 	centerBox.add_child(secondsBox);
+	minutesLabel.connectObject('notify::allocation', () => colonArea.queue_repaint(), colonArea);
+	// The digits' ink-centering translation moves them: the dots follow.
+	minutesLabel.connectObject('notify::translation-y', () => colonArea.queue_repaint(), colonArea);
+	minutesBox.connectObject('notify::allocation', () => colonArea.queue_repaint(), colonArea);
 
 	// Right: Play button (in setup view)
 	const setupRightBox = new St.BoxLayout({
@@ -408,20 +467,24 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 
 	const updateDisplay = () => {
 		const time = formatTime(remainingSeconds);
-		minutesLabel.set_text(time.minutes);
-		secondsLabel.set_text(time.seconds);
-		setupCircleTimeLabel.set_text(`${time.minutes}:${time.seconds}`);
-		runningCircleTimeLabel.set_text(`${time.minutes}:${time.seconds}`);
-		runningTimeLabel.set_text(`${time.minutes}:${time.seconds}`);
-		
+		const mmss = `${time.minutes}:${time.seconds}`;
+		setTextIfChanged(minutesLabel, time.minutes);
+		setTextIfChanged(secondsLabel, time.seconds);
+		setTextIfChanged(setupCircleTimeLabel, mmss);
+		setTextIfChanged(runningCircleTimeLabel, mmss);
+		setTextIfChanged(runningTimeLabel, mmss);
+
 		if (totalSeconds > 0) {
 			progress = Math.max(0, Math.min(1, remainingSeconds / totalSeconds));
 		} else {
 			progress = 0;
 		}
 		
-		setupCircleCanvas.queue_repaint();
-		runningCircleCanvas.queue_repaint();
+		// Only the visible ring needs a new frame.
+		if (isRunning)
+			runningCircleCanvas.queue_repaint();
+		else
+			setupCircleCanvas.queue_repaint();
 
 		// Show/hide views based on running state
 		if (isRunning) {

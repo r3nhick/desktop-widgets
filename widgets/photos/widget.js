@@ -34,12 +34,149 @@ function imageIsPortrait(path) {
 	};
 
 	try {
-		const [width, height] = GdkPixbuf.Pixbuf.get_file_info(path) ?? [0, 0];
+		// GJS returns [format, width, height]: destructuring the first two
+		// compared the PixbufFormat object with the width, so every photo
+		// was treated as landscape.
+		const [format, width, height] = GdkPixbuf.Pixbuf.get_file_info(path) ?? [null, 0, 0];
 
-		return height > width;
+		return !!format && height > width;
 	} catch (error) {
 		warn('photos-orientation', `Could not read photo orientation: ${error.message}`);
 		return false;
+	};
+};
+
+// ── Downscaled display copies ────────────────────────────────────────────
+// St uploads a background-image at its full resolution: a 24 MP photo in a
+// 395×190 frame cost ~96 MB of texture memory per widget. Frames now show a
+// copy scaled to what the frame can actually display (cached on disk).
+const THUMB_SLACK = 1.25;
+const THUMB_MAX_AGE_DAYS = 60;
+const pendingThumbs = new Map();
+let thumbDirPruned = false;
+
+function thumbCacheDir() {
+	const dir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'desktop-widgets', 'photos']);
+	GLib.mkdir_with_parents(dir, 0o755);
+	if (!thumbDirPruned) {
+		thumbDirPruned = true;
+		pruneThumbCache(dir);
+	}
+	return dir;
+};
+
+function pruneThumbCache(dir) {
+	const cutoff = Date.now() / 1000 - THUMB_MAX_AGE_DAYS * 86400;
+	const dirFile = Gio.File.new_for_path(dir);
+	dirFile.enumerate_children_async('standard::name,time::modified', Gio.FileQueryInfoFlags.NONE,
+		GLib.PRIORITY_LOW, null, (d, res) => {
+			try {
+				const en = d.enumerate_children_finish(res);
+				let info;
+				while ((info = en.next_file(null)) !== null) {
+					if (info.get_attribute_uint64('time::modified') < cutoff)
+						en.get_child(info).delete_async(GLib.PRIORITY_LOW, null, (f, r) => {
+							try { f.delete_finish(r); } catch (_e) {}
+						});
+				}
+				en.close(null);
+			} catch (_e) {}
+		});
+};
+
+function finishThumb(thumbPath, file) {
+	const callbacks = pendingThumbs.get(thumbPath) ?? [];
+	pendingThumbs.delete(thumbPath);
+	for (const cb of callbacks)
+		cb(file);
+};
+
+function buildThumbAsync(source, thumbPath, width, height, jpeg) {
+	const fail = () => finishThumb(thumbPath, source);
+
+	source.read_async(GLib.PRIORITY_LOW, null, (f, res) => {
+		let stream;
+		try {
+			stream = f.read_finish(res);
+		} catch (_e) {
+			fail();
+			return;
+		}
+		GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(stream, width, height, true, null, (_s, res2) => {
+			let pixbuf;
+			try {
+				pixbuf = GdkPixbuf.Pixbuf.new_from_stream_finish(res2);
+				stream.close(null);
+			} catch (_e) {
+				fail();
+				return;
+			}
+			pixbuf = pixbuf.apply_embedded_orientation() ?? pixbuf;
+			const out = Gio.File.new_for_path(thumbPath);
+			out.replace_async(null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, GLib.PRIORITY_LOW, null, (o, res3) => {
+				let os;
+				try {
+					os = o.replace_finish(res3);
+				} catch (_e) {
+					fail();
+					return;
+				}
+				const asJpeg = jpeg && !pixbuf.get_has_alpha();
+				pixbuf.save_to_streamv_async(os, asJpeg ? 'jpeg' : 'png',
+					asJpeg ? ['quality'] : [], asJpeg ? ['92'] : [], null, (_p, res4) => {
+						try {
+							GdkPixbuf.Pixbuf.save_to_stream_finish(res4);
+							os.close(null);
+							finishThumb(thumbPath, out);
+						} catch (_e) {
+							try { os.close(null); } catch (_e2) {}
+							fail();
+						}
+					});
+			});
+		});
+	});
+};
+
+// Calls back with the file to display: the original when it is already
+// small enough (or cannot be scaled), otherwise a cached scaled copy.
+// Returns the file synchronously when no async work is needed.
+function resolveDisplayFile(path, boxPx, callback) {
+	const source = Gio.File.new_for_path(path);
+	try {
+		if (/\.(svgz?|gif)$/i.test(path))
+			return source; // vector / animation: keep as is
+
+		const [format, width, height] = GdkPixbuf.Pixbuf.get_file_info(path) ?? [null, 0, 0];
+		const shortSide = Math.min(width, height);
+		if (!format || shortSide <= 0 || shortSide <= boxPx * THUMB_SLACK)
+			return source;
+
+		// Scale so the SHORT side still covers the frame's long side:
+		// enough pixels for every fit mode (cover crops, contain letterboxes).
+		const factor = boxPx / shortSide;
+		const tw = Math.max(1, Math.round(width * factor));
+		const th = Math.max(1, Math.round(height * factor));
+
+		const info = source.query_info('time::modified,standard::size', Gio.FileQueryInfoFlags.NONE, null);
+		const key = GLib.compute_checksum_for_string(GLib.ChecksumType.SHA1,
+			`${path}|${info.get_attribute_uint64('time::modified')}|${info.get_size()}|${tw}x${th}`, -1);
+		const jpeg = format.get_name() === 'jpeg';
+		const thumbPath = GLib.build_filenamev([thumbCacheDir(), `${key}.${jpeg ? 'jpg' : 'png'}`]);
+		const thumb = Gio.File.new_for_path(thumbPath);
+		if (thumb.query_exists(null))
+			return thumb;
+
+		if (pendingThumbs.has(thumbPath)) {
+			pendingThumbs.get(thumbPath).push(callback);
+		} else {
+			pendingThumbs.set(thumbPath, [callback]);
+			buildThumbAsync(source, thumbPath, tw, th, jpeg);
+		}
+		return null;
+	} catch (error) {
+		warn('photos-thumb', `Could not prepare a scaled photo: ${error.message}`);
+		return source;
 	};
 };
 
@@ -243,6 +380,11 @@ const PhotoFrame = GObject.registerClass(
 			});
 		};
 
+		setFile(file) {
+			this._file = file;
+			this._updateStyle();
+		};
+
 		_updateStyle() {
 			const uri = this._file?.get_uri() ?? null;
 			const size = SIZE_STYLES[this._sizeKey] ?? SIZE_STYLES.cover;
@@ -260,16 +402,40 @@ export function style(theme) {
 	return `background-color: ${theme?.background ?? '#242424'}; border-color: ${theme.border}; border-radius: ${theme?.radius ?? 16}px; padding: 0px;`;
 };
 
-export function render({body, widget, settings, createLabel, onPhotoChange, theme}) {
+export function render({body, widget, settings, createLabel, onPhotoChange, theme, sizeForWidget}) {
 	const photoShown = hasPhoto(widget);
 	const sizeKey = String(settings?.get_string('photo-size') ?? 'cover');
 	const radius = theme?.radius ?? 16;
 
 	if (photoShown) {
-		const file = Gio.File.new_for_path(widget?.data?.photo);
-		const frame = new PhotoFrame(file, sizeKey, radius);
+		// The frame sits inside the card's border, so its corners must be
+		// the border's INNER radius; with the outer one the card background
+		// peeked through in every corner.
+		const frameRadius = Math.max(0, radius - Math.max(0, theme?.borderWidth ?? 1));
+		const path = widget?.data?.photo;
+		let boxPx = 0;
+		try {
+			const [w, h] = sizeForWidget?.(widget) ?? [0, 0];
+			const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor || 1;
+			boxPx = Math.ceil(Math.max(w, h) * scale);
+		} catch (_e) {}
 
+		const frame = new PhotoFrame(null, sizeKey, frameRadius);
+		let frameAlive = true;
+		frame.connect('destroy', () => { frameAlive = false; });
 		body.add_child(frame);
+
+		if (boxPx <= 0) {
+			frame.setFile(Gio.File.new_for_path(path));
+			return;
+		}
+		const ready = resolveDisplayFile(path, boxPx, file => {
+			if (!frameAlive)
+				return; // re-rendered or removed meanwhile
+			frame.setFile(file);
+		});
+		if (ready)
+			frame.setFile(ready);
 		return;
 	};
 

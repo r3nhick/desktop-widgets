@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="24" viewBox="0 0 24 24">
+  <!-- Colored paw-prints glyph (stands in for the 🐾 emoji when no color
+       emoji font is installed). Original drawing for desktop-widgets. -->
+  <defs>
+    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d8a173"/>
+      <stop offset="1" stop-color="#a86b3f"/>
+    </linearGradient>
+    <g id="paw">
+      <path d="M0 0.2c-1.9 0-3.6 1.6-3.6 3.2 0 1.2 1 1.8 2 1.8 0.6 0 1.1-0.3 1.6-0.3s1 0.3 1.6 0.3c1 0 2-0.6 2-1.8 0-1.6-1.7-3.2-3.6-3.2z"/>
+      <ellipse cx="-3.4" cy="-1.6" rx="1.15" ry="1.5" transform="rotate(-22 -3.4 -1.6)"/>
+      <ellipse cx="-1.25" cy="-3.6" rx="1.2" ry="1.6" transform="rotate(-8 -1.25 -3.6)"/>
+      <ellipse cx="1.25" cy="-3.6" rx="1.2" ry="1.6" transform="rotate(8 1.25 -3.6)"/>
+      <ellipse cx="3.4" cy="-1.6" rx="1.15" ry="1.5" transform="rotate(22 3.4 -1.6)"/>
+    </g>
+  </defs>
+  <g fill="url(#fur)" stroke="#7a4a28" stroke-width="0.5" stroke-linejoin="round">
+    <use xlink:href="#paw" href="#paw" transform="translate(7.6 15.2) rotate(-24) scale(1.05)"/>
+    <use xlink:href="#paw" href="#paw" transform="translate(16.8 6.8) rotate(-24) scale(0.85)"/>
+  </g>
+</svg>

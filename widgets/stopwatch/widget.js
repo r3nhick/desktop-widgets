@@ -19,11 +19,19 @@ export const label = 'Stopwatch';
 export const defaultSize = 'medium';
 export const supportedSizes = ['small', 'medium'];
 
-// Load marker: lets you verify in the journal that the shell imported the
-// fresh module instead of a cached copy (log() goes to the journal).
-log('[desktop-widgets] stopwatch widget module imported (colon-symmetry build)');
+// The display is derived from a monotonic anchor, so the tick rate only
+// decides how often the text refreshes. The 1×1 shows mm:ss — 4 updates a
+// second are plenty; the 2×1 shows centiseconds — ~30 fps reads as smooth
+// (the old 10 ms timer ran 100 updates/s, faster than any monitor redraws).
+const TICK_SMALL_MS = 250;
+const TICK_MEDIUM_MS = 33;
+const PERSIST_EVERY_MS = 1000;
 
-const TICK_INTERVAL_MS = 10; // 10ms for centiseconds
+// Skips the GI round-trip when the text did not change (most ticks).
+function setTextIfChanged(label, text) {
+	if (label.text !== text)
+		label.set_text(text);
+}
 
 function formatTime(totalCentiseconds) {
 	const totalSeconds = Math.floor(totalCentiseconds / 100);
@@ -90,9 +98,13 @@ function measureText(text, fontPx, weight) {
 	try {
 		const context = PangoCairo.FontMap.get_default().create_context();
 		const layout = Pango.Layout.new(context);
-		layout.set_markup(
-			`<span font_family="Ubuntu" weight="${weight}" pixelsize="${Math.round(fontPx * 1024)}">${text}</span>`,
-			-1);
+		// Pango markup has no "pixelsize" attribute: set_markup threw and
+		// every caller silently got the rough fallback metrics (the colon
+		// dots then sat below the digits' real midline).
+		const desc = Pango.FontDescription.from_string(`Ubuntu ${weight === '700' ? 'Bold' : ''}`.trim());
+		desc.set_absolute_size(fontPx * Pango.SCALE);
+		layout.set_font_description(desc);
+		layout.set_text(text, -1);
 		const [ink, logical] = layout.get_pixel_extents();
 		if (logical && logical.height > 0) {
 			return {
@@ -224,7 +236,7 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 
 	const updateDisplay = () => {
 		const time = formatTime(centiseconds);
-		timeLabel.set_text(`${time.minutes}:${time.seconds}`);
+		setTextIfChanged(timeLabel, `${time.minutes}:${time.seconds}`);
 	};
 
 	const startTimer = () => {
@@ -232,11 +244,11 @@ function renderSmallTimer({body, theme, sizeForWidget, widget}) {
 		isRunning = true;
 		runBaseCs = centiseconds;
 		runAnchorMono = GLib.get_monotonic_time();
-		timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TICK_INTERVAL_MS, () => {
+		timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TICK_SMALL_MS, () => {
 			centiseconds = Math.floor(runBaseCs + (GLib.get_monotonic_time() - runAnchorMono) / 10000);
 			updateDisplay();
 			// Keep the wall stamp fresh (≤ ~1s stale) for surprise teardowns.
-			if (++tickCount % 100 === 0) {
+			if (++tickCount % Math.round(PERSIST_EVERY_MS / TICK_SMALL_MS) === 0) {
 				state.persist();
 			}
 			return GLib.SOURCE_CONTINUE;
@@ -415,6 +427,28 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 	// clock's style: fat round dots instead of the thin font glyph. The dot
 	// stack shares the digits' ink midline, probed from the same font the
 	// shell paints with — level with the number row at any font or scale.
+	// Ink midline of the digits AS LAID OUT, in the colon area's own
+	// coordinates. Everything is summed from allocations relative to the
+	// shared parent row (column → bin → label → text → glyph ink), never
+	// from stage transforms, so hover/edit animations cannot skew it.
+	const liveDigitMidline = (area) => {
+		try {
+			const text = minutesLabel.clutter_text;
+			const [ink] = text.get_layout().get_pixel_extents();
+			if (!(ink.height > 0) || !minutesColumn.has_allocation() || !area.has_allocation())
+				return null;
+			const y = minutesColumn.get_allocation_box().y1
+				+ minutesBin.get_allocation_box().y1
+				+ minutesLabel.get_allocation_box().y1
+				+ text.get_allocation_box().y1
+				+ ink.y + ink.height / 2
+				- area.get_allocation_box().y1;
+			return Number.isFinite(y) ? y : null;
+		} catch (_e) {
+			return null;
+		}
+	};
+
 	const buildColon = () => {
 		const area = new St.DrawingArea();
 		area.connect('repaint', (canvas) => {
@@ -422,9 +456,10 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 			const rgb = parseCssColor(textColor) ?? {r: 1, g: 1, b: 1, a: 1};
 			ctx.setSourceRGBA(rgb.r, rgb.g, rgb.b, 1);
 			const cx = Math.round(colonSlot / 2);
-			// The glyph block centers inside the zone: line top at
-			// (digitZone - lineH)/2, dots on the ink center within that line.
-			const cy = Math.round((digitZone - digitLine.logicalH) / 2 + digitLine.inkCenterY);
+			// Fallback (not laid out yet): probed metrics, line centered
+			// in the zone.
+			const cy = Math.round(liveDigitMidline(canvas)
+				?? ((digitZone - digitLine.logicalH) / 2 + digitLine.inkCenterY));
 			const r = Math.max(1, Math.round(digitFontPx * 6 / 64));
 			const dy = Math.max(2, Math.round(digitFontPx * 9 / 64));
 			for (const offset of [-dy, dy]) {
@@ -435,6 +470,9 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		});
 		area.set_size(colonSlot, digitZone);
 		area.style = `margin-left: ${colonGap}px; margin-right: ${colonGap}px;`;
+		// Re-center whenever the digits move (layout, font, scale).
+		minutesLabel.connectObject('notify::allocation', () => area.queue_repaint(), area);
+		minutesColumn.connectObject('notify::allocation', () => area.queue_repaint(), area);
 		return area;
 	};
 
@@ -533,9 +571,9 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 
 	const updateDisplay = () => {
 		const time = formatTime(centiseconds);
-		minutesLabel.set_text(time.minutes);
-		secondsLabel.set_text(time.seconds);
-		centisecondsLabel.set_text(time.centiseconds);
+		setTextIfChanged(minutesLabel, time.minutes);
+		setTextIfChanged(secondsLabel, time.seconds);
+		setTextIfChanged(centisecondsLabel, time.centiseconds);
 	};
 
 	const startTimer = () => {
@@ -543,11 +581,11 @@ function renderMediumTimer({body, theme, sizeForWidget, widget}) {
 		isRunning = true;
 		runBaseCs = centiseconds;
 		runAnchorMono = GLib.get_monotonic_time();
-		timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TICK_INTERVAL_MS, () => {
+		timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TICK_MEDIUM_MS, () => {
 			centiseconds = Math.floor(runBaseCs + (GLib.get_monotonic_time() - runAnchorMono) / 10000);
 			updateDisplay();
 			// Keep the wall stamp fresh (≤ ~1s stale) for surprise teardowns.
-			if (++tickCount % 100 === 0) {
+			if (++tickCount % Math.round(PERSIST_EVERY_MS / TICK_MEDIUM_MS) === 0) {
 				state.persist();
 			}
 			return GLib.SOURCE_CONTINUE;

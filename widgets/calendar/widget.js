@@ -12,6 +12,7 @@ import { isActorDestroyed } from '../../utils/ported.js';
 import { warn } from '../../logger.js';
 import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 import { createPageIndicator } from '../../lib/pageIndicator.js';
+import { createHoldWatch, BUTTON3_MASK } from '../../lib/pager.js';
 
 const EXTENSION_PATH = GLib.path_get_dirname(GLib.path_get_dirname(GLib.path_get_dirname(import.meta.url.replace('file://', ''))));
 
@@ -755,7 +756,7 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel, se
 
 	if (!shown.length) {
 		container.add_child(eventLabel(noEventsToday()));
-		return;
+		return 0;
 	};
 
 	for (const event of shown) {
@@ -827,6 +828,7 @@ function fillEventsBox(container, {eventsClient, now, secondary, createLabel, se
 		eventItem.add_child(textBox);
 		container.add_child(eventItem);
 	};
+	return shown.length;
 };
 
 export function render({body, createLabel, events, sizeForWidget, widget, theme, settings}) {
@@ -867,10 +869,21 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 	if (wide) {
 		const rightWidth = Math.round(clamp(widgetWidth * 0.45, 168, 230));
 		const cellWidth = Math.round(20 * (rightWidth / 175));
-		const cellHeight = Math.round(cellWidth * (compact ? 0.95 : 1));
-		const dayFont = Math.max(9, Math.round(DAY_BASE_FONT * (cellWidth / 20)));
+		// Header sizes keep the width-derived day font (they don't shrink).
+		const baseDayFont = Math.max(9, Math.round(DAY_BASE_FONT * (cellWidth / 20)));
+		// Fit the grid to the card HEIGHT too: a 6-week month (e.g. November
+		// 2026 with Monday first) needed month + weekday row + 6 rows ≈ 181px
+		// in a ~167px card and the last row ("30") was cut off. Rows, gaps
+		// and — when rows get shorter — the day font follow the height.
+		const monthFontPx = Math.max(9, Math.round(13 * (cellWidth / 20) * (baseDayFont / 12)));
+		const monthH = Math.ceil(monthFontPx * 1.3) + 4;
+		const gridH = widgetHeight - 17 - 4 - 2 - monthH;
+		const rows = weekCount + 1;
+		const gap = weekCount >= 6 ? GAP_BASE - 1 : GAP_BASE;
+		const fitH = Math.floor((gridH - gap * (rows - 1)) / rows);
+		const cellHeight = Math.max(12, Math.min(Math.round(cellWidth * (compact ? 0.95 : 1)), fitH));
+		const dayFont = Math.max(9, Math.min(baseDayFont, Math.round(cellHeight * 0.74)));
 		const weekdayFont = fitWeekdayFontSize(weekdays, cellWidth, dayFont);
-		const gap = GAP_BASE;
 
 		const container = new St.BoxLayout(boxLayoutProps({
 			x_expand: true,
@@ -885,15 +898,31 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 		}));
 
 		const weekdayNameColor = useAccentColor ? theme.accent : text;
-		left.add_child(createLabel(
+		const dayNameLabel = createLabel(
 			uppercaseWeekday(now),
 			'widget-calendar-day-name',
-			`font-size: 15px; font-weight: 700; color: ${weekdayNameColor};`));
-		left.add_child(createLabel(
+			`font-size: 15px; font-weight: 700; color: ${weekdayNameColor};`);
+		const dayNumberLabel = createLabel(
 			String(today),
 			'widget-calendar-day-number',
-			`font-size: 58px; font-weight: 700; color: ${text};`));
-		left.add_child(new St.Widget({y_expand: true}));
+			`font-size: 58px; font-weight: 700; color: ${text};`);
+		const dateSpacer = new St.Widget({y_expand: true});
+		// "Events" header, as on the 1x1 events page — shown only when the
+		// date block steps aside. Same size/weight as the month header on
+		// the right ("NOVEMBER") so both titles sit on one line.
+		const eventsHeader = createLabel(
+			_('Events'),
+			'widget-calendar-month',
+			`font-size: ${monthFontPx}px; font-weight: 800; color: ${text}; margin-bottom: 4px;`);
+		eventsHeader.x_expand = true;
+		eventsHeader.x_align = Clutter.ActorAlign.START;
+		eventsHeader.clutter_text.set_line_wrap(false);
+		eventsHeader.clutter_text.set_ellipsize(Pango.EllipsizeMode.NONE);
+		eventsHeader.visible = false;
+		left.add_child(eventsHeader);
+		left.add_child(dayNameLabel);
+		left.add_child(dayNumberLabel);
+		left.add_child(dateSpacer);
 
 		// Scroll container for events list
 		const eventsScroll = new St.ScrollView({
@@ -911,6 +940,22 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 		eventsScroll.set_child(eventsBox);
 		left.add_child(eventsScroll);
 
+		// Many events: the weekday + big number step aside so the list gets
+		// the whole column (optional, Calendar settings). Capacity = event
+		// rows (title + subtitle ≈ 46px) that fit under the date block.
+		const hideDateWhenBusy = settings?.get_boolean('calendar-hide-date-many-events') ?? true;
+		const EVENT_ROW_H = 46;
+		const dateBlockH = Math.round(15 * 1.4) + Math.round(58 * 1.2) + 8;
+		const eventCapacity = Math.max(1, Math.floor((widgetHeight - 34 - dateBlockH - 6) / EVENT_ROW_H));
+		const applyBusyLayout = (count) => {
+			const busy = hideDateWhenBusy && count > eventCapacity;
+			eventsHeader.visible = busy;
+			dayNameLabel.visible = !busy;
+			dayNumberLabel.visible = !busy;
+			dateSpacer.visible = !busy;
+			eventsScroll.y_expand = busy;
+		};
+
 		if (events) {
 			const refresh = () => {
 				// Fill regardless of mapping: if the body is unmapped when we
@@ -919,7 +964,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 				// is already loaded and requestRange() no-ops on the same
 				// range, so nothing ever re-triggers this again. Populating an
 				// unmapped box is harmless; it shows once mapped.
-				fillEventsBox(eventsBox, {eventsClient: events, now, secondary, createLabel, settings, text, theme});
+				applyBusyLayout(fillEventsBox(eventsBox, {eventsClient: events, now, secondary, createLabel, settings, text, theme}) ?? 0);
 			};
 
 			const dispose = events.onChange(refresh);
@@ -940,7 +985,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 		}));
 
 		right.set_width(rightWidth);
-		right.add_child(monthLabel(now, createLabel, dayFont, theme, useAccentColor, cellWidth / 20));
+		right.add_child(monthLabel(now, createLabel, baseDayFont, theme, useAccentColor, cellWidth / 20));
 
 		right.add_child(buildGrid({
 			now,
@@ -970,11 +1015,21 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 
 	// Small widget (1x1) with swipe navigation
 	const scale = clamp(Math.min(widgetWidth, widgetHeight) / 220, 0.8, 2.2);
-	const dayFont = DAY_BASE_FONT;
 	const availWidth = widgetWidth - 32;
 	const gap = Math.max(2, Math.round(GAP_BASE * scale));
-	const cellWidth = Math.max(dayFont + 6, Math.floor((availWidth - 6 * gap) / 7));
-	const cellHeight = (compact ? COMPACT_CELL_BASE_HEIGHT : CELL_BASE_HEIGHT) * scale;
+	const cellWidth = Math.max(DAY_BASE_FONT + 6, Math.floor((availWidth - 6 * gap) / 7));
+	// Fit the page to the card HEIGHT as well (month label + weekday row +
+	// week rows, with room kept for the page dots overlaid at the bottom).
+	// A 6-week month was ~7px taller than the card: the month label got
+	// cut at the top, and since the events page is shorter, the page stack
+	// changed height mid-swipe — the dots jumped down and back up.
+	const monthH = Math.ceil(Math.max(9, Math.round(13 * (DAY_BASE_FONT / 12))) * 1.3);
+	const DOTS_RESERVE = 10;
+	const gridH = widgetHeight - 17 - 4 - 2 - monthH - DOTS_RESERVE;
+	const rows = weekCount + 1;
+	const fitH = Math.floor((gridH - gap * (rows - 1)) / rows);
+	const cellHeight = Math.max(12, Math.min((compact ? COMPACT_CELL_BASE_HEIGHT : CELL_BASE_HEIGHT) * scale, fitH));
+	const dayFont = Math.max(9, Math.min(DAY_BASE_FONT, Math.round(cellHeight * 0.78)));
 	const weekdayFont = fitWeekdayFontSize(weekdays, cellWidth, dayFont);
 
 	let currentView = lastCalendarView;
@@ -984,11 +1039,16 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 	// The 1x1 page-indicator dots are toggleable (prefs → Calendar Widget).
 	const showPageDots = settings?.get_boolean('calendar-show-page-dots') ?? true;
 
-	const container = new St.BoxLayout(boxLayoutProps({
-		vertical: true,
+	// Pages overlap in a BinLayout (a vertical BoxLayout could not hold the
+	// leaving and the entering page at the same time, which is why the old
+	// swipe ran as two separate legs). Clipped so the off-page neighbour
+	// stays hidden.
+	const container = new St.Widget({
+		layout_manager: new Clutter.BinLayout(),
 		x_expand: true,
 		y_expand: true,
-	}));
+		clip_to_allocation: true,
+	});
 
 	// Page-indicator dots: a BinLayout stacks the pages and the dots in the
 	// same area; the shared component pins the row to the very bottom-center
@@ -1021,7 +1081,7 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 	// and released when that view goes away (see rebuild + the swipe path).
 	let pendingEventsDispose = null;
 
-	const rebuild = (enterX = 0) => {
+	const rebuild = (enterX = 0, animate = true) => {
 		if (viewContainer) {
 			container.remove_child(viewContainer);
 			// Swapped-out views are never destroyed (they are only removed),
@@ -1086,24 +1146,29 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 					}
 				};
 
-				pendingEventsDispose = events.onChange(refresh);
+				const ownDispose = events.onChange(refresh);
+				pendingEventsDispose = ownDispose;
 				// Maltese-cross: if the view ever IS destroyed (widget teardown),
-				// release the listener with it.
+				// release ITS listener — not whatever page is current by then
+				// (a swiped-away view is destroyed after the new one exists).
 				viewContainer.connect('destroy', () => {
-					pendingEventsDispose?.();
-					pendingEventsDispose = null;
+					ownDispose();
+					if (pendingEventsDispose === ownDispose)
+						pendingEventsDispose = null;
 				});
 			}
 		}
 
 		viewContainer.translation_x = enterX;
-		viewContainer.opacity = enterX !== 0 ? 0 : 255;
+		viewContainer.opacity = 255;
+		viewContainer.x_expand = true;
+		viewContainer.y_expand = true;
 
 		if (!animatingActors.has(viewContainer)) {
 			container.add_child(viewContainer);
 		}
 
-		if (enterX !== 0) {
+		if (enterX !== 0 && animate) {
 			animatingActors.add(viewContainer);
 			viewContainer.ease({
 				opacity: 255,
@@ -1119,64 +1184,175 @@ export function render({body, createLabel, events, sizeForWidget, widget, theme,
 		refreshDots();
 	};
 
-	// Swipe gesture handlers (same as system monitor)
+	// Apple-style pager (right button): the current page follows the
+	// pointer and the other page rides right beside it on ONE strip, so
+	// both move in the same frame. Release past the threshold (or a quick
+	// flick) settles on the new page, otherwise the strip springs back.
+	const PAGE_GAP = 12;
+	let drag = null;
+	let settling = false;
 	container.reactive = true;
-	let startX = 0;
-	let dragging = false;
 
-	// Swipe only with the RIGHT button — the left button stays free for
-	// normal content clicks.
+	const pageDistance = () => Math.max(1, Math.round(container.width || widgetWidth)) + PAGE_GAP;
+	const endGrab = () => {
+		if (drag?.grab) {
+			try {
+				drag.grab.dismiss();
+			} catch (_e) {}
+			drag.grab = null;
+		}
+	};
+	container.connect('destroy', () => endGrab());
+
+	// Builds the other page beside the current one (no animation): the old
+	// view, its events listener and kind are kept for a cancel.
+	const beginEntering = (dx) => {
+		const d = pageDistance();
+		const old = {
+			view: viewContainer,
+			dispose: pendingEventsDispose,
+			kind: currentView,
+			eventBox: currentEventBox,
+		};
+		pendingEventsDispose = null;
+		viewContainer = null;
+		currentView = currentView === VIEW_CALENDAR ? VIEW_EVENTS : VIEW_CALENDAR;
+		rebuild(dx < 0 ? d + dx : -d + dx, false);
+		return {old, entering: viewContainer};
+	};
+
 	container.connect('button-press-event', (actor, event) => {
-		if (event.get_button() !== 3) return Clutter.EVENT_PROPAGATE;
-		startX = event.get_coords()[0];
-		dragging = true;
+		// An open gesture here lost its release: close it, then go on.
+		if (drag)
+			finishDrag(false);
+		if (event.get_button() !== 3 || settling)
+			return Clutter.EVENT_PROPAGATE;
+		const [x] = event.get_coords();
+		drag = {startX: x, lastX: x, lastTime: GLib.get_monotonic_time() / 1000, velocity: 0, dx: 0, pair: null, grab: null, hold: createHoldWatch(BUTTON3_MASK)};
+		try {
+			drag.grab = global.stage.grab(container);
+		} catch (_e) {}
 		return Clutter.EVENT_PROPAGATE;
 	});
 
-	container.connect('button-release-event', (actor, event) => {
-		if (!dragging) return Clutter.EVENT_PROPAGATE;
-		dragging = false;
-		const endX = event.get_coords()[0];
-		const delta = endX - startX;
+	container.connect('motion-event', (actor, event) => {
+		if (!drag || isActorDestroyed(container))
+			return Clutter.EVENT_PROPAGATE;
+		if (!drag.hold.held(event)) {
+			finishDrag(false);
+			return Clutter.EVENT_PROPAGATE;
+		}
+		const [x] = event.get_coords();
+		const now = GLib.get_monotonic_time() / 1000;
+		drag.velocity = (x - drag.lastX) / Math.max(1, now - drag.lastTime);
+		drag.lastX = x;
+		drag.lastTime = now;
+		drag.dx = x - drag.startX;
+		// Two pages: nothing lies beyond the neighbour — clamp to one page.
+		drag.dx = Math.max(-pageDistance(), Math.min(pageDistance(), drag.dx));
 
-		if (Math.abs(delta) > SWIPE_THRESHOLD) {
-			const oldView = viewContainer;
-			const exitX = delta < 0 ? -widgetWidth : widgetWidth;
-			
-			animatingActors.add(oldView);
-			oldView.ease({
-				opacity: 0,
-				translation_x: exitX,
-				duration: ANIMATION_DURATION,
-				mode: Clutter.AnimationMode.EASE_IN_QUAD,
-				onComplete: () => {
-					animatingActors.delete(oldView);
-					if (isActorDestroyed(oldView)) {
-						return;
-					};
-					if (oldView.get_parent()) {
-						oldView.get_parent().remove_child(oldView);
-					}
-					// Its layout cache is worthless after the swap; keep it
-					// alive would pin hundreds of label actors per swipe.
-					oldView.destroy();
-				},
-			});
-
-			// Toggle between views (any swipe direction switches to the other view)
-			currentView = currentView === VIEW_CALENDAR ? VIEW_EVENTS : VIEW_CALENDAR;
-			lastCalendarView = currentView;
-
-			// One-shot flashback of the entering view may outlive the widget
-			// (destroy mid-swipe) — guard against touching dead actors.
-			GLib.timeout_add(GLib.PRIORITY_DEFAULT, ANIMATION_DURATION / 2, () => {
-				if (!isActorDestroyed(container)) {
-					rebuild(-exitX);
-				};
-				return GLib.SOURCE_REMOVE;
-			});
+		if (!drag.pair && Math.abs(drag.dx) > 2)
+			drag.pair = beginEntering(drag.dx);
+		if (drag.pair) {
+			const d = pageDistance();
+			const {old, entering} = drag.pair;
+			if (old.view && !isActorDestroyed(old.view))
+				old.view.translation_x = drag.dx;
+			if (entering && !isActorDestroyed(entering))
+				entering.translation_x = drag.dx + (drag.dx < 0 ? d : -d);
 		}
 		return Clutter.EVENT_STOP;
+	});
+
+	const finishDrag = (allowCommit) => {
+		if (!drag)
+			return;
+		const {dx, velocity, pair} = drag;
+		endGrab();
+		drag = null;
+		if (!pair || isActorDestroyed(container))
+			return;
+
+		const {old, entering} = pair;
+		const d = pageDistance();
+		const flick = Math.abs(velocity) > 0.5 && Math.sign(velocity) === Math.sign(dx);
+		const commit = allowCommit && (Math.abs(dx) > SWIPE_THRESHOLD || flick);
+		const remaining = commit ? d - Math.abs(dx) : Math.abs(dx);
+		const duration = Math.round(Math.min(380, Math.max(200, remaining * 1.1)));
+		const mode = Clutter.AnimationMode.EASE_OUT_CUBIC;
+		const dropView = view => {
+			animatingActors.delete(view);
+			if (!view || isActorDestroyed(view))
+				return;
+			view.get_parent()?.remove_child(view);
+			view.destroy();
+		};
+
+		settling = true;
+		if (commit) {
+			// The old page's events listener goes with it.
+			old.dispose?.();
+			lastCalendarView = currentView;
+			refreshDots();
+			if (old.view) {
+				animatingActors.add(old.view);
+				old.view.ease({
+					translation_x: dx < 0 ? -d : d,
+					duration,
+					mode,
+					onStopped: () => {
+						settling = false;
+						dropView(old.view);
+					},
+				});
+			} else {
+				settling = false;
+			}
+			entering?.ease({translation_x: 0, duration, mode});
+		} else {
+			// Spring back: the old page (and its listener) is current again.
+			pendingEventsDispose?.();
+			pendingEventsDispose = old.dispose;
+			currentView = old.kind;
+			viewContainer = old.view;
+			currentEventBox = old.eventBox;
+			refreshDots();
+			old.view?.ease({translation_x: 0, duration, mode});
+			if (entering) {
+				animatingActors.add(entering);
+				entering.ease({
+					translation_x: dx < 0 ? d : -d,
+					duration,
+					mode,
+					onStopped: () => {
+						settling = false;
+						dropView(entering);
+					},
+				});
+			} else {
+				settling = false;
+			}
+		}
+	};
+	container.connect('button-release-event', (actor, event) => {
+		if (!drag || event.get_button() !== 3)
+			return Clutter.EVENT_PROPAGATE;
+		finishDrag(true);
+		return Clutter.EVENT_STOP;
+	});
+	// A swallowed release (an app or the overview grabbed the pointer
+	// mid-gesture), hiding, another press or Escape end the gesture —
+	// the pointer grab must never stay stuck on the widget.
+	container.connect('notify::mapped', () => {
+		if (!container.mapped)
+			finishDrag(false);
+	});
+	container.connect('key-press-event', (actor, event) => {
+		if (drag && event.get_key_symbol() === Clutter.KEY_Escape) {
+			finishDrag(false);
+			return Clutter.EVENT_STOP;
+		}
+		return Clutter.EVENT_PROPAGATE;
 	});
 
 	rebuild();

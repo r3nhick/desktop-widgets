@@ -10,7 +10,7 @@ import GLib from 'gi://GLib';
 import St from 'gi://St';
 import Pango from 'gi://Pango';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
-import { getDataDir, isActorDestroyed, loadJsonFromFileAsync, saveJsonToFile, parseCssColor } from '../../utils/ported.js';
+import { getDataDir, isActorDestroyed, loadJsonFromFileAsync, saveJsonToFile, parseCssColor, cssColorToRgba } from '../../utils/ported.js';
 import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 import { bindHoverShrink } from '../../lib/buttonBounce.js';
 
@@ -42,6 +42,14 @@ function convertMarkdownToPango(text) {
     for (const [regex, replacement] of MARKDOWN_RULES) {
         escaped = escaped.replace(regex, replacement);
     }
+    // Overlapping markers ("*a **b* c**") produce mis-nested tags; Pango
+    // then rejects the whole markup and the note rendered EMPTY. Fall back
+    // to the plain (escaped) text in that case.
+    try {
+        Pango.parse_markup(escaped, -1, '\0');
+    } catch (_e) {
+        return GLib.markup_escape_text(text, -1);
+    }
     return escaped;
 }
 
@@ -56,6 +64,14 @@ export function render({ body, widget, theme, settings }) {
     let titleFontSize = settings?.get_int('notes-title-font-size') ?? 16;
     let contentFontSize = settings?.get_int('notes-content-font-size') ?? 18;
     
+    // Controls get a translucent band derived from the text color instead
+    // of the shell theme's solid .button / St.Entry fills: those painted dark
+    // opaque blocks over the Glass backdrop. Works on Solid cards as well.
+    const textRgba = a => cssColorToRgba(textColor, a);
+    const titleEntryStyle = () => `color: ${textColor}; font-size: ${titleFontSize}px; font-weight: 600;`
+        + ` background-color: ${textRgba(0.08)}; border: none; box-shadow: none;`
+        + ` border-radius: ${Math.round(titleFontSize * 0.55)}px; padding: 3px 8px;`;
+
     let noteTitle = _('Quick Notes');
     let noteContent = _(NOTE_CONTENT_SAMPLE);
     let isEditing = false;
@@ -85,7 +101,7 @@ export function render({ body, widget, theme, settings }) {
 
     const titleEntry = new St.Entry({
         text: noteTitle,
-        style: `color: ${textColor}; font-size: ${titleFontSize}px; font-weight: 600;`,
+        style: titleEntryStyle(),
         x_expand: true,
         can_focus: true,
         hint_text: _('Title...'),
@@ -101,7 +117,8 @@ export function render({ body, widget, theme, settings }) {
 
     const editButton = new St.Button({
         child: editIcon,
-        style_class: 'button',
+        style: `background-color: ${textRgba(0.08)}; border: none; box-shadow: none;`
+            + ' border-radius: 9px; padding: 6px 10px; margin-left: 6px;',
         can_focus: true,
         track_hover: true,
         y_align: Clutter.ActorAlign.CENTER,
@@ -398,7 +415,7 @@ export function render({ body, widget, theme, settings }) {
         if (newTitleSize !== titleFontSize) {
             titleFontSize = newTitleSize;
             titleLabel.set_style(`color: ${textColor}; font-size: ${titleFontSize}px; font-weight: 600; opacity: ${SECONDARY_OPACITY};`);
-            titleEntry.set_style(`color: ${textColor}; font-size: ${titleFontSize}px; font-weight: 600;`);
+            titleEntry.set_style(titleEntryStyle());
         }
         
         if (newContentSize !== contentFontSize) {

@@ -8,6 +8,8 @@ import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 import { widgetResourcePath } from '../../paths.js';
 import { loadJsonFromFileSync } from '../../utils/ported.js';
 import { saveWidgetState, widgetStatePath } from '../../lib/widgetState.js';
+import { attachFollowPager } from '../../lib/pager.js';
+import { isActorDestroyed } from '../../utils/actorLifecycle.js';
 
 export const type = 'system';
 export const label = 'System Monitor';
@@ -49,9 +51,23 @@ const LUCIDE_ICONS = {
   networkUp: 'arrow-up',
 };
 
+// Every render of every tile asked the disk (two stats + maybe a rewrite)
+// for the same recolored icon; keep the resulting GIcons in memory.
+const LUCIDE_ICON_CACHE = new Map();
+
 function lucideIcon(theme, metricKey) {
-  const name = LUCIDE_ICONS[metricKey];
   const color = String(theme?.muted ?? '#c0bfbc').trim();
+  const key = `${metricKey}|${color}`;
+  if (LUCIDE_ICON_CACHE.has(key))
+    return LUCIDE_ICON_CACHE.get(key);
+  const icon = lucideIconUncached(color, metricKey);
+  if (icon)
+    LUCIDE_ICON_CACHE.set(key, icon);
+  return icon;
+}
+
+function lucideIconUncached(color, metricKey) {
+  const name = LUCIDE_ICONS[metricKey];
   const file = widgetResourcePath('system', `${name}.svg`);
 
   if (!name || !file || !Gio.File.new_for_path(file).query_exists(null)) {
@@ -183,6 +199,13 @@ function attachPageDashes({paneRoot, sizeForWidget, widget, count, color, visibl
   };
 };
 
+const TEXT_DECODER = new TextDecoder('utf-8');
+const CPU_HWMON_NAMES = ['coretemp', 'k10temp', 'zenpower', 'cpu_thermal', 'soc_thermal', 'acpitz'];
+const GPU_HWMON_NAMES = ['amdgpu', 'radeon', 'nouveau', 'i915', 'xe'];
+// Loopback plus virtual links whose traffic is already counted on the
+// physical NIC (container veths, bridges, tun/tap, wireguard...).
+const VIRTUAL_IFACE_RE = /^(lo|veth[^:]*|docker[^:]*|br-[^:]*|virbr[^:]*|vnet[^:]*|tap[^:]*|tun[^:]*|wg[^:]*|tailscale[^:]*):/;
+
 class SystemMonitor {
   constructor() {
     this.subscribers = [];
@@ -227,7 +250,39 @@ class SystemMonitor {
     }
   }
 
+  // hwmonN numbering is assigned at boot in probe order, so a fixed
+  // hwmon0/1/2 list often picked an NVMe, Wi-Fi or ACPI sensor instead of
+  // the CPU. Look the sensor up by its driver name first.
+  findHwmonByName(names) {
+    try {
+      const dir = Gio.File.new_for_path('/sys/class/hwmon');
+      const en = dir.enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
+      const found = new Map();
+      let info;
+      while ((info = en.next_file(null)) !== null) {
+        const base = `/sys/class/hwmon/${info.get_name()}`;
+        try {
+          const [ok, bytes] = Gio.File.new_for_path(`${base}/name`).load_contents(null);
+          if (!ok) continue;
+          const name = TEXT_DECODER.decode(bytes).trim();
+          const input = `${base}/temp1_input`;
+          if (names.includes(name) && !found.has(name)
+              && Gio.File.new_for_path(input).query_exists(null))
+            found.set(name, input);
+        } catch (_e) {}
+      }
+      en.close(null);
+      // Respect the priority order of `names`.
+      for (const name of names) {
+        if (found.has(name)) return found.get(name);
+      }
+    } catch (_e) {}
+    return null;
+  }
+
   findCpuTempPath() {
+    this.cpuTempPath = this.findHwmonByName(CPU_HWMON_NAMES);
+    if (this.cpuTempPath) return;
     const paths = [
       '/sys/class/hwmon/hwmon0/temp1_input',
       '/sys/class/hwmon/hwmon1/temp1_input',
@@ -245,6 +300,8 @@ class SystemMonitor {
   }
 
   findGpuTempPath() {
+    this.gpuTempPath = this.findHwmonByName(GPU_HWMON_NAMES);
+    if (this.gpuTempPath) return;
     const paths = [
       '/sys/class/drm/card0/device/hwmon/hwmon0/temp1_input',
       '/sys/class/drm/card0/device/hwmon/hwmon1/temp1_input',
@@ -275,8 +332,7 @@ class SystemMonitor {
         });
       });
       if (success) {
-        const decoder = new TextDecoder('utf-8');
-        return decoder.decode(contents);
+        return TEXT_DECODER.decode(contents);
       }
     } catch (e) {
       console.error(`Error reading ${path}:`, e);
@@ -292,15 +348,20 @@ class SystemMonitor {
       const idle = parts[3] + parts[4];
       const total = parts.reduce((a, b) => a + b, 0);
 
-      if (this.prevCpuTotal > 0) {
-        const deltaTotal = total - this.prevCpuTotal;
-        const deltaIdle = idle - this.prevCpuIdle;
-        if (deltaTotal > 0) {
-          return 1.0 - (deltaIdle / deltaTotal);
-        }
-      }
+      const prevTotal = this.prevCpuTotal;
+      const prevIdle = this.prevCpuIdle;
+      // Always roll the reference sample forward: the old early return
+      // kept the FIRST sample forever, so "CPU" showed the average load
+      // since the widget appeared instead of the current load.
       this.prevCpuTotal = total;
       this.prevCpuIdle = idle;
+      if (prevTotal > 0) {
+        const deltaTotal = total - prevTotal;
+        const deltaIdle = idle - prevIdle;
+        if (deltaTotal > 0) {
+          return Math.max(0, Math.min(1, 1.0 - (deltaIdle / deltaTotal)));
+        }
+      }
     }
     return this.lastData.cpu;
   }
@@ -351,7 +412,7 @@ class SystemMonitor {
 
     for (let i = 2; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line || line.startsWith('lo:')) continue;
+      if (!line || VIRTUAL_IFACE_RE.test(line)) continue;
       const parts = line.split(':');
       if (parts.length >= 2) {
         const data = parts[1].trim().split(/\s+/);
@@ -382,6 +443,34 @@ class SystemMonitor {
   }
 
   async poll() {
+    // A slow sysfs read must not let two polls interleave and corrupt the
+    // delta bookkeeping (prev CPU / network counters).
+    if (this._polling) return;
+    this._polling = true;
+    try {
+      await this._pollOnce();
+    } finally {
+      this._polling = false;
+    }
+  }
+
+  _startTimer() {
+    if (this.timerId || this.paused || this.subscribers.length === 0) return;
+    this.poll();
+    this.timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, POLL_INTERVAL_MS, () => {
+      this.poll();
+      return GLib.SOURCE_CONTINUE;
+    });
+  }
+
+  _stopTimer() {
+    if (this.timerId) {
+      GLib.Source.remove(this.timerId);
+      this.timerId = null;
+    }
+  }
+
+  async _pollOnce() {
     const [cpu, ram, gpu, cpuTemp, gpuTemp, network] = await Promise.all([
       this.sampleCPU(),
       this.sampleRAM(),
@@ -430,22 +519,18 @@ class SystemMonitor {
       callback(this.lastData);
     }
 
-    if (this.subscribers.length === 1) {
-      this.poll();
-      this.timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, POLL_INTERVAL_MS, () => {
-        this.poll();
-        return GLib.SOURCE_CONTINUE;
-      });
-    }
+    if (this.subscribers.length === 1)
+      this._startTimer();
 
     return () => this.unsubscribe(callback);
   }
 
   unsubscribe(callback) {
     this.subscribers = this.subscribers.filter(cb => cb !== callback);
-    if (this.subscribers.length === 0 && this.timerId) {
-      GLib.Source.remove(this.timerId);
-      this.timerId = null;
+    if (this.subscribers.length === 0) {
+      this._stopTimer();
+      // Nobody left to show data to: the next subscriber decides afresh.
+      this.paused = false;
       this.prevCpuTotal = 0;
       this.prevCpuIdle = 0;
       this.prevRxBytes = 0;
@@ -457,23 +542,15 @@ class SystemMonitor {
   // Fullscreen optimization: pause/resume polling
   pausePolling() {
     this.paused = true;
-    if (this.timerId) {
-      GLib.Source.remove(this.timerId);
-      this.timerId = null;
-    }
+    this._stopTimer();
   }
 
   resumePolling() {
     this.paused = false;
-    if (this.subscribers.length > 0 && !this.timerId) {
-      this.poll();
-      this.timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, POLL_INTERVAL_MS, () => {
-        if (!this.paused) {
-          this.poll();
-        }
-        return GLib.SOURCE_CONTINUE;
-      });
-    }
+    // A long pause makes the first network delta span the whole pause;
+    // restart the rate baseline instead of showing a bogus average.
+    this.prevTimeMs = 0;
+    this._startTimer();
   }
 }
 
@@ -492,10 +569,12 @@ function getSystemMonitor() {
 export { monitor };
 
 function formatBytes(bytes) {
-  if (bytes === 0) return ['0.0', 'B/s'];
+  // Rates are fractional (bytes / elapsed ms): anything below 1 B/s made
+  // log() negative and the unit came out as `undefined`.
+  if (!(bytes >= 1)) return ['0.0', 'B/s'];
   const k = 1024;
   const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const i = Math.min(sizes.length - 1, Math.floor(Math.log(bytes) / Math.log(k)));
   return [(bytes / Math.pow(k, i)).toFixed(1), sizes[i]];
 }
 
@@ -928,94 +1007,61 @@ export function render({body, theme, widget, sizeForWidget, paneRoot, settings})
       layoutTiles();
     };
 
-    let startX = 0;
-    let dragging = false;
-    // The page currently on duty (crosses rebuild both pages fresh).
+    // The page currently on duty.
     let currentPage = null;
-    // A cross is in flight — swipes are swallowed until it settles.
-    let crossBusy = false;
 
-    container.reactive = true;
-    // Swipe only with the RIGHT button — the left button stays free for
-    // normal content clicks.
-    container.connect('button-press-event', (actor, event) => {
-      if (event.get_button() !== 3) return Clutter.EVENT_PROPAGATE;
-      startX = event.get_coords()[0];
-      dragging = true;
-      return Clutter.EVENT_PROPAGATE;
-    });
-
-    container.connect('button-release-event', (actor, event) => {
-      if (!dragging) return Clutter.EVENT_PROPAGATE;
-      dragging = false;
-      const endX = event.get_coords()[0];
-      const delta = endX - startX;
-
-      if (Math.abs(delta) > SWIPE_THRESHOLD) {
-        // ── GNOME workspace-switch cross (see the 2x1 handler) ─────────────
-        if (crossBusy) return Clutter.EVENT_STOP;
-
-        const leavingMetric = currentMetric;
-
-        if (delta > 0) {
-          currentMetric = (currentMetric - 1 + 5) % 5;
-        } else {
-          currentMetric = (currentMetric + 1) % 5;
-        }
+    // Apple-style follow pager (lib/pager.js): the page follows the
+    // pointer with its neighbour attached, both in one frame.
+    const pageGap = () => {
+      const paneBox = container.get_allocation_box();
+      const pageW = Math.max(1, Math.floor(paneBox.get_width()) - CONTAINER_PAD * 2);
+      return pageW + Math.round(pageW / 16);
+    };
+    const dropPage = page => {
+      if (!page || isActorDestroyed(page)) return;
+      page.get_parent()?.remove_child(page);
+      page.destroy();
+    };
+    attachFollowPager(container, {
+      isAlive: () => !tornDown,
+      distance: pageGap,
+      begin: (dir) => {
+        const index = (currentMetric + dir + metricConfigs.length) % metricConfigs.length;
+        const leaving = currentPage;
+        if (!leaving) return null;
+        // The entering build is the last one: live data feeds it.
+        const entering = buildPage(index);
+        layoutRows = [leaving, entering];
+        layoutTiles();
+        if (monitor.lastData.cpu > 0 || monitor.lastData.ram > 0)
+          onData(monitor.lastData);
+        return {leaving, entering, index};
+      },
+      discard: (pair) => dropPage(pair.entering),
+      commit: (pair) => {
+        currentMetric = pair.index;
         // Remember the metric for the next re-render (theme switch...).
         saveWidgetState(statePath, { metric: currentMetric });
         refreshDashes();
-
-        // pageW + gap = GNOME's baseDistance between adjacent workspaces.
-        const paneBox = container.get_allocation_box();
-        const pageW = Math.max(1, Math.floor(paneBox.get_width()) - CONTAINER_PAD * 2);
-        const base = pageW + Math.round(pageW / 16);
-        const next = delta < 0;
-
-        crossBusy = true;
-        const leavingRow = buildPage(leavingMetric);
-        const newRow = buildPage(currentMetric);
-        newRow.translation_x = next ? base : -base;
-
-        // The previous visual page made way; both fresh pages travel.
-        if (currentPage && currentPage.get_parent() === container) {
-          container.remove_child(currentPage);
-          currentPage.destroy();
-        }
-
-        // The entering build's labels are the live-data targets now.
-        currentPage = newRow;
-
-        leavingRow.ease({
-          translation_x: next ? -base : base,
-          duration: CROSS_DURATION,
-          mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
-          onComplete: () => {
-            if (leavingRow.get_parent() === container)
-              container.remove_child(leavingRow);
-            leavingRow.destroy();
-          },
-        });
-        newRow.ease({
-          translation_x: 0,
-          duration: CROSS_DURATION,
-          mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
-          onComplete: () => {
-            crossBusy = false;
-            if (tornDown) return;
-            layoutTiles();
-            if (monitor.lastData.cpu > 0 || monitor.lastData.ram > 0) {
-              onData(monitor.lastData);
-            }
-          },
-        });
-
+      },
+      settledCommit: (pair) => {
+        dropPage(pair.leaving);
+        currentPage = pair.entering;
+        layoutRows = [currentPage];
+        layoutTiles();
         if (monitor.lastData.cpu > 0 || monitor.lastData.ram > 0)
           onData(monitor.lastData);
-      }
-      return Clutter.EVENT_STOP;
+      },
+      settledCancel: (pair) => {
+        dropPage(pair.entering);
+        // Live labels pointed at the dropped neighbour: rebuild the
+        // current page in place (identical content, no fade).
+        dropPage(pair.leaving);
+        currentPage = buildPage(currentMetric);
+        if (monitor.lastData.cpu > 0 || monitor.lastData.ram > 0)
+          onData(monitor.lastData);
+      },
     });
-
     rebuild();
     unsubscribe = monitor.subscribe(onData);
     refreshDashes();
@@ -1161,117 +1207,61 @@ export function render({body, theme, widget, sizeForWidget, paneRoot, settings})
       layoutTiles();
     };
 
-    let startX = 0;
-    let dragging = false;
-    // A cross is in flight — right-button swipes are swallowed until it
-    // settles (mid-flight swipes only corrupt the geometry).
-    let crossBusy = false;
-
-    container.reactive = true;
-    // Swipe only with the RIGHT button — the left button stays free for
-    // normal content clicks.
-    container.connect('button-press-event', (actor, event) => {
-      if (event.get_button() !== 3) return Clutter.EVENT_PROPAGATE;
-      startX = event.get_coords()[0];
-      dragging = true;
-      return Clutter.EVENT_PROPAGATE;
-    });
-
-    container.connect('button-release-event', (actor, event) => {
-      if (!dragging) return Clutter.EVENT_PROPAGATE;
-      dragging = false;
-      const endX = event.get_coords()[0];
-      const delta = endX - startX;
-
-      if (Math.abs(delta) > SWIPE_THRESHOLD) {
-        // ── GNOME workspace-switch cross (js/ui/workspaceAnimation.js) ─────
-        // Crosses are serialized: a swipe during a travelling cross only
-        // disturbs the geometry mid-flight, so it is swallowed instead.
-        if (crossBusy) return Clutter.EVENT_STOP;
-
-        const oldRow = currentRow;
-        // The pane box — never the row's own allocation — is authoritative
-        // here: a page landed an instant ago can still carry a stale box,
-        // and a cross built from it left the pane visually empty.
-        const paneBox = container.get_allocation_box();
-        const pageW = Math.max(1, Math.floor(paneBox.get_width()) - CONTAINER_PAD * 2);
-        const pageH = Math.max(1, Math.floor(paneBox.get_height()) - CONTAINER_PAD * 2);
-
-
-        // Remember the page we are leaving BEFORE currentView moves on.
-        const leavingPageIndex = currentView;
-
-        if (delta > 0) {
-          currentView = (currentView - 1 + 3) % 3;
-        } else {
-          currentView = (currentView + 1) % 3;
-        }
+    // Apple-style follow pager (lib/pager.js): the row follows the pointer
+    // with its neighbour attached, both in one frame.
+    const rowDistance = () => {
+      const paneBox = container.get_allocation_box();
+      const pageW = Math.max(1, Math.floor(paneBox.get_width()) - CONTAINER_PAD * 2);
+      return pageW + Math.round(pageW / 16);
+    };
+    const dropRow = row => {
+      if (!row || isActorDestroyed(row)) return;
+      row.get_parent()?.remove_child(row);
+      row.destroy();
+    };
+    const feed = () => {
+      if (monitor.lastData.cpu > 0 || monitor.lastData.ram > 0)
+        onData(monitor.lastData);
+    };
+    attachFollowPager(container, {
+      isAlive: () => !tornDown,
+      distance: rowDistance,
+      begin: (dir) => {
+        const leaving = currentRow;
+        if (!leaving) return null;
+        const index = (currentView + dir + viewConfigs.length) % viewConfigs.length;
+        // The entering build is the last one: the live tiles feed it.
+        const entering = buildRow(container, index);
+        layoutRows = [leaving, entering];
+        layoutTiles();
+        feed();
+        return {leaving, entering, index};
+      },
+      discard: (pair) => {
+        dropRow(pair.entering);
+        currentRow = pair.leaving;
+      },
+      commit: (pair) => {
+        currentView = pair.index;
         // Remember the page for the next re-render (theme switch, resize...).
         saveWidgetState(statePath, { view: currentView });
         refreshDashes();
-
-        // pageW + gap = GNOME's baseDistance between adjacent workspaces.
-        const base = pageW + Math.round(pageW / 16);
-        const next = delta < 0;
-
-        // Both pages are rebuilt fresh and live directly IN the pane Bin —
-        // the layout-always-clean parent whose every settled row lands at
-        // the padded (pad,pad) box (rowbox logs). No secondary layout-less
-        // strip is involved anymore: its children kept only explicit boxes,
-        // and its (0,0)-child could hold a stale box that never repainted —
-        // the invisible half of earlier crosses. The pages start exactly
-        // one baseDistance apart and travel in lockstep by their own
-        // translations, like GNOME's workspaces; nothing fades, nothing
-        // overlaps.
-        crossBusy = true;
-        const leavingRow = buildRow(container, leavingPageIndex);
-        const newRow = buildRow(container, currentView);
-        newRow.translation_x = next ? base : -base;
-
-        // The original row made way; it does not travel.
-        container.remove_child(oldRow);
-        oldRow.destroy();
-
-        // The entering build was the last one, so the live-data loop keeps
-        // pointing at the arriving page; both travelling pages get tiles.
-        layoutRows = [leavingRow, newRow];
+      },
+      settledCommit: (pair) => {
+        dropRow(pair.leaving);
+        currentRow = pair.entering;
+        layoutRows = [currentRow];
         layoutTiles();
-
-        leavingRow.ease({
-          translation_x: next ? -base : base,
-          duration: CROSS_DURATION,
-          mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
-          onComplete: () => {
-            if (leavingRow.get_parent() === container)
-              container.remove_child(leavingRow);
-            leavingRow.destroy();
-          },
-        });
-        newRow.ease({
-          translation_x: 0,
-          duration: CROSS_DURATION,
-          mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
-          onComplete: () => {
-            crossBusy = false;
-            if (tornDown) return;
-            // The arriving page is the page now on duty.
-            currentRow = newRow;
-            layoutRows = [newRow];
-            layoutTiles();
-            const finalData = monitor.lastData;
-            if (finalData && (finalData.cpu > 0 || finalData.ram > 0)) {
-              onData(finalData);
-            }
-
-          },
-        });
-
-        if (monitor.lastData.cpu > 0 || monitor.lastData.ram > 0)
-          onData(monitor.lastData);
-      }
-      return Clutter.EVENT_STOP;
+        feed();
+      },
+      settledCancel: (pair) => {
+        dropRow(pair.entering);
+        // The live tiles pointed at the dropped neighbour: rebuild the
+        // current row in place (identical content, no fade).
+        rebuild();
+        feed();
+      },
     });
-
     rebuild();
     unsubscribe = monitor.subscribe(onData);
     refreshDashes();

@@ -9,6 +9,7 @@ import { warn } from '../../logger.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 import { createPageIndicator, indicatorBandHeight } from '../../lib/pageIndicator.js';
+import { createHoldWatch, BUTTON3_MASK } from '../../lib/pager.js';
 
 const EXTENSION_PATH = GLib.path_get_dirname(GLib.path_get_dirname(GLib.path_get_dirname(import.meta.url.replace('file://', ''))));
 
@@ -21,15 +22,10 @@ export const cacheTtlMs = 10 * 60 * 1000;
 export const defaultSize = 'medium';
 export const supportedSizes = ['small', 'medium', 'large', 'wide'];
 
-// Load marker: lets you verify in the journal that the shell imported the
-// fresh module instead of a cached copy (log() goes to the journal).
-log('[desktop-widgets] weather widget module imported (page-dots build)');
-
 const HOUR_MS = 3600 * 1000;
 const HOURS_AHEAD = 24;
-// 1x1 page flip: the calendar's two-leg slide (30px swipe, 250ms beats).
+// 1x1 pager: a drag past 30px (or a flick) commits the page change.
 const WEATHER_SWIPE_THRESHOLD = 30;
-const WEATHER_FLIP_DURATION = 250;
 // The swipe page survives the card's periodic re-renders (module-wide,
 // the same way the calendar keeps its view across event refreshes).
 let weatherCompactPage = 0;
@@ -100,7 +96,9 @@ export function weatherFromInfo(info, location, displayName = null) {
 
 	return {
 		temp: formatTemperature(currentInfo.get_temp()),
-		summary: cleanSummary(currentInfo.get_weather_summary(), locationName),
+		summary: summaryOrIconLabel(
+			cleanSummary(currentInfo.get_weather_summary(), locationName),
+			currentInfo.get_icon_name()),
 		location: location.get_city_name() || displayName || locationName,
 		icon: currentInfo.get_icon_name() || 'weather-clear',
 		feelsLike: apparent && apparent !== '--' ? `${_('It feels like')} ${apparent}` : null,
@@ -282,6 +280,39 @@ function measureLabelWidth(text, fontPx, weight) {
 	const [, natural] = label.get_preferred_width(-1);
 	label.destroy();
 	return natural;
+};
+
+// Condition names by icon, for when GWeather has no sky report: METAR
+// stations often omit it (at night especially) and the summary reads
+// "Unknown" while the icon (moon, clouds…) is perfectly known.
+const ICON_SUMMARIES = [
+	[/storm/, () => _('Thunderstorm')],
+	[/snow/, () => _('Snow')],
+	[/showers-scattered/, () => _('Light rain')],
+	[/showers|rain/, () => _('Rain')],
+	[/fog|mist/, () => _('Fog')],
+	[/overcast/, () => _('Cloudy')],
+	[/few-clouds/, () => _('Partly cloudy')],
+	[/clear-night/, () => _('Clear')],
+	[/clear/, () => _('Sunny')],
+	[/wind/, () => _('Windy')],
+];
+
+function summaryOrIconLabel(summary, iconName) {
+	const text = String(summary ?? '').trim();
+	let unknownTr = 'Unknown';
+	try {
+		unknownTr = GLib.dgettext('libgweather-4.0', 'Unknown');
+	} catch (_e) {}
+	const unknown = !text || text === '-' || /^unknown$/i.test(text) || text === unknownTr;
+	if (!unknown)
+		return summary;
+	const icon = String(iconName ?? '');
+	for (const [pattern, label] of ICON_SUMMARIES) {
+		if (pattern.test(icon))
+			return label();
+	}
+	return summary;
 };
 
 function cleanSummary(summary, locationName) {
@@ -492,6 +523,23 @@ function buildHeader(rendered, theme, createLabel, scale, opts = {}) {
 		y_align: Clutter.ActorAlign.START,
 		style: 'spacing: 0px;',
 	}));
+	// Apple Weather layout: icon, condition and H/L share ONE left edge
+	// inside a block that is pinned to the right edge of the card. Each
+	// line used to be right-aligned on its own, so a shorter H/L line sat
+	// indented under the condition. Horizontal rows with an expanding
+	// spacer do the pinning (cross-axis alignment is not relied upon).
+	const block = new St.BoxLayout(boxLayoutProps({
+		vertical: true,
+		style: 'spacing: 0px;',
+	}));
+	// A plain horizontal row packs its child at the start (left). No
+	// expanding spacer inside: x_expand would propagate up to the block
+	// and it would stop hugging the right edge.
+	const leftAligned = actor => {
+		const row = new St.BoxLayout(boxLayoutProps({}));
+		row.add_child(actor);
+		return row;
+	};
 
 	if (condIcon) {
 		const iconParams = {
@@ -508,11 +556,12 @@ function buildHeader(rendered, theme, createLabel, scale, opts = {}) {
 			iconParams.icon_name = rendered.icon;
 		};
 
-		right.add_child(new St.Icon(iconParams));
+		iconParams.x_align = Clutter.ActorAlign.START;
+		block.add_child(leftAligned(new St.Icon(iconParams)));
 	};
 
 	const condRow = new St.BoxLayout(boxLayoutProps({
-		x_align: Clutter.ActorAlign.END,
+		x_align: Clutter.ActorAlign.START,
 		y_align: Clutter.ActorAlign.CENTER,
 		style: 'spacing: 4px;',
 	}));
@@ -525,11 +574,19 @@ function buildHeader(rendered, theme, createLabel, scale, opts = {}) {
 	// H/L: condition row minus 1 unit (dialed scaledown); 600 weight stays.
 	const range = temperatureRange(rendered.daily, theme, createLabel, scale, condFont - 1, 600);
 
-	right.add_child(condRow);
+	block.add_child(leftAligned(condRow));
 	if (range) {
-		range.x_align = Clutter.ActorAlign.END;
-		right.add_child(range);
+		range.x_align = Clutter.ActorAlign.START;
+		block.add_child(leftAligned(range));
 	};
+
+	// Explicit x_expand=false stops the labels' x_expand (createLabel sets
+	// it) from propagating up: only the spacer takes the free width.
+	block.x_expand = false;
+	const anchor = new St.BoxLayout(boxLayoutProps({x_expand: true}));
+	anchor.add_child(new St.Widget({x_expand: true}));
+	anchor.add_child(block);
+	right.add_child(anchor);
 
 	// With equalColumnWidth (2x1) the header splits into two exact halves;
 	// otherwise the left column keeps its natural width and the rest goes
@@ -556,55 +613,101 @@ function buildHeader(rendered, theme, createLabel, scale, opts = {}) {
 	return header;
 };
 
-function buildTempBar(day, allDays, trackWidth = 110) {
-	const trackHeight = 3;
-	const lows = allDays.map(d => tempNumber(d.low));
-	const highs = allDays.map(d => tempNumber(d.high));
-	const min = Math.min(...lows.filter(n => n !== null));
-	const max = Math.max(...highs.filter(n => n !== null));
+// Apple Weather–style temperature scale (°C): the bar's gradient runs from
+// the color of the day's low to the color of its high.
+const TEMP_COLOR_STOPS = [
+	[-20, [0x5e, 0x5c, 0xe6]],
+	[-8, [0x0a, 0x84, 0xff]],
+	[2, [0x64, 0xd2, 0xff]],
+	[10, [0x30, 0xd1, 0x58]],
+	[18, [0xff, 0xd6, 0x0a]],
+	[26, [0xff, 0x9f, 0x0a]],
+	[34, [0xff, 0x45, 0x3a]],
+];
+
+function tempColor(celsius) {
+	const stops = TEMP_COLOR_STOPS;
+	if (!Number.isFinite(celsius))
+		return '#8e8e93';
+	if (celsius <= stops[0][0])
+		return `rgb(${stops[0][1].join(', ')})`;
+	for (let i = 1; i < stops.length; i++) {
+		const [t1, c1] = stops[i];
+		if (celsius <= t1) {
+			const [t0, c0] = stops[i - 1];
+			const k = (celsius - t0) / (t1 - t0);
+			const rgb = c0.map((v, j) => Math.round(v + (c1[j] - v) * k));
+			return `rgb(${rgb.join(', ')})`;
+		}
+	}
+	return `rgb(${stops[stops.length - 1][1].join(', ')})`;
+}
+
+// Apple Weather–style range bar: a thin rounded capsule track (centered on
+// the row, never stretched to the row height — St's default FILL alignment
+// made it ~20px tall), the day's low→high span colored by temperature, and
+// on today's row a dot marking the current temperature.
+function buildTempBar(day, allDays, trackWidth = 110, {theme = null, currentTemp = null, scale = 1} = {}) {
+	const trackHeight = Math.max(3, Math.round(4 * scale));
+	const radius = trackHeight / 2;
+	const fahrenheit = /F/.test(`${day.low}${day.high}`);
+	const toC = t => (t === null ? null : fahrenheit ? (t - 32) * 5 / 9 : t);
+
+	const lows = allDays.map(d => tempNumber(d.low)).filter(n => n !== null);
+	const highs = allDays.map(d => tempNumber(d.high)).filter(n => n !== null);
+	const min = Math.min(...lows);
+	const max = Math.max(...highs);
 	const low = tempNumber(day.low);
 	const high = tempNumber(day.high);
 	const span = max - min;
+	const frac = t => (Number.isFinite(span) && span > 0 ? (t - min) / span : 0.5);
 
 	let start = 0.15;
-	let width = 0.55;
+	let end = 0.7;
+	if (low !== null && high !== null && Number.isFinite(span) && span > 0) {
+		start = frac(low);
+		end = frac(high);
+	}
+	start = Math.max(0, Math.min(1, start));
+	end = Math.max(start, Math.min(1, end));
 
-	if (Number.isFinite(span) && span > 0 && low !== null && high !== null) {
-		start = (low - min) / span;
-		width = (high - low) / span;
-	};
-
-	start = Math.max(0, Math.min(0.92, start));
-	width = Math.max(0.08, Math.min(1 - start, width));
-
-	const track = new St.BoxLayout(boxLayoutProps({
-		style: `width: ${trackWidth}px; height: ${trackHeight}px; background-color: rgba(255, 255, 255, 0.12); border-radius: 2px;`,
+	const dark = theme?.dark ?? true;
+	const track = new St.Widget({
+		style: `background-color: ${dark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.10)'}; border-radius: ${radius}px;`,
 		x_align: Clutter.ActorAlign.START,
+		y_align: Clutter.ActorAlign.CENTER,
 		x_expand: false,
-	}));
-
+		y_expand: false,
+	});
 	track.set_size(trackWidth, trackHeight);
 
 	const offset = Math.round(trackWidth * start);
-	const fillWidth = Math.max(3, Math.round(trackWidth * width));
-
-	if (offset > 0) {
-		const spacer = new St.Widget({x_expand: false});
-		spacer.set_size(offset, trackHeight);
-		track.add_child(spacer);
-	};
-
+	const fillWidth = Math.max(trackHeight, Math.round(trackWidth * (end - start)));
 	const fill = new St.Widget({
-		style: `width: ${fillWidth}px; height: ${trackHeight}px; background-gradient-direction: horizontal; background-gradient-start: #30b0c7; background-gradient-end: #ffd60a; border-radius: 2px;`,
-		x_expand: false,
+		style: `background-gradient-direction: horizontal; background-gradient-start: ${tempColor(toC(low))};`
+			+ ` background-gradient-end: ${tempColor(toC(high))}; border-radius: ${radius}px;`,
 	});
-
 	fill.set_size(fillWidth, trackHeight);
+	fill.set_position(Math.min(offset, trackWidth - fillWidth), 0);
 	track.add_child(fill);
+
+	// Today: the current temperature as a dot ringed in the card color.
+	const now = tempNumber(currentTemp);
+	if (now !== null && Number.isFinite(span) && span > 0) {
+		const dot = Math.max(trackHeight + 2, Math.round(6 * scale));
+		const x = Math.round(Math.max(0, Math.min(1, frac(now))) * trackWidth - dot / 2);
+		const ring = theme?.background ?? '#1c1c1e';
+		const dotActor = new St.Widget({
+			style: `background-color: #ffffff; border-radius: ${dot / 2}px; border: ${Math.max(1, Math.round(scale * 1.5))}px solid ${ring};`,
+		});
+		dotActor.set_size(dot + 2, dot + 2);
+		dotActor.set_position(Math.max(-1, Math.min(trackWidth - dot - 1, x - 1)), Math.round((trackHeight - dot) / 2) - 1);
+		track.add_child(dotActor);
+	}
 	return track;
 };
 
-function buildWeekList(days, theme, createLabel, scale, barWidth = 110, fill = false) {
+function buildWeekList(days, theme, createLabel, scale, barWidth = 110, fill = false, currentTemp = null) {
 	const list = new St.BoxLayout(boxLayoutProps({
 		vertical: true,
 		style_class: 'widget-weather-week',
@@ -651,7 +754,12 @@ function buildWeekList(days, theme, createLabel, scale, barWidth = 110, fill = f
 
 		low.x_expand = false;
 		row.add_child(low);
-		row.add_child(buildTempBar(day, days, barWidth));
+		row.add_child(buildTempBar(day, days, barWidth, {
+			theme,
+			scale,
+			// Apple marks the current temperature on today's row only.
+			currentTemp: day === days[0] ? currentTemp : null,
+		}));
 
 		const high = createLabel(
 			day.high,
@@ -812,11 +920,11 @@ export function render({body, widget, createLabel, theme, weather, weatherLocati
 	// widget's preferences switches it back to the neutral text color.
 	const useAccentColor = settings?.get_boolean('weather-use-accent-color') ?? true;
 	const tempColor = useAccentColor ? theme.accent : theme.text;
-	const detail = widget.data.detail || _('Weather unavailable');
+	const detail = widget.data?.detail || _('Weather unavailable');
 	const renderedWeather = weather ?? {
 		temp: formatTemperature(String(detail).split(/\s+/)[0] || '--'),
 		summary: String(detail).replace(/^\S+\s*/, '') || _('Open Weather to set a location'),
-		location: weatherLocation || widget.data.location || _('GNOME Weather'),
+		location: weatherLocation || widget.data?.location || _('GNOME Weather'),
 		icon: fallbackIcon(detail),
 		feelsLike: null,
 		hourly: [],
@@ -979,67 +1087,154 @@ export function render({body, widget, createLabel, theme, weather, weatherLocati
 		});
 		pageStack.connect('destroy', () => { stackLifetime.alive = false; });
 
-		// Right-button swipe — the calendar's sequential two-leg flip.
-		let swipeStartX = null;
-		let swipeBusy = false;
+		// Apple-style pager (right button): both pages ride ONE strip — the
+		// current page follows the pointer and the other page is attached
+		// right beside it, so every frame shows both moving together. On
+		// release past the threshold (or a quick flick) the strip settles on
+		// the new page; otherwise it springs back. The old swipe ran two
+		// separate legs (slide+fade out, then a delayed slide+fade in).
+		const PAGE_GAP = 12;
+		let drag = null; // {startX, startTime, lastX, lastTime, dx, entering, grab}
+		let settling = false;
 		pageStack.reactive = true;
+
+		const pageDistance = () => Math.max(1, Math.round(pageStack.width || widgetWidth)) + PAGE_GAP;
+		const placeEntering = (entering, dx) => {
+			const d = pageDistance();
+			entering.translation_x = dx + (dx < 0 ? d : -d);
+		};
+		const endGrab = () => {
+			if (drag?.grab) {
+				try {
+					drag.grab.dismiss();
+				} catch (_e) {}
+				drag.grab = null;
+			}
+		};
+
 		pageStack.connect('button-press-event', (actor, event) => {
-			if (event.get_button() !== 3) return Clutter.EVENT_PROPAGATE;
-			swipeStartX = event.get_coords()[0];
+			// An open gesture here lost its release: close it, then go on.
+			if (drag)
+				finishDrag(false);
+			if (event.get_button() !== 3 || settling)
+				return Clutter.EVENT_PROPAGATE;
+			const [x] = event.get_coords();
+			const now = GLib.get_monotonic_time() / 1000;
+			drag = {startX: x, lastX: x, lastTime: now, velocity: 0, dx: 0, entering: null, grab: null, hold: createHoldWatch(BUTTON3_MASK)};
+			// Keep receiving motion/release even outside the card.
+			try {
+				drag.grab = global.stage.grab(pageStack);
+			} catch (_e) {}
 			return Clutter.EVENT_PROPAGATE;
 		});
-		pageStack.connect('button-release-event', (actor, event) => {
-			if (swipeStartX === null) return Clutter.EVENT_PROPAGATE;
-			const startX = swipeStartX;
-			swipeStartX = null;
-			const delta = event.get_coords()[0] - startX;
 
-			if (Math.abs(delta) < WEATHER_SWIPE_THRESHOLD || swipeBusy)
-				return Clutter.EVENT_STOP;
+		pageStack.connect('motion-event', (actor, event) => {
+			if (!drag || !stackLifetime.alive)
+				return Clutter.EVENT_PROPAGATE;
+			if (!drag.hold.held(event)) {
+				finishDrag(false);
+				return Clutter.EVENT_PROPAGATE;
+			}
+			const [x] = event.get_coords();
+			const now = GLib.get_monotonic_time() / 1000;
+			const dt = Math.max(1, now - drag.lastTime);
+			drag.velocity = (x - drag.lastX) / dt; // px per ms
+			drag.lastX = x;
+			drag.lastTime = now;
+			drag.dx = x - drag.startX;
+			// Two pages: nothing lies beyond the neighbour — clamp to one page.
+			drag.dx = Math.max(-pageDistance(), Math.min(pageDistance(), drag.dx));
 
-			swipeBusy = true;
-			const leavingPage = weatherCompactPage;
-			const leaving = pages[leavingPage];
-			const exitX = delta < 0 ? -widgetWidth : widgetWidth;
-
-			// Leg one: the page slides out and fades.
-			leaving.ease({
-				opacity: 0,
-				translation_x: exitX,
-				duration: WEATHER_FLIP_DURATION,
-				mode: Clutter.AnimationMode.EASE_IN_QUAD,
-				onComplete: () => {
-					if (pageLifetimes[leavingPage].alive && leaving.get_parent()) {
-						leaving.get_parent().remove_child(leaving);
-					};
-				},
-			});
-
-			// Any swipe direction switches to the other page.
-			weatherCompactPage = 1 - weatherCompactPage;
-			refreshDots();
-
-			// Leg two starts mid-flight, exactly like the calendar: the
-			// page waits off-stage, then slides in and fades up.
-			GLib.timeout_add(GLib.PRIORITY_DEFAULT, Math.round(WEATHER_FLIP_DURATION / 2), () => {
-				swipeBusy = false;
-				if (!stackLifetime.alive || !pageLifetimes[weatherCompactPage].alive)
-					return GLib.SOURCE_REMOVE;
-
-				const entering = pages[weatherCompactPage];
-				entering.translation_x = -exitX;
-				entering.opacity = 0;
-				pageStack.add_child(entering);
-				entering.ease({
-					opacity: 255,
-					translation_x: 0,
-					duration: WEATHER_FLIP_DURATION,
-					mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-				});
-				return GLib.SOURCE_REMOVE;
-			});
+			const leaving = pages[weatherCompactPage];
+			const entering = pages[1 - weatherCompactPage];
+			if (!drag.entering && Math.abs(drag.dx) > 2) {
+				drag.entering = entering;
+				entering.remove_all_transitions();
+				entering.opacity = 255;
+				if (entering.get_parent() !== pageStack)
+					pageStack.insert_child_below(entering, indicator.wrap);
+			}
+			leaving.remove_all_transitions();
+			leaving.opacity = 255;
+			leaving.translation_x = drag.dx;
+			if (drag.entering)
+				placeEntering(entering, drag.dx);
 			return Clutter.EVENT_STOP;
 		});
+
+		const finishDrag = (allowCommit) => {
+			if (!drag)
+				return;
+			const {dx, velocity, entering} = drag;
+			endGrab();
+			drag = null;
+			if (!entering || !stackLifetime.alive)
+				return;
+
+			const leavingIndex = weatherCompactPage;
+			const leaving = pages[leavingIndex];
+			const d = pageDistance();
+			const flick = Math.abs(velocity) > 0.5 && Math.sign(velocity) === Math.sign(dx);
+			const commit = allowCommit && (Math.abs(dx) > WEATHER_SWIPE_THRESHOLD || flick);
+			const remaining = commit ? d - Math.abs(dx) : Math.abs(dx);
+			const duration = Math.round(Math.min(380, Math.max(200, remaining * 1.1)));
+			const mode = Clutter.AnimationMode.EASE_OUT_CUBIC;
+
+			settling = true;
+			if (commit) {
+				weatherCompactPage = 1 - weatherCompactPage;
+				refreshDots();
+				entering.ease({translation_x: 0, duration, mode});
+				leaving.ease({
+					translation_x: dx < 0 ? -d : d,
+					duration,
+					mode,
+					onStopped: () => {
+						settling = false;
+						if (pageLifetimes[leavingIndex].alive && leaving.get_parent() === pageStack) {
+							pageStack.remove_child(leaving);
+							leaving.translation_x = 0;
+						}
+					},
+				});
+			} else {
+				leaving.ease({translation_x: 0, duration, mode});
+				entering.ease({
+					translation_x: dx < 0 ? d : -d,
+					duration,
+					mode,
+					onStopped: () => {
+						settling = false;
+						const idx = 1 - leavingIndex;
+						if (pageLifetimes[idx].alive && entering.get_parent() === pageStack) {
+							pageStack.remove_child(entering);
+							entering.translation_x = 0;
+						}
+					},
+				});
+			}
+		};
+		pageStack.connect('button-release-event', (actor, event) => {
+			if (!drag || event.get_button() !== 3)
+				return Clutter.EVENT_PROPAGATE;
+			finishDrag(true);
+			return Clutter.EVENT_STOP;
+		});
+		// A swallowed release (an app or the overview grabbed the pointer
+		// mid-gesture), hiding, another press or Escape end the gesture —
+		// the pointer grab must never stay stuck on the widget.
+		pageStack.connect('notify::mapped', () => {
+			if (!pageStack.mapped)
+				finishDrag(false);
+		});
+		pageStack.connect('key-press-event', (actor, event) => {
+			if (drag && event.get_key_symbol() === Clutter.KEY_Escape) {
+				finishDrag(false);
+				return Clutter.EVENT_STOP;
+			}
+			return Clutter.EVENT_PROPAGATE;
+		});
+		pageStack.connect('destroy', () => endGrab());
 		return;
 	};
 
@@ -1106,7 +1301,7 @@ export function render({body, widget, createLabel, theme, weather, weatherLocati
 
 			if (days.length > 0) {
 				body.add_child(stripDivider());
-				body.add_child(buildWeekList(days, theme, createLabel, weeklyScale, barWidth, true));
+				body.add_child(buildWeekList(days, theme, createLabel, weeklyScale, barWidth, true, renderedWeather.temp));
 			};
 		} else {
 			// No week data: the old bottom spacer keeps the hourly strip

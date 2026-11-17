@@ -185,6 +185,9 @@ export function render({ body, widget, theme, sizeForWidget }) {
         hint_text: _('New task…'),
         can_focus: true,
         x_expand: true,
+        // The row already carries the translucent band; the shell theme's
+        // solid entry fill painted a dark block over the Glass backdrop.
+        style: `background-color: transparent; border: none; box-shadow: none; padding: 0; color: ${textColor};`,
     });
     entryRow.add_child(taskEntry);
     entryRow.hide();

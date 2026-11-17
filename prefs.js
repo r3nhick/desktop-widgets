@@ -223,115 +223,137 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         // General page
         const generalPage = new Adw.PreferencesPage();
         generalPage.set_title(_('General'));
+        generalPage._dwId = 'general';
         generalPage.set_icon_name('preferences-system-symbolic');
         this._buildGeneralPage(generalPage, settings);
         this._addSidebarPage(generalPage);
 
+        // Every per-widget page lives under one collapsible sidebar section.
+        this._sidebarWidgetGroup = this._addSidebarGroup(_('Widget settings'), 'view-grid-symbolic');
+
         // Photos page
         const photosPage = this._createPhotosPage(settings);
         photosPage.set_title(_('Photos Widget'));
+        photosPage._dwId = 'photos-widget';
         photosPage.set_icon_name('image-x-generic-symbolic');
-        this._addSidebarPage(photosPage);
+        this._addSidebarPage(photosPage, this._sidebarWidgetGroup);
 
         // Battery page
         const batteryPage = this._createBatteryPage(settings);
         batteryPage.set_title(_('Battery Widget'));
+        batteryPage._dwId = 'battery-widget';
         batteryPage.set_icon_name('battery-symbolic');
-        this._addSidebarPage(batteryPage);
+        this._addSidebarPage(batteryPage, this._sidebarWidgetGroup);
 
         // Screen Time page
         const screentimePage = this._createScreentimePage(settings);
         screentimePage.set_title(_('Screen Time Widget'));
+        screentimePage._dwId = 'screen-time-widget';
         screentimePage.set_icon_name('alarm-symbolic');
-        this._addSidebarPage(screentimePage);
+        this._addSidebarPage(screentimePage, this._sidebarWidgetGroup);
 
         // Music page
         const musicPage = this._createMusicPage(settings);
         musicPage.set_title(_('Music Widget'));
+        musicPage._dwId = 'music-widget';
         musicPage.set_icon_name('folder-music-symbolic');
-        this._addSidebarPage(musicPage);
+        this._addSidebarPage(musicPage, this._sidebarWidgetGroup);
 
         // Calendar page
         const calendarPage = this._createCalendarPage(settings);
         calendarPage.set_title(_('Calendar Widget'));
+        calendarPage._dwId = 'calendar-widget';
         calendarPage.set_icon_name('x-office-calendar-symbolic');
-        this._addSidebarPage(calendarPage);
+        this._addSidebarPage(calendarPage, this._sidebarWidgetGroup);
 
         // Weather page
         const weatherPage = this._createWeatherPage(settings);
         weatherPage.set_title(_('Weather Widget'));
+        weatherPage._dwId = 'weather-widget';
         weatherPage.set_icon_name('weather-clear-symbolic');
-        this._addSidebarPage(weatherPage);
+        this._addSidebarPage(weatherPage, this._sidebarWidgetGroup);
 
         // Analog Clock page
         const analogClockPage = this._createAnalogClockPage(settings);
         analogClockPage.set_title(_('Analog Clock Widget'));
+        analogClockPage._dwId = 'analog-clock-widget';
         analogClockPage.set_icon_name('preferences-system-time-symbolic');
-        this._addSidebarPage(analogClockPage);
+        this._addSidebarPage(analogClockPage, this._sidebarWidgetGroup);
 
         // Digital Clock page
         const digitalClockPage = this._createDigitalClockPage(settings);
         digitalClockPage.set_title(_('Digital Clock Widget'));
+        digitalClockPage._dwId = 'digital-clock-widget';
         digitalClockPage.set_icon_name('preferences-system-time-symbolic');
-        this._addSidebarPage(digitalClockPage);
+        this._addSidebarPage(digitalClockPage, this._sidebarWidgetGroup);
 
         // Binary Clock page
         const binaryClockPage = this._createBinaryClockPage(settings);
         binaryClockPage.set_title(_('Binary Clock Widget'));
+        binaryClockPage._dwId = 'binary-clock-widget';
         binaryClockPage.set_icon_name('preferences-system-time-symbolic');
-        this._addSidebarPage(binaryClockPage);
+        this._addSidebarPage(binaryClockPage, this._sidebarWidgetGroup);
 
         // GitHub page
         const githubPage = this._createGithubPage(settings);
         githubPage.set_title(_('GitHub Widget'));
+        githubPage._dwId = 'github-widget';
         githubPage.set_icon_name('network-server-symbolic');
-        this._addSidebarPage(githubPage);
+        this._addSidebarPage(githubPage, this._sidebarWidgetGroup);
 
         // App Launcher page
         const appLauncherPage = this._createAppLauncherPage(settings);
         appLauncherPage.set_title(_('App Launcher Widget'));
+        appLauncherPage._dwId = 'app-launcher-widget';
         appLauncherPage.set_icon_name('view-app-grid-symbolic');
-        this._addSidebarPage(appLauncherPage);
+        this._addSidebarPage(appLauncherPage, this._sidebarWidgetGroup);
 
         // Folder Launcher page
         const folderLauncherPage = this._createFolderLauncherPage(settings);
         folderLauncherPage.set_title(_('Folder Launcher Widget'));
+        folderLauncherPage._dwId = 'folder-launcher-widget';
         folderLauncherPage.set_icon_name('folder-symbolic');
-        this._addSidebarPage(folderLauncherPage);
+        this._addSidebarPage(folderLauncherPage, this._sidebarWidgetGroup);
 
         // Notes page
         const notesPage = this._createNotesPage(settings);
         notesPage.set_title(_('Notes Widget'));
+        notesPage._dwId = 'notes-widget';
         notesPage.set_icon_name('text-x-generic-symbolic');
-        this._addSidebarPage(notesPage);
+        this._addSidebarPage(notesPage, this._sidebarWidgetGroup);
 
         // Pomodoro page
         const pomodoroPage = this._createPomodoroPage(settings);
         pomodoroPage.set_title(_('Pomodoro Widget'));
+        pomodoroPage._dwId = 'pomodoro-widget';
         pomodoroPage.set_icon_name('alarm-symbolic');
-        this._addSidebarPage(pomodoroPage);
+        this._addSidebarPage(pomodoroPage, this._sidebarWidgetGroup);
 
         // System Monitor page
         const systemMonitorPage = this._createSystemMonitorPage(settings);
         systemMonitorPage.set_title(_('System Monitor Widget'));
+        systemMonitorPage._dwId = 'system-monitor-widget';
         systemMonitorPage.set_icon_name('computer-symbolic');
-        this._addSidebarPage(systemMonitorPage);
+        this._addSidebarPage(systemMonitorPage, this._sidebarWidgetGroup);
 
         // Lava page
         const lavaPage = this._createLavaPage(settings);
         lavaPage.set_title(_('Lava Lamp Widget'));
+        lavaPage._dwId = 'lava-lamp-widget';
         lavaPage.set_icon_name('weather-clear-symbolic');
-        this._addSidebarPage(lavaPage);
+        this._addSidebarPage(lavaPage, this._sidebarWidgetGroup);
 
         // Appearance page
         const appearancePage = this._createAppearancePage(settings);
         appearancePage.set_title(_('Appearance'));
+        appearancePage._dwId = 'appearance';
         appearancePage.set_icon_name('applications-graphics-symbolic');
         this._addSidebarPage(appearancePage);
 
         // About page
-        const aboutPage = this._createAboutPage();
+        const aboutPage = this._createAboutPage(settings, window);
         aboutPage.set_title(_('About'));
+        aboutPage._dwId = 'about';
         aboutPage.set_icon_name('help-about-symbolic');
         this._addSidebarPage(aboutPage);
 
@@ -345,6 +367,8 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             this._trackSource(GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
                 const row = this._sidebarRows.get(openPage)
                     ?? this._sidebarRows.get('appearance');
+                if (row?._group)
+                    this._setSidebarGroupExpanded(row._group, true);
                 row?.emit('activate');
                 return GLib.SOURCE_REMOVE;
             }));
@@ -375,8 +399,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
     }
 
     _releasePageHandlers() {
+        // One-shot sources may already have fired: removing those again
+        // logs a GLib-CRITICAL, so only still-pending ones are removed.
+        const context = GLib.MainContext.default();
         for (const sourceId of this._trackedPageSources) {
-            GLib.source_remove(sourceId);
+            if (sourceId && context.find_source_by_id(sourceId))
+                GLib.source_remove(sourceId);
         }
         this._trackedPageSources = [];
 
@@ -391,7 +419,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
 
         for (const key in (this._debounceTimers ?? {})) {
             const id = this._debounceTimers[key];
-            if (id) {
+            if (id && context.find_source_by_id(id)) {
                 GLib.source_remove(id);
             }
         }
@@ -457,16 +485,64 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         this._firstPageAdded = false;
 
         this._sidebarListBox.connect('row-activated', (_listBox, row) => {
+            if (row._isGroup) {
+                this._setSidebarGroupExpanded(row, !row._expanded);
+                return;
+            }
             splitView.set_show_content(true);
             splitViewContent.set_title(row._title);
             this._stack.set_visible_child_name(row._id);
         });
     }
 
-    _addSidebarPage(page) {
+    // Collapsible section header in the sidebar ("Widget settings ⌄"):
+    // activating it shows/hides the page rows that belong to it.
+    _addSidebarGroup(title, iconName) {
+        const row = new Gtk.ListBoxRow({activatable: true, selectable: false});
+        row._isGroup = true;
+        row._expanded = false;
+        row._members = [];
+
+        const box = new Gtk.Box({
+            spacing: 12,
+            margin_top: 12,
+            margin_bottom: 12,
+            margin_start: 6,
+            margin_end: 6,
+        });
+        box.append(new Gtk.Image({icon_name: iconName}));
+        box.append(new Gtk.Label({label: title, xalign: 0, hexpand: true}));
+        row._arrow = new Gtk.Image({icon_name: 'pan-down-symbolic'});
+        box.append(row._arrow);
+        row.set_child(box);
+        try {
+            row.update_property([Gtk.AccessibleProperty.LABEL], [title]);
+            row.update_state([Gtk.AccessibleState.EXPANDED], [false]);
+        } catch (_e) {
+            // Accessibility metadata only — never break the window over it.
+        }
+
+        this._sidebarListBox.append(row);
+        return row;
+    }
+
+    _setSidebarGroupExpanded(group, expanded) {
+        group._expanded = expanded;
+        group._arrow.set_from_icon_name(expanded ? 'pan-up-symbolic' : 'pan-down-symbolic');
+        try {
+            group.update_state([Gtk.AccessibleState.EXPANDED], [expanded]);
+        } catch (_e) {}
+        for (const member of group._members)
+            member.set_visible(expanded);
+    }
+
+    _addSidebarPage(page, group = null) {
         const row = new Gtk.ListBoxRow();
         row._title = page.get_title();
-        row._id = row._title.toLowerCase().replace(/\s+/g, '-');
+        // Stable id from the ENGLISH title (set next to each set_title):
+        // the translated title made deep links (widget context menu, update
+        // notification) miss their page in every non-English locale.
+        row._id = page._dwId ?? row._title.toLowerCase().replace(/\s+/g, '-');
 
         const rowIcon = new Gtk.Image({
             icon_name: page.get_icon_name(),
@@ -483,7 +559,8 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             spacing: 12,
             margin_top: 12,
             margin_bottom: 12,
-            margin_start: 6,
+            // Rows inside a sidebar section are indented under its header.
+            margin_start: group ? 24 : 6,
             margin_end: 6,
         });
         box.append(rowIcon);
@@ -494,6 +571,12 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         this._stack.add_named(page, row._id);
         this._sidebarListBox.append(row);
         this._sidebarRows.set(row._id, row);
+
+        if (group) {
+            row._group = group;
+            group._members.push(row);
+            row.set_visible(group._expanded);
+        }
 
         if (!this._firstPageAdded) {
             this._splitViewContent.set_title(row._title);
@@ -1600,6 +1683,13 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             settings.set_boolean('calendar-show-page-dots', pageDotsRow.get_active());
         });
         group.add(pageDotsRow);
+
+        const hideDateRow = new Adw.SwitchRow({
+            title: _('Hide the date when there are many events'),
+            subtitle: _('2x1 calendar: the weekday and day number make room when the events don’t fit below them'),
+        });
+        settings.bind('calendar-hide-date-many-events', hideDateRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        group.add(hideDateRow);
 
         // Page indicator color: accent when on, neutral theme text when off
         // (white on the dark theme, black on the light one).
@@ -2855,64 +2945,97 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             }
         `);
 
+        // Preview = an EMPTY 2×1 widget in each style (no fake wallpaper or
+        // content bars — those read like a photo). Corners follow the
+        // Border Radius setting, scaled to the preview size.
         const drawStylePreview = (cr, width, height, kind) => {
             const R = (x, y, w, h, r) => {
+                r = Math.max(0, Math.min(r, w / 2, h / 2));
                 cr.newPath();
+                if (r <= 0) {
+                    cr.rectangle(x, y, w, h);
+                    return;
+                }
                 cr.arc(x + r, y + r, r, Math.PI, 1.5 * Math.PI);
                 cr.arc(x + w - r, y + r, r, 1.5 * Math.PI, 2 * Math.PI);
                 cr.arc(x + w - r, y + h - r, r, 0, 0.5 * Math.PI);
-                cr.arc(x + r, y + h - r + 0, r, 0.5 * Math.PI, Math.PI);
+                cr.arc(x + r, y + h - r, r, 0.5 * Math.PI, Math.PI);
                 cr.closePath();
             };
 
-            // Wallpaper backdrop (only visible behind the glass pane).
-            R(0, 0, width, height, 8);
-            cr.clip();
-            cr.setSourceRGB(0.30, 0.49, 0.78);
-            cr.rectangle(0, 0, width, height);
-            cr.fill();
-            cr.setSourceRGBA(0.96, 0.83, 0.45, 0.55);
-            cr.arc(width * 0.72, height * 0.30, height * 0.42, 0, 2 * Math.PI);
-            cr.fill();
-            cr.setSourceRGBA(0.20, 0.55, 0.60, 0.45);
-            cr.arc(width * 0.22, height * 0.75, height * 0.38, 0, 2 * Math.PI);
-            cr.fill();
+            // 2×1 widget proportions (395×190), centered in the preview.
+            const paneH = height - 4;
+            const paneW = Math.min(width - 4, Math.round(paneH * 395 / 190));
+            const paneX = Math.round((width - paneW) / 2) + 0.5;
+            const paneY = 2.5;
+            const radius = settings.get_int('style-border-radius') * (paneH / 190);
 
-            const paneX = 12;
-            const paneY = 12;
-            const paneW = width - 24;
-            const paneH = height - 24;
-
-            R(paneX, paneY, paneW, paneH, 6);
-
+            R(paneX, paneY, paneW, paneH, radius);
             if (kind === 'glass') {
-                cr.setSourceRGBA(1, 1, 1, 0.28);
-                cr.fillPreserve();
-                cr.setSourceRGBA(1, 1, 1, 0.65);
-                cr.setLineWidth(1.5);
-                cr.stroke();
-                cr.setSourceRGBA(1, 1, 1, 0.75);
-            } else {
-                cr.setSourceRGB(0.14, 0.14, 0.14);
-                cr.fillPreserve();
-                cr.setSourceRGBA(1, 1, 1, 0.20);
-                cr.setLineWidth(1.5);
-                cr.stroke();
-                cr.setSourceRGBA(1, 1, 1, 0.85);
-            };
+                // Liquid glass: what is behind the pane shows only THROUGH it
+                // (soft color blobs, magnified at the center and bent at the
+                // rim), a bright specular rim at the top-left, a softer one
+                // at the bottom-right, and a glossy sheen on top.
+                const cy = paneY + paneH / 2;
+                cr.save();
+                R(paneX, paneY, paneW, paneH, radius);
+                cr.clip();
 
-            // Mock content: title bar, shorter artist bar, time dot.
-            const cx = paneX + paneW * 0.55;
-            R(cx, paneY + 6, paneW * 0.38, 5, 2.5);
-            cr.fill();
-            R(cx, paneY + 15, paneW * 0.26, 4, 2);
-            cr.fill();
-            R(paneX + 6, paneY + paneH - 10, paneW * 0.5, 4, 2);
-            cr.fill();
-            cr.setSourceRGBA(1, 1, 1, kind === 'glass' ? 0.55 : 0.35);
-            cr.arc(paneX + paneW - 9, paneY + 9, 3.5, 0, 2 * Math.PI);
-            cr.fill();
-            cr.resetClip();
+                // Backdrop seen through the glass.
+                const blob = (x, y, r, rgb, a) => {
+                    const g = new cairo.RadialGradient(x, y, 0, x, y, r);
+                    g.addColorStopRGBA(0, ...rgb, a);
+                    g.addColorStopRGBA(1, ...rgb, 0);
+                    cr.setSource(g);
+                    cr.rectangle(paneX, paneY, paneW, paneH);
+                    cr.fill();
+                };
+                cr.setSourceRGBA(1, 1, 1, 0.06);
+                cr.paint();
+                blob(paneX + paneW * 0.28, paneY + paneH * 0.70, paneH * 0.75, [0.35, 0.62, 1.0], 0.55);
+                blob(paneX + paneW * 0.78, paneY + paneH * 0.30, paneH * 0.70, [1.0, 0.55, 0.75], 0.45);
+                blob(paneX + paneW * 0.55, paneY + paneH * 0.95, paneH * 0.55, [0.55, 1.0, 0.85], 0.30);
+
+                // Refraction band: the edge bends light — a bright inner
+                // ring fading toward the center, with a faint color fringe.
+                for (let i = 0; i < 5; i++) {
+                    const inset = 1.5 + i * 1.6;
+                    R(paneX + inset, paneY + inset, paneW - inset * 2, paneH - inset * 2, Math.max(0, radius - inset));
+                    cr.setLineWidth(1.6);
+                    cr.setSourceRGBA(1, 1, 1, 0.16 * (1 - i / 5));
+                    cr.stroke();
+                }
+                R(paneX + 2.2, paneY + 2.2, paneW - 4.4, paneH - 4.4, Math.max(0, radius - 2.2));
+                cr.setLineWidth(1);
+                cr.setSourceRGBA(0.55, 0.85, 1.0, 0.22);
+                cr.stroke();
+
+                // Glossy sheen across the top.
+                const sheen = new cairo.LinearGradient(0, paneY, 0, cy);
+                sheen.addColorStopRGBA(0, 1, 1, 1, 0.30);
+                sheen.addColorStopRGBA(1, 1, 1, 1, 0);
+                cr.setSource(sheen);
+                cr.rectangle(paneX, paneY, paneW, paneH / 2);
+                cr.fill();
+                cr.restore();
+
+                // Specular rim: strong top-left, softer bottom-right.
+                const rim = new cairo.LinearGradient(paneX, paneY, paneX + paneW, paneY + paneH);
+                rim.addColorStopRGBA(0, 1, 1, 1, 0.95);
+                rim.addColorStopRGBA(0.35, 1, 1, 1, 0.25);
+                rim.addColorStopRGBA(0.65, 1, 1, 1, 0.15);
+                rim.addColorStopRGBA(1, 1, 1, 1, 0.70);
+                R(paneX, paneY, paneW, paneH, radius);
+                cr.setSource(rim);
+                cr.setLineWidth(1.2);
+                cr.stroke();
+            } else {
+                cr.setSourceRGB(0.14, 0.14, 0.15);
+                cr.fillPreserve();
+                cr.setSourceRGBA(1, 1, 1, 0.16);
+                cr.setLineWidth(1);
+                cr.stroke();
+            }
         };
 
         const makeStyleCard = (kind, title, subtitle) => {
@@ -2937,6 +3060,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             preview.set_draw_func((_widget, cr, width, height) => {
                 drawStylePreview(cr, width, height, kind);
             });
+            this._trackSignal(settings, settings.connect('changed::style-border-radius', () => preview.queue_draw()));
             box.append(preview);
 
             const nameLabel = new Gtk.Label({
@@ -3080,6 +3204,18 @@ export default class WidgetsPrefs extends ExtensionPreferences {
             return row;
         };
 
+        // GPU warning: always visible above the glass controls.
+        // Must be a PreferencesRow: plain widgets are added to a separate
+        // box below the group's listbox, so they always render at the very
+        // bottom of the group regardless of add order.
+        const glassGpuWarningRow = new Adw.ActionRow({
+            title: _('⚠ Warning: Glass Style increases GPU usage'),
+            subtitle: _('Glass widgets render a blurred wallpaper backdrop and a shader every frame, which raises GPU load. If the desktop becomes slow or your GPU heats up, switch to Solid style.'),
+        });
+        // First row of the Glass group (rows render in add order), so the
+        // warning is read before the sliders; it hides with the group.
+        glassGroup.add(glassGpuWarningRow);
+
         const blurRow = addGlassSlider(
             _('Blur Radius'),
             _('Background blur radius in pixels (0–60)'),
@@ -3120,16 +3256,6 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         glassGroup.visible = settings.get_int('style-mode') === 0;
         solidGroup.visible = !glassGroup.visible;
 
-        // GPU warning: always visible above the glass controls.
-        // Must be a PreferencesRow: plain widgets are added to a separate
-        // box below the group's listbox, so they always render at the very
-        // bottom of the group regardless of add order.
-        const glassGpuWarningRow = new Adw.ActionRow({
-            title: _('⚠ Warning: Glass Style increases GPU usage'),
-            subtitle: _('Glass widgets render a blurred wallpaper backdrop and a shader every frame, which raises GPU load. If the desktop becomes slow or your GPU heats up, switch to Solid style.'),
-        });
-        // Glass-specific: moved into the Glass group so it hides with it.
-        glassGroup.add(glassGpuWarningRow);
 
         // Shadow
         const shadowRow = new Adw.ActionRow({
@@ -3276,7 +3402,7 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         return page;
     }
 
-    _createAboutPage() {
+    _createAboutPage(settings, window) {
         const page = new Adw.PreferencesPage();
         const group = new Adw.PreferencesGroup({
             margin_top: 12,
@@ -3317,26 +3443,314 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         const headerRow = new Adw.ActionRow({activatable: false});
         headerRow.set_child(headerBox);
         group.add(headerRow);
+        page.add(group);
 
-        group.add(this._aboutLinkRow(
-            _('Report an Issue'),
-            'dw-bug',
-            'https://github.com/r3nhick/desktop-widgets/issues'
-        ));
-        group.add(this._aboutLinkRow(
-            _('View sources on GitHub'),
+        // Updates, help and the bug report — the Isle-style block.
+        const helpGroup = new Adw.PreferencesGroup();
+        for (const row of this._updateRows(settings, window, version))
+            helpGroup.add(row);
+        helpGroup.add(this._aboutLinkRow(
+            _('Website'),
             'dw-share-2',
-            'https://github.com/r3nhick/desktop-widgets'
+            'https://github.com/r3nhick/desktop-widgets',
+            _('Features, installing and updating')
         ));
-        group.add(this._aboutLinkRow(
+        helpGroup.add(this._aboutLinkRow(
+            _('Report a problem'),
+            'dw-bug',
+            'https://github.com/r3nhick/desktop-widgets/issues/new',
+            _('On GitHub; paste the report below in it')
+        ));
+        const reportRow = new Adw.ActionRow({
+            title: _('Copy a bug report'),
+            subtitle: _('What’s installed, your widgets and recent errors, ready to paste into a report'),
+            activatable: true,
+        });
+        reportRow.add_suffix(new Gtk.Image({icon_name: 'edit-copy-symbolic', valign: Gtk.Align.CENTER}));
+        reportRow.connect('activated', () => this._copyBugReport(settings, window, reportRow));
+        helpGroup.add(reportRow);
+        helpGroup.add(this._aboutLinkRow(
             _('License'),
             'dw-scale',
             'https://github.com/r3nhick/desktop-widgets/blob/main/LICENSE',
             _('GNU General Public License, version 3 or later')
         ));
+        page.add(helpGroup);
 
-        page.add(group);
+        // Reset everything but the widgets themselves.
+        const resetGroup = new Adw.PreferencesGroup({title: _('Settings')});
+        const resetRow = new Adw.ActionRow({
+            title: _('Reset all settings'),
+            subtitle: _('Back to the defaults; your widgets and their places stay'),
+            activatable: true,
+        });
+        resetRow.connect('activated', () => {
+            const dialog = new Adw.AlertDialog({
+                heading: _('Reset all settings?'),
+                body: _('Every option goes back to its default. Your widgets, their places and their content stay.'),
+            });
+            dialog.add_response('cancel', _('Cancel'));
+            dialog.add_response('reset', _('Reset'));
+            dialog.set_response_appearance('reset', Adw.ResponseAppearance.DESTRUCTIVE);
+            dialog.set_default_response('cancel');
+            dialog.set_close_response('cancel');
+            dialog.connect('response', (_d, response) => {
+                if (response !== 'reset')
+                    return;
+                // Not options: the widgets' layout and internal state.
+                const keep = new Set(['layout-json', 'edit-mode', 'drag-active', 'open-prefs-page',
+                    'open-widget-picker', 'update-latest', 'update-url', 'update-checked-at', 'update-shown']);
+                for (const key of settings.settings_schema.list_keys()) {
+                    if (!keep.has(key))
+                        settings.reset(key);
+                }
+            });
+            dialog.present(window);
+        });
+        resetGroup.add(resetRow);
+        page.add(resetGroup);
         return page;
+    }
+
+    // ── Updates (About page) ──────────────────────────────────────────────
+    // The status row + the opt-in switch. The shell side (lib/updates.js)
+    // asks GitHub once a day and stores what it found in settings; this row
+    // follows those keys. A git checkout updates in one click (git pull);
+    // otherwise the row links to the download.
+    _updateRows(settings, window, version) {
+        const dir = this.path;
+        const isGit = GLib.file_test(GLib.build_filenamev([dir, '.git']), GLib.FileTest.EXISTS);
+        const repoUrl = 'https://github.com/r3nhick/desktop-widgets';
+
+        const isNewer = (a, b) => {
+            const parts = v => String(v ?? '').replace(/^v/i, '').split('.').map(p => parseInt(p, 10) || 0);
+            const [x, y] = [parts(a), parts(b)];
+            for (let i = 0; i < Math.max(x.length, y.length); i++) {
+                if ((x[i] ?? 0) !== (y[i] ?? 0))
+                    return (x[i] ?? 0) > (y[i] ?? 0);
+            }
+            return false;
+        };
+        // The version on disk: after an update it is the new one while the
+        // shell still runs the old one until the next login.
+        const installedVersion = () => {
+            try {
+                const [, bytes] = Gio.File.new_for_path(GLib.build_filenamev([dir, 'metadata.json'])).load_contents(null);
+                return JSON.parse(new TextDecoder().decode(bytes))['version-name'] ?? '';
+            } catch (_e) {
+                return '';
+            }
+        };
+        const checkedWhen = ms => {
+            const then = GLib.DateTime.new_from_unix_local(Math.floor(ms / 1000));
+            const now = GLib.DateTime.new_now_local();
+            const days = now.get_day_of_year() - then.get_day_of_year()
+                + 365 * (now.get_year() - then.get_year());
+            return days <= 0 ? _('today') : days === 1 ? _('yesterday') : then.format('%e %b').trim();
+        };
+
+        // Texts may come from GitHub / git output: never markup.
+        const status = new Adw.ActionRow({use_markup: false});
+        const icon = new Gtk.Image({valign: Gtk.Align.CENTER});
+        const spinner = new Gtk.Spinner({valign: Gtk.Align.CENTER, spinning: true, visible: false});
+        status.add_prefix(icon);
+        status.add_prefix(spinner);
+
+        const button = (label, css) => new Gtk.Button({label, valign: Gtk.Align.CENTER, css_classes: css, visible: false});
+        const download = button(_('Download'), []);
+        download.connect('clicked', () => new Gtk.UriLauncher({
+            uri: settings.get_string('update-url') || repoUrl,
+        }).launch(window, null, null));
+        const update = button(_('Update'), ['suggested-action']);
+        const logOut = button(_('Log Out'), ['suggested-action']);
+        logOut.connect('clicked', () => {
+            Gio.DBus.session.call('org.gnome.SessionManager', '/org/gnome/SessionManager',
+                'org.gnome.SessionManager', 'Logout', new GLib.Variant('(u)', [0]), null,
+                Gio.DBusCallFlags.NONE, -1, null, (bus, res) => {
+                    try {
+                        bus.call_finish(res);
+                    } catch (_e) {
+                        GLib.spawn_async(null, ['gnome-session-quit', '--logout'], null, GLib.SpawnFlags.SEARCH_PATH, null);
+                    }
+                });
+        });
+        const suffixes = [download, update, logOut];
+        for (const suffix of suffixes)
+            status.add_suffix(suffix);
+
+        const check = new Adw.SwitchRow({
+            title: _('Check for new versions'),
+            subtitle: _('Asks GitHub once a day; nothing else is sent'),
+        });
+        settings.bind('check-updates', check, 'active', Gio.SettingsBindFlags.DEFAULT);
+
+        let updating = false;
+        let failure = null;
+        const show = (iconName, css, title, subtitle, buttons = []) => {
+            icon.icon_name = iconName ?? '';
+            icon.css_classes = css;
+            icon.visible = !updating;
+            spinner.visible = updating;
+            status.title = title;
+            status.subtitle = subtitle;
+            for (const suffix of suffixes)
+                suffix.visible = buttons.includes(suffix);
+        };
+
+        const sync = () => {
+            const on = settings.get_boolean('check-updates');
+            const latest = settings.get_string('update-latest');
+            const checkedAt = Number(settings.get_int64('update-checked-at'));
+            const installed = installedVersion();
+
+            if (updating) {
+                show(null, [], _('Updating to Desktop Widgets %s…').format(latest), _('Downloading from GitHub'));
+            } else if (failure) {
+                update.label = _('Try Again');
+                show('dialog-warning-symbolic', ['warning'], _('Couldn’t update'), failure, [download, update]);
+            } else if (installed && isNewer(installed, version)) {
+                show('object-select-symbolic', ['success'], _('Desktop Widgets %s is installed').format(installed),
+                    _('Log out and back in to finish'), [logOut]);
+            } else if (!on) {
+                show('software-update-available-symbolic', ['dim-label'], _('Not checking for new versions'),
+                    _('Turn it on below to hear when one is out'));
+            } else if (latest && isNewer(latest, version)) {
+                update.label = _('Update');
+                show('software-update-available-symbolic', ['accent'], _('Desktop Widgets %s is out').format(latest),
+                    isGit ? _('Your widgets and settings stay') : _('Download it from GitHub'),
+                    isGit ? [update] : [download]);
+            } else if (checkedAt > 0 && latest) {
+                show('object-select-symbolic', ['success'], _('You’re up to date'),
+                    _('Checked %s').format(checkedWhen(checkedAt)));
+            } else {
+                show('software-update-available-symbolic', ['dim-label'], _('Not checked yet'),
+                    _('Desktop Widgets asks GitHub once a day'));
+            }
+        };
+
+        // One-click update for a git checkout: fast-forward only, so local
+        // edits are never overwritten (git refuses and says why).
+        update.connect('clicked', () => {
+            if (updating || !isGit)
+                return;
+            updating = true;
+            failure = null;
+            sync();
+            const run = (argv, done) => {
+                try {
+                    const proc = Gio.Subprocess.new(argv,
+                        Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE);
+                    proc.communicate_utf8_async(null, null, (p, res) => {
+                        let out = '';
+                        try {
+                            [, out] = p.communicate_utf8_finish(res);
+                        } catch (e) {
+                            out = String(e.message ?? e);
+                        }
+                        done(p.get_successful(), (out ?? '').trim());
+                    });
+                } catch (e) {
+                    done(false, String(e.message ?? e));
+                }
+            };
+            run(['git', '-C', dir, 'pull', '--ff-only'], (ok, out) => {
+                if (!ok) {
+                    updating = false;
+                    const line = out.split('\n').filter(l => l.trim()).pop() ?? '';
+                    failure = /local changes|would be overwritten|uncommitted/i.test(out)
+                        ? _('This copy has local changes; git didn’t overwrite them. Commit or stash them, or download instead')
+                        : /could not resolve|unable to access|network/i.test(out)
+                            ? _('GitHub couldn’t be reached; try again later')
+                            : (line || _('git pull failed'));
+                    sync();
+                    return;
+                }
+                // New keys may come with the update: compile the schema.
+                run(['glib-compile-schemas', GLib.build_filenamev([dir, 'schemas'])], () => {
+                    updating = false;
+                    sync();
+                });
+            });
+        });
+
+        const ids = ['check-updates', 'update-latest', 'update-checked-at'].map(key =>
+            settings.connect(`changed::${key}`, () => sync()));
+        for (const id of ids)
+            this._trackSignal(settings, id);
+        sync();
+        return [status, check];
+    }
+
+    // Builds a plain-text report (versions, system, widgets, changed
+    // settings, recent errors) and puts it on the clipboard. Personal values
+    // (user names, places, paths) are left out.
+    async _copyBugReport(settings, window, row) {
+        const original = row.subtitle;
+        const lines = [];
+        const version = this.metadata['version-name'] ?? String(this.metadata.version ?? '');
+        lines.push(`Desktop Widgets ${version} (version ${this.metadata.version ?? '?'})`);
+        try {
+            const Config = await import('resource:///org/gnome/Shell/Extensions/js/misc/config.js');
+            lines.push(`GNOME Shell ${Config.PACKAGE_VERSION}`);
+        } catch (_e) {
+            lines.push('GNOME Shell: unknown');
+        }
+        try {
+            const [, bytes] = Gio.File.new_for_path('/etc/os-release').load_contents(null);
+            const pretty = /^PRETTY_NAME="?([^"\n]*)"?/m.exec(new TextDecoder().decode(bytes))?.[1];
+            if (pretty)
+                lines.push(`OS: ${pretty}`);
+        } catch (_e) {}
+        lines.push(`Session: ${GLib.getenv('XDG_SESSION_TYPE') ?? '?'}, desktop: ${GLib.getenv('XDG_CURRENT_DESKTOP') ?? '?'}`);
+        lines.push(`Install: ${GLib.file_test(GLib.build_filenamev([this.path, '.git']), GLib.FileTest.EXISTS) ? 'git checkout' : 'package'}`);
+        lines.push(`Style: ${settings.get_int('style-mode') === 0 ? 'Glass' : 'Solid'}`);
+
+        try {
+            const doc = JSON.parse(settings.get_string('layout-json') || '{}');
+            const widgets = (doc.widgets ?? []).map(w => `${w.type}${w.size ? ` (${w.size})` : ''}`);
+            lines.push(`Widgets (${widgets.length}): ${widgets.join(', ') || 'none'}`);
+        } catch (_e) {
+            lines.push('Widgets: layout unreadable');
+        }
+
+        const personal = /username|location|photo|path|custom-app|file-manager|binding|theme-|layout|update-/;
+        const changed = settings.settings_schema.list_keys()
+            .filter(key => settings.get_user_value(key) !== null && !personal.test(key))
+            .sort()
+            .map(key => `  ${key} = ${settings.get_value(key).print(false)}`);
+        lines.push(changed.length ? `Changed settings:\n${changed.join('\n')}` : 'Changed settings: none');
+
+        // Recent errors of this extension from the user's journal.
+        const journal = await new Promise(resolve => {
+            try {
+                const proc = Gio.Subprocess.new(
+                    ['journalctl', '--user', '-b', '--no-pager', '-o', 'short-monotonic', '-n', '3000'],
+                    Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE);
+                proc.communicate_utf8_async(null, null, (p, res) => {
+                    try {
+                        const [, out] = p.communicate_utf8_finish(res);
+                        resolve(out ?? '');
+                    } catch (_e) {
+                        resolve('');
+                    }
+                });
+            } catch (_e) {
+                resolve('');
+            }
+        });
+        const recent = journal.split('\n')
+            .filter(l => /desktop-widgets/i.test(l) && /(error|warn|exception|failed|critical)/i.test(l))
+            .slice(-30)
+            // Strip the home folder from paths.
+            .map(l => l.split(GLib.get_home_dir()).join('~'));
+        lines.push(recent.length ? `Recent errors:\n${recent.join('\n')}` : 'Recent errors: none found');
+
+        window.get_display().get_clipboard().set(lines.join('\n'));
+        row.subtitle = _('Copied — paste it into the report on GitHub');
+        this._trackSource(GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2500, () => {
+            row.subtitle = original;
+            return GLib.SOURCE_REMOVE;
+        }));
     }
 
     /**

@@ -101,6 +101,11 @@
       <summary>Show calendar page dots</summary>
       <description>Show the two page-indicator dots at the bottom of the 1x1 calendar (calendar/events swipe pages).</description>
     </key>
+    <key name="calendar-hide-date-many-events" type="b">
+      <default>true</default>
+      <summary>Hide the date when there are many events</summary>
+      <description>In the 2x1 calendar, hide the weekday and the big day number when the events do not fit below them, so the list gets the whole column.</description>
+    </key>
     <key name="page-indicator-style" type="i">
       <default>1</default>
       <summary>Page indicator shape</summary>
@@ -380,6 +385,31 @@
       <default>''</default>
       <summary>Open this sidebar page on preferences launch</summary>
       <description>Internal flag: sidebar page id to activate when the preferences window opens (deep link from a widget's context menu).</description>
+    </key>
+    <key name="check-updates" type="b">
+      <default>false</default>
+      <summary>Check for new versions</summary>
+      <description>Ask GitHub once a day whether a newer Desktop Widgets is out. Nothing else is sent.</description>
+    </key>
+    <key name="update-latest" type="s">
+      <default>''</default>
+      <summary>Latest version found on GitHub</summary>
+      <description>Internal: version-name of the newest release found by the last check.</description>
+    </key>
+    <key name="update-url" type="s">
+      <default>''</default>
+      <summary>Where the latest version can be downloaded</summary>
+      <description>Internal: release page (or repository page) of the latest version.</description>
+    </key>
+    <key name="update-checked-at" type="x">
+      <default>0</default>
+      <summary>Last successful update check (ms since epoch)</summary>
+      <description>Internal: when GitHub last answered an update check.</description>
+    </key>
+    <key name="update-shown" type="s">
+      <default>''</default>
+      <summary>Version already announced</summary>
+      <description>Internal: the newest version a notification was already shown for, so it is announced once.</description>
     </key>
   </schema>
 </schemalist>

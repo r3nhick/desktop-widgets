@@ -65,18 +65,30 @@ const AnalogClockFace = GObject.registerClass(
 				});
 			} else {
 				this._timeline = null;
-				this._repaintTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
-					if (!this.get_parent()) {
-						this._repaintTimeoutId = 0;
-						return GLib.SOURCE_REMOVE;
-					};
-
-					this.queue_repaint();
-					return GLib.SOURCE_CONTINUE;
-				});
+				this._repaintTimeoutId = 0;
+				// Tick on the second boundary (a free-running 1000 ms timer
+				// lagged the real second by up to ~1 s and drifted) and only
+				// while the face is on screen.
+				this.connect('notify::mapped', () => this._syncStepTicker());
 			}
 
 			this.connect('destroy', this._onDestroy.bind(this));
+		};
+
+		_syncStepTicker() {
+			if (this._repaintTimeoutId) {
+				GLib.Source.remove(this._repaintTimeoutId);
+				this._repaintTimeoutId = 0;
+			};
+			if (!this.mapped)
+				return;
+			this.queue_repaint();
+			this._repaintTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000 - (Date.now() % 1000) + 1, () => {
+				this._repaintTimeoutId = 0;
+				this._syncStepTicker();
+				return GLib.SOURCE_REMOVE;
+			});
+			GLib.Source.set_name_by_id(this._repaintTimeoutId, '[desktop-widgets] analog clock tick');
 		};
 
 		_onDestroy() {
@@ -118,19 +130,23 @@ const AnalogClockFace = GObject.registerClass(
 			cr.clip();
 			cr.setLineCap(1);
 
-			for (let tick = 0; tick < 60; tick++) {
-				const angle = tick / 60 * Math.PI * 2 - Math.PI / 2;
-				const dx = Math.cos(angle);
-				const dy = Math.sin(angle);
-				const major = tick % 5 === 0;
+			// Two strokes (minor, then major marks) instead of 60.
+			for (const major of [false, true]) {
 				const tickLength = major ? 16 : 8;
-				const edgeDistance = halfEdge / Math.max(Math.abs(dx), Math.abs(dy));
 				const lineWidth = major ? 2.2 : 1.0;
-				const outer = edgeDistance + lineWidth;
-				const inner = outer - tickLength;
+				for (let tick = major ? 0 : 1; tick < 60; tick += major ? 5 : 1) {
+					if (!major && tick % 5 === 0)
+						continue;
+					const angle = tick / 60 * Math.PI * 2 - Math.PI / 2;
+					const dx = Math.cos(angle);
+					const dy = Math.sin(angle);
+					const edgeDistance = halfEdge / Math.max(Math.abs(dx), Math.abs(dy));
+					const outer = edgeDistance + lineWidth;
+					const inner = outer - tickLength;
 
-				cr.moveTo(centerX + dx * inner, centerY + dy * inner);
-				cr.lineTo(centerX + dx * outer, centerY + dy * outer);
+					cr.moveTo(centerX + dx * inner, centerY + dy * inner);
+					cr.lineTo(centerX + dx * outer, centerY + dy * outer);
+				};
 				cr.setLineWidth(lineWidth);
 				cr.setSourceRGBA(...marks, major ? 0.54 : 0.26);
 				cr.stroke();
