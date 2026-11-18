@@ -132,14 +132,20 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
             }
         : isLarge
             ? {
-                // 2×2: cells tightened to 15px so that besides 5 months
-                // the 5th stats row still fits — pitch 15+1=16,
-                // weeks = floor((361-30+1)/16) = 20 weeks (Jun..Oct),
-                // the grid gets 14px shorter, exactly above the new chip.
-                // monthLabels: 2×2 shows exactly 5 month labels.
+                // 2×2: same look as the 2×1 — 2px gaps between squares,
+                // full-width grid, month names spread evenly and lifted.
+                // Cells 14px with the 2px gap keep the grid height of the old
+                // 15+1 pitch (7×16−2 = 110px), so the 5 stats chips still fit;
+                // weeks = floor((361−30−7+2)/16) = 20.
                 avatar: 34, username: 16, badge: 16, label: 13, entryWidth: 170,
-                footer: 14, month: 15, spacing: 6, gap: 1, daysW: 30,
-                footerFont: 16, dayRows: translateDayRows(DAY_LABEL_ROWS), maxWeeks: 48, cellMax: 15, monthLabels: 5,
+                footer: 14, month: 15, spacing: 6, gap: 2, daysW: 30,
+                footerFont: 16, dayRows: translateDayRows(DAY_LABEL_ROWS), maxWeeks: 48, cellMax: 14, monthLabels: 5,
+                wholeMonths: false,
+                monthLabelSpread: true,
+                monthLabelInset: 15,
+                monthLift: 2,
+                // "Synced …" / Less–More lowered this many px (paint-only).
+                footerDrop: 4,
             }
             : {
                 // 2×1: exactly 6 whole months (see fitWholeMonths); the cell
@@ -147,7 +153,12 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                 // allows up to 11px.
                 avatar: 28, username: 14, badge: 12, label: 12, entryWidth: 150,
                 footer: 12, month: 14, spacing: 3, gap: 2, daysW: 28,
-                footerFont: 11, dayRows: translateDayRows(DAY_LABEL_ROWS), maxWeeks: 60, cellMax: 11, monthLabels: 6,
+                footerFont: 11, dayRows: translateDayRows(DAY_LABEL_ROWS), maxWeeks: 60, cellMax: 10, monthLabels: 6,
+                // Full-width grid (as many weeks as fit), not cut to whole months.
+                wholeMonths: false,
+                // Month names raised this many px above the grid (paint-only,
+                // the grid does not move).
+                monthLift: 2,
                 // Month names spread evenly over the whole grid width: equal
                 // distance between their CENTERS, first near the left edge,
                 // last near the right one. Unset = each name sits over the
@@ -191,7 +202,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
     // with 2–3 unlabeled columns of a partial month, so the label row looked
     // shifted right. The cell size is then fitted to the week count.
     function fitWholeMonths(today) {
-        if (!Number.isFinite(layout.monthLabels))
+        if (!Number.isFinite(layout.monthLabels) || layout.wholeMonths === false)
             return;
         const months = layout.monthLabels;
         const endDate = dateOnly(today).add_days(6 - (today.get_day_of_week() % 7));
@@ -245,7 +256,9 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
     profileUrls.delete(widget.id);
 
-    body.set_clip_to_allocation(true);
+    // A lowered footer reaches into the card's bottom padding, outside the
+    // body: no body clip then (the widget wrapper still clips to the card).
+    body.set_clip_to_allocation(!layout.footerDrop);
 
     const setStatus = (text) => {
         statusLabel.text = text;
@@ -454,6 +467,10 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
 
         footerBox.add_child(legendBox);
         mainBox.add_child(footerBox);
+        // Lowered into the card's bottom padding (paint-only).
+        if (layout.footerDrop)
+            footerBox.translation_y = layout.footerDrop;
+
     }
 
     // --- MATRIX DRAWING ---
@@ -490,6 +507,7 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         monthLabelsRow.destroy_all_children();
         const monthBottomMargin = isMini ? 0 : 4;
         monthLabelsRow.style = `height: ${layout.month}px; margin-bottom: ${monthBottomMargin}px; margin-left: ${gridOffsetX}px;`;
+        monthLabelsRow.translation_y = -(layout.monthLift ?? 0);
 
         // One coordinate space with the canvas: the drawn grid spans exactly
         // weeks * pitch - gap starting at row x = 0 (see gridCanvas above).

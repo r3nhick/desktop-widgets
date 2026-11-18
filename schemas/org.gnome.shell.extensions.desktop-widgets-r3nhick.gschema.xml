@@ -296,6 +296,11 @@
       <summary>Notes content font size</summary>
       <description>Font size in pixels for the Notes widget content text.</description>
     </key>
+    <key name="show-placement-grid" type="b">
+      <default>true</default>
+      <summary>Show placement grid while dragging</summary>
+      <description>In edit mode, show the free 1x1 cells while a widget is dragged and drop it onto the highlighted cells.</description>
+    </key>
     <key name="widget-gap" type="i">
       <default>15</default>
       <summary>Widget gap in pixels</summary>

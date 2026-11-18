@@ -1020,7 +1020,7 @@ class WidgetController {
 
   _clearViews() {
     this._closeStackPanel();
-    this._closeStackGallery();
+    this._closeStackGallery({animate: false});
     for (const view of this._views.values()) {
       view.sizeMenu?.destroy();
       this._destroyContextMenu(view);
@@ -1421,6 +1421,61 @@ class WidgetController {
     return this._styleForWidget(stub);
   };
 
+  // Builds (or rebuilds after a host resize) the stacked pages of a view.
+  _ensureStack(view, startPage = null) {
+    if (!view?.box || isActorDestroyed(view.box))
+      return;
+    const hasPages = Array.isArray(view.widget.stack) && view.widget.stack.some(e => e?.type);
+    const [w, h] = view.box.get_size();
+    if (view._stackPrism && (!hasPages || view._stackPrism._hostW !== w || view._stackPrism._hostH !== h))
+      this._disposeStack(view);
+    if (view._stackPrism || !hasPages)
+      return;
+
+    try {
+      const prism = attachWidgetStack({
+        paneRoot: view.actor,
+        baseActor: view.box,
+        baseGlass: view.glass ?? null,
+        widget: view.widget,
+        theme: this._gnomeTheme(),
+        styleForEntry: entry => this._styleForStackPage(entry, view.widget.type),
+        wantsGlassEntry: entry => this._wantsGlassForStackPage(entry),
+        glassParams: () => this._glassParamsFor(),
+        startPage: startPage ?? view._stackStartPage ?? 0,
+        pageSizeFor: sizeKey => widgetSizesFor(this._widgetGap ?? WIDGET_GAP)[sizeKey] ?? null,
+        renderPage: (record, pageBody, pageRoot) => this._fillWidgetBody(record, pageBody, pageRoot),
+        isEditMode: () => this._editMode,
+        onStateSaved: () => this._saveWidgets(),
+        onPageChange: (page) => {
+          view._stackStartPage = page;
+          if (this._editMode && view) {
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
+              if (this._views.get(view.widget.id) === view)
+                this._syncEditControls(view.widget, false);
+              return GLib.SOURCE_REMOVE;
+            });
+          };
+        },
+      });
+      prism._hostW = w;
+      prism._hostH = h;
+      view._stackPrism = prism;
+    } catch (error) {
+      warn('stack-attach-failed', `Stack attach failed: ${error.message}`);
+    };
+  };
+
+  _disposeStack(view) {
+    if (!view?._stackPrism)
+      return;
+    view._stackStartPage = view._stackPrism.getActivePage?.() ?? 0;
+    try {
+      view._stackPrism.dispose();
+    } catch (_e) {}
+    view._stackPrism = null;
+  };
+
   _wantsGlassForStackPage(entry) {
     const stub = {
       type: entry.type,
@@ -1536,10 +1591,7 @@ class WidgetController {
       // clicks, so the rail yields (non-reactive). In usage mode, the
       // rail catches drags for flipping between stacked pages.
       // Only refresh widgets that actually have a stack prism attached.
-      // Widget-in-widget DISABLED: no prism refresh.
-      // if (view._stackPrism) {
-      //   view._stackPrism.refresh();
-      // };
+      view._stackPrism?.refresh?.();
 
       if (enabled) {
         if (!view.draggable) {
@@ -2281,17 +2333,9 @@ class WidgetController {
           };
         };
 
-        // Widget-in-widget DISABLED: no stack rebuild on resize.
-        // if (currentView._stackPrism) {
-        //   const activePage = currentView._stackPrism.getActivePage();
-        //   currentView._stackPrism.dispose();
-        //   currentView._stackPrism = null;
-        //   try {
-        //     currentView._stackPrism = attachWidgetStack({...});
-        //   } catch (error) {
-        //     warn('stack-attach-failed', `Stack rebuild failed: ${error.message}`);
-        //   };
-        // };
+        // Stacked pages follow the new size: drop them here, the refill
+        // below re-mounts them (on the page that was showing).
+        this._disposeStack(currentView);
         
         // Re-render the main widget with the new size
         this._safeFillWidgetBody(widget, currentView.body);
@@ -2357,6 +2401,11 @@ class WidgetController {
     };
 
     this._refreshWeather(false);
+
+    // Stacked pages of refreshable types are re-rendered in place too.
+    const REFRESHABLE = ['battery', 'calendar', 'digitalclock', 'photos', 'weather', 'github', 'system', 'clock', 'binaryclock'];
+    for (const view of this._views.values())
+      view._stackPrism?.refill?.(type => REFRESHABLE.includes(type));
 
     for (const [id, view] of this._views) {
       if (!['battery', 'calendar', 'digitalclock', 'photos', 'weather', 'github', 'system', 'clock', 'binaryclock'].includes(view.widget.type)) {
@@ -3342,6 +3391,13 @@ sizeButton.connectObject('destroy', () => {
       };
 
       drag = null;
+
+      // Placement grid on: the widget lands on the highlighted cells.
+      const gridTarget = this._placementGridTarget(widget);
+      if (gridTarget?.valid) {
+        widget.x = gridTarget.x;
+        widget.y = gridTarget.y;
+      };
       this._clampWidget(widget);
 
       // If a widget overlaps others, snap it to the nearest free
@@ -3410,6 +3466,7 @@ sizeButton.connectObject('destroy', () => {
       // clamping happen on release (finishDrag).
       actor.set_position(widget.x, widget.y);
       this._syncEditControls(widget);
+      this._updatePlacementGrid(widget);
     };
 
     // CAPTURE phase press: a press picked on ANY reactive inner element
@@ -3470,6 +3527,7 @@ sizeButton.connectObject('destroy', () => {
 
       raiseActor(actor);
       this._syncEditControls(widget);
+      this._showPlacementGrid(widget);
 
       // Capture pointer events globally while dragging. A stage
       // captured-event alone is NOT enough: without a Clutter grab, Mutter
@@ -3663,6 +3721,192 @@ sizeButton.connectObject('destroy', () => {
     });
   };
 
+  // ── Placement grid (edit-mode drag) ──────────────────────────────────
+  // While a widget is dragged, the monitor under it shows its 1×1 cells
+  // (of the dragged widget's own family: regular, mini or compact): free
+  // cells as faint tiles, cells covered by other widgets hidden, and the
+  // cells the widget would land on highlighted — accent when it fits, red
+  // when it would overlap. On release the widget drops onto those cells.
+  _placementGridEnabled() {
+    try {
+      return this._layoutSettings?.get_boolean('show-placement-grid') ?? false;
+    } catch (_e) {
+      return false;
+    };
+  };
+
+  _placementCellFor(widget) {
+    const family = WIDGET_SIZE_SHAPES[widget.size]?.[2] ?? MAIN_FAMILY;
+    const base = WIDGET_CELL_SIZES[family] ?? CELL_SIZE;
+    return typeof base === 'object' ? [base.width, base.height] : [base, base];
+  };
+
+  // Grid geometry (layer coordinates) for the monitor under the widget.
+  _placementGridGeometry(widget) {
+    const [width, height] = this._sizeFor(widget);
+    const layerX = this._layerX ?? 0;
+    const layerY = this._layerY ?? 0;
+    const monitor = monitorAtStage(effectiveMonitors(),
+      widget.x + layerX + width / 2, widget.y + layerY + height / 2);
+    if (!monitor)
+      return null;
+    const gap = this._widgetGap ?? WIDGET_GAP;
+    const [cellW, cellH] = this._placementCellFor(widget);
+    const usableW = monitor.width - 2 * gap;
+    const usableH = monitor.height - topYFor(monitor) - 2 * gap;
+    const cols = Math.max(0, Math.floor((usableW - cellW) / (cellW + gap)) + 1);
+    const rows = Math.max(0, Math.floor((usableH - cellH) / (cellH + gap)) + 1);
+    const pitchX = cellW + gap;
+    const pitchY = cellH + gap;
+    // The cells rarely fill the monitor exactly, so a grid hung from the
+    // top-left corner left no cell flush with the right / bottom edge (where
+    // «Arrange» and most layouts put widgets). The grid hangs from the
+    // corner of the quarter the widget is in: every corner gets a flush
+    // cell, and widgets placed against either edge line up with it.
+    const left = monitor.x - layerX + gap;
+    const top = monitor.y - layerY + topYFor(monitor) + gap;
+    const right = monitor.x - layerX + monitor.width - gap;
+    const bottom = monitor.y - layerY + monitor.height - gap;
+    const centerX = widget.x + width / 2;
+    const centerY = widget.y + height / 2;
+    const fromRight = centerX > (left + right) / 2;
+    const fromBottom = centerY > (top + bottom) / 2;
+    const originX = fromRight ? right - cellW - (cols - 1) * pitchX : left;
+    const originY = fromBottom ? bottom - cellH - (rows - 1) * pitchY : top;
+    return {monitor, gap, cellW, cellH, originX, originY, cols, rows, pitchX, pitchY,
+      key: `${monitor.x},${monitor.y},${monitor.width},${monitor.height},${cellW},${cellH},${gap},${fromRight},${fromBottom}`};
+  };
+
+  // Where the dragged widget would land: the cell-aligned spot nearest to
+  // its current position, and whether that spot is free.
+  _placementGridTarget(widget) {
+    if (!this._placementGrid || !this._placementGridEnabled())
+      return null;
+    const geo = this._placementGrid.geo;
+    if (!geo || geo.cols <= 0 || geo.rows <= 0)
+      return null;
+    const [width, height] = this._sizeFor(widget);
+    const spanX = Math.max(1, Math.round((width + geo.gap) / geo.pitchX));
+    const spanY = Math.max(1, Math.round((height + geo.gap) / geo.pitchY));
+    const col = clamp(Math.round((widget.x - geo.originX) / geo.pitchX), 0, Math.max(0, geo.cols - spanX));
+    const row = clamp(Math.round((widget.y - geo.originY) / geo.pitchY), 0, Math.max(0, geo.rows - spanY));
+    const x = geo.originX + col * geo.pitchX;
+    const y = geo.originY + row * geo.pitchY;
+    const rect = {x, y, width, height};
+    const fits = spanX <= geo.cols && spanY <= geo.rows;
+    const valid = fits && !this._widgets.some(other =>
+      other !== widget && rectsOverlap(rect, this._rectFor(other), geo.gap));
+    return {x, y, col, row, spanX: Math.min(spanX, geo.cols), spanY: Math.min(spanY, geo.rows), valid};
+  };
+
+  _showPlacementGrid(widget) {
+    this._hidePlacementGrid(false);
+    if (!this._editMode || !this._layer || !this._placementGridEnabled())
+      return;
+    const container = new St.Widget({
+      layout_manager: new Clutter.FixedLayout(),
+      reactive: false,
+      opacity: 0,
+    });
+    // Under every widget: the dragged one floats over its target cells.
+    this._layer.insert_child_at_index(container, 0);
+    this._placementGrid = {container, geo: null, cells: [], widget};
+    this._updatePlacementGrid(widget);
+    container.ease({opacity: 255, duration: 140, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+  };
+
+  _buildPlacementCells(grid, geo) {
+    grid.container.destroy_all_children();
+    grid.cells = [];
+    grid.geo = geo;
+    const theme = this._gnomeTheme();
+    const radius = Math.max(4, Math.round(theme.radius * Math.min(geo.cellW, geo.cellH) / CELL_SIZE));
+    grid.radius = radius;
+    for (let row = 0; row < geo.rows; row++) {
+      for (let col = 0; col < geo.cols; col++) {
+        const cell = new St.Widget({
+          x: geo.originX + col * geo.pitchX,
+          y: geo.originY + row * geo.pitchY,
+          width: geo.cellW,
+          height: geo.cellH,
+          reactive: false,
+        });
+        cell._state = null;
+        grid.container.add_child(cell);
+        grid.cells.push({cell, col, row});
+      };
+    };
+  };
+
+  _updatePlacementGrid(widget) {
+    const grid = this._placementGrid;
+    if (!grid || isActorDestroyed(grid.container))
+      return;
+    const geo = this._placementGridGeometry(widget);
+    if (!geo) {
+      grid.container.hide();
+      return;
+    };
+    grid.container.show();
+    if (!grid.geo || grid.geo.key !== geo.key)
+      this._buildPlacementCells(grid, geo);
+
+    const theme = this._gnomeTheme();
+    const others = this._widgets.filter(other => other !== widget).map(other => this._rectFor(other));
+    const target = this._placementGridTarget(widget);
+    const shape = `border-radius: ${grid.radius}px;`;
+    const line = theme.dark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.22)';
+    const fill = theme.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+    const STYLES = {
+      free: `${shape} border: 1px dashed ${line}; background-color: ${fill};`,
+      target: `${shape} border: 2px solid ${theme.accent}; background-color: ${theme.dark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.10)'};`,
+      blocked: `${shape} border: 2px solid rgba(224,27,36,0.9); background-color: rgba(224,27,36,0.22);`,
+    };
+
+    for (const {cell, col, row} of grid.cells) {
+      const cx = geo.originX + col * geo.pitchX;
+      const cy = geo.originY + row * geo.pitchY;
+      const inTarget = target
+        && col >= target.col && col < target.col + target.spanX
+        && row >= target.row && row < target.row + target.spanY;
+      // Covered by another widget (no gap: touching neighbours stay free).
+      const occupied = others.some(r =>
+        cx < r.x + r.width && cx + geo.cellW > r.x && cy < r.y + r.height && cy + geo.cellH > r.y);
+      const state = inTarget ? (target.valid ? 'target' : 'blocked') : (occupied ? 'hidden' : 'free');
+      if (cell._state === state)
+        continue;
+      cell._state = state;
+      if (state === 'hidden') {
+        cell.hide();
+        continue;
+      };
+      cell.set_style(STYLES[state]);
+      cell.show();
+    };
+  };
+
+  _hidePlacementGrid(animate = true) {
+    const grid = this._placementGrid;
+    this._placementGrid = null;
+    if (!grid || isActorDestroyed(grid.container))
+      return;
+    const container = grid.container;
+    if (!animate) {
+      container.destroy();
+      return;
+    };
+    container.remove_all_transitions();
+    container.ease({
+      opacity: 0,
+      duration: 160,
+      mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+      onStopped: () => {
+        if (!isActorDestroyed(container))
+          container.destroy();
+      },
+    });
+  };
+
   _hideDragGuides() {
     for (const guide of this._dragGuides ?? []) {
       this._fadeOutGuide(guide);
@@ -3671,6 +3915,7 @@ sizeButton.connectObject('destroy', () => {
 
   _cancelActiveDrag() {
     this._hideDragGuides();
+    this._hidePlacementGrid();
 
     // Always drop the pointer grab first: a leaked grab would freeze every
     // window's input until the shell restarts.
@@ -3834,12 +4079,12 @@ sizeButton.connectObject('destroy', () => {
       menu.addMenuItem(photoItem);
     };
 
-    // Widget-in-widget pages: DISABLED for now (commented out). Re-enable later.
-    // const stackItem = new PopupMenu.PopupMenuItem(_('Widget pages…'));
-    // stackItem.connectObject('activate', () => {
-    //   this._openStackPanel(view);
-    // }, this);
-    // menu.addMenuItem(stackItem);
+    // Widget-in-widget: add / remove pages above or below this widget.
+    const stackItem = new PopupMenu.PopupMenuItem(_('Widget pages'));
+    stackItem.connectObject('activate', () => {
+      this._openStackPanel(view);
+    }, this);
+    menu.addMenuItem(stackItem);
 
     // Switch rows mirror the reference's Glass/Lock toggles. Glass is the
     // global style-mode (0 = glass, 1 = solid) — the same switch that lives
@@ -3873,7 +4118,13 @@ sizeButton.connectObject('destroy', () => {
     }, this);
     menu.addMenuItem(settingsItem);
 
-    const removeItem = new PopupMenu.PopupMenuItem(_('Remove widget'));
+    // Destructive action: set apart by a separator, red text + trash icon,
+    // and a red highlight on hover (stylesheet.css).
+    menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+    const removeItem = new PopupMenu.PopupImageMenuItem(_('Remove widget'), 'user-trash-symbolic');
+    removeItem.add_style_class_name('desktop-widgets-destructive-item');
+    if (!this._gnomeTheme().dark)
+      removeItem.add_style_class_name('desktop-widgets-destructive-item-light');
     removeItem.connectObject('activate', () => {
       this.removeWidget(view.widget.id);
     }, this);
@@ -3900,361 +4151,503 @@ sizeButton.connectObject('destroy', () => {
   // with the current widget in the middle, + buttons above/below to add
   // pages, and a list of added pages at the side. Matches the gallery UX.
 
-  // Helper: one page tile — a uniform preview box with a LIVE widget
-  // surface scaled to fit, plus a small ✕ overlay that deletes the page.
-  // Pages added via the top «+» show ABOVE the current widget, via the
-  // bottom one — BELOW (the panel is one centered column, no side lists).
-  _createStackPageTile(entry, view, theme, tileW, tileH) {
-    const tile = new St.Widget({
-      layout_manager: new Clutter.FixedLayout(),
-      width: tileW,
-      height: tileH,
-      x_align: Clutter.ActorAlign.CENTER,
-      style: `background-color: ${theme.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'};`
-        + ` border: 1px solid ${theme.border};`
-        + ` border-radius: ${Math.round(theme.radius)}px;`,
-      clip_to_allocation: true,
+  // ── Stack panel UI helpers ────────────────────────────────────────────
+  // Press arms, release (button 1, still on the actor) fires — deferred
+  // to idle so a handler may destroy the panel it lives in.
+  _stackPanelActivate(actor, fn) {
+    let armed = false;
+    actor.connect('button-press-event', (_a, event) => {
+      armed = event.get_button() === 1;
+      return Clutter.EVENT_STOP;
     });
-
-    // SVG display instead of the live render (matching the gallery cards):
-    // the widget's icon file inside icons/widgets/, centered on the tile.
-    // Icon fills most of the tile height for clarity (was 0.55, now 0.75).
-    const iconSize = Math.round(Math.min(tileW, tileH) * 0.75);
-    const svgIcon = this._stackWidgetSvgIcon(entry.type, iconSize);
-
-    if (svgIcon) {
-      svgIcon.set_position(Math.round((tileW - iconSize) / 2), Math.round((tileH - iconSize) / 2));
-      tile.add_child(svgIcon);
-    } else {
-      const fallback = this._label(WIDGET_TYPE_LABELS[entry.type] ?? entry.type, 'widget-text',
-        `font-size: 15px; font-weight: 600; color: ${theme.muted};`);
-      fallback.set_position(Math.round((tileW - 180) / 2), Math.round(tileH / 2 - 10));
-      tile.add_child(fallback);
-    };
-
-    // ✕ deletes the page (found by the stable per-entry key).
-    const delButton = new St.Button({
-      label: '✕',
-      style: `width: 26px; height: 26px; border-radius: 13px; padding: 0;`
-        + ` color: #ffffff; font-size: 12px; font-weight: 700;`
-        + ` background-color: rgba(0,0,0,0.45);`
-        + ` border: 1px solid rgba(255,255,255,0.25);`,
-      reactive: true,
-      can_focus: true,
+    actor.connect('leave-event', () => {
+      armed = false;
+      return Clutter.EVENT_PROPAGATE;
     });
-    delButton.accessible_name = _('Delete page');
-    delButton.set_position(Math.max(4, tileW - 32), 6);
-    tile.add_child(delButton);
-
-    const entryKey = entry.key;
-    const targetEntry = entry;
-    delButton.connect('clicked', () => {
-      // Find by reference first (most reliable), then by key
-      let actualIndex = view.widget.stack.indexOf(targetEntry);
-      if (actualIndex === -1) {
-        actualIndex = view.widget.stack.findIndex(e => (e.key || '') === entryKey);
-      };
-      if (actualIndex !== -1) {
-        view.widget.stack.splice(actualIndex, 1);
-        // Defer the UI rebuild so the current signal handler completes
-        // before the panel (and this button) is destroyed.
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 0, () => {
-          this._applyStackChange(view);
+    actor.connect('button-release-event', (_a, event) => {
+      if (armed && event.get_button() === 1) {
+        armed = false;
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+          fn();
           return GLib.SOURCE_REMOVE;
         });
       };
+      armed = false;
+      return Clutter.EVENT_STOP;
     });
-
-    return tile;
+    actor.connect('key-press-event', (_a, event) => {
+      const key = event.get_key_symbol();
+      if (key === Clutter.KEY_Return || key === Clutter.KEY_KP_Enter || key === Clutter.KEY_space) {
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+          fn();
+          return GLib.SOURCE_REMOVE;
+        });
+        return Clutter.EVENT_STOP;
+      };
+      return Clutter.EVENT_PROPAGATE;
+    });
   };
 
-  // ── Stack panel: one centered column ──────────────────────────────────
-  // «+» on top, pages added above, the CURRENT widget in the middle, pages
-  // added below, «+» at the bottom. Every page — the current one included —
-  // shows in an identically sized tile with a live preview, so an added
-  // page looks exactly like the current widget. Done saves and closes.
+  // Hover tint for inline-styled actors (inline styles have no :hover).
+  _stackPanelHover(actor, base, hover) {
+    actor.track_hover = true;
+    actor.set_style(base);
+    actor.connect('notify::hover', () => {
+      if (!isActorDestroyed(actor))
+        actor.set_style(actor.hover ? hover : base);
+    });
+  };
+
+  // Small round icon button (close, move, delete).
+  _stackPanelIconButton(iconName, accessibleName, theme, {danger = false, enabled = true, size = 30} = {}) {
+    const fill = theme.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    const fillHover = danger
+      ? 'rgba(224,27,36,0.22)'
+      : (theme.dark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.12)');
+    const color = !enabled ? theme.muted : (danger ? '#ff6b6b' : theme.text);
+    const shape = `width: ${size}px; height: ${size}px; border-radius: ${size / 2}px; padding: 0;`;
+    const button = new St.Button({
+      reactive: enabled,
+      can_focus: enabled,
+      x_align: Clutter.ActorAlign.CENTER,
+      y_align: Clutter.ActorAlign.CENTER,
+      opacity: enabled ? 255 : 90,
+      child: new St.Icon({
+        icon_name: iconName,
+        icon_size: Math.round(size * 0.47),
+        style: `color: ${color};`,
+      }),
+    });
+    button.accessible_name = accessibleName;
+    this._stackPanelHover(button,
+      `${shape} background-color: ${fill};`,
+      `${shape} background-color: ${enabled ? fillHover : fill};`);
+    return button;
+  };
+
+  // Full-width dashed «Add page above / below» row.
+  _stackPanelAddButton(text, theme, enabled, fn) {
+    const box = new St.BoxLayout(boxLayoutProps({
+      x_align: Clutter.ActorAlign.CENTER,
+      style: 'spacing: 8px;',
+    }));
+    const color = enabled ? theme.accent : theme.muted;
+    box.add_child(new St.Icon({
+      icon_name: 'list-add-symbolic',
+      icon_size: 14,
+      y_align: Clutter.ActorAlign.CENTER,
+      style: `color: ${color};`,
+    }));
+    box.add_child(this._label(text, 'widget-text',
+      `font-size: 13px; font-weight: 600; color: ${color};`));
+
+    const button = new St.Button({
+      child: box,
+      x_expand: true,
+      reactive: enabled,
+      can_focus: enabled,
+      opacity: enabled ? 255 : 120,
+    });
+    button.accessible_name = text;
+    const shape = 'border-radius: 12px; padding: 9px 12px;';
+    const line = theme.dark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.2)';
+    this._stackPanelHover(button,
+      `${shape} border: 1px dashed ${line}; background-color: transparent;`,
+      `${shape} border: 1px dashed ${enabled ? theme.accent : line};`
+        + ` background-color: ${enabled ? (theme.dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)') : 'transparent'};`);
+    if (enabled)
+      this._stackPanelActivate(button, fn);
+    return button;
+  };
+
+  // One page row: thumbnail, name + position/size, «Showing» badge, and
+  // for added pages: move up / move down / delete. A click on the row
+  // shows that page on the desktop.
+  _createStackPageRow({view, theme, entry, title, subtitle, isMain, isActive, canUp, canDown, onShow, onMove, onDelete}) {
+    const row = new St.BoxLayout(boxLayoutProps({
+      x_expand: true,
+      reactive: true,
+      can_focus: true,
+    }));
+    row.accessible_name = title;
+
+    const fill = theme.dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.035)';
+    const fillHover = theme.dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+    const shape = 'border-radius: 14px; padding: 8px 10px 8px 8px; spacing: 12px;';
+    const edge = isActive ? `border: 2px solid ${theme.accent};` : 'border: 2px solid transparent;';
+    this._stackPanelHover(row,
+      `${shape} ${edge} background-color: ${fill};`,
+      `${shape} ${edge} background-color: ${fillHover};`);
+
+    // Thumbnail
+    const thumbSize = 48;
+    const thumb = new St.Widget({
+      layout_manager: new Clutter.BinLayout(),
+      width: thumbSize,
+      height: thumbSize,
+      y_align: Clutter.ActorAlign.CENTER,
+      style: `border-radius: 11px; background-color: ${theme.dark ? 'rgba(0,0,0,0.28)' : 'rgba(0,0,0,0.06)'};`,
+    });
+    const icon = this._stackWidgetSvgIcon(entry.type, 38);
+    if (icon) {
+      icon.x_align = Clutter.ActorAlign.CENTER;
+      icon.y_align = Clutter.ActorAlign.CENTER;
+      thumb.add_child(icon);
+    } else {
+      thumb.add_child(new St.Icon({
+        icon_name: 'application-x-addon-symbolic',
+        icon_size: 22,
+        x_align: Clutter.ActorAlign.CENTER,
+        y_align: Clutter.ActorAlign.CENTER,
+        style: `color: ${theme.muted};`,
+      }));
+    };
+    row.add_child(thumb);
+
+    // Name + where it sits
+    const text = new St.BoxLayout(boxLayoutProps({
+      vertical: true,
+      x_expand: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      style: 'spacing: 2px;',
+    }));
+    const titleLabel = this._label(title, 'widget-text',
+      `font-size: 14px; font-weight: 700; color: ${theme.text};`);
+    titleLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+    text.add_child(titleLabel);
+    const subLabel = this._label(subtitle, 'widget-text',
+      `font-size: 12px; color: ${theme.muted};`);
+    subLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+    text.add_child(subLabel);
+    row.add_child(text);
+
+    if (isActive) {
+      row.add_child(this._label(_('Showing'), 'widget-text',
+        `font-size: 11px; font-weight: 700; color: #ffffff; background-color: ${theme.accent};`
+          + ' border-radius: 9px; padding: 2px 8px;'));
+      row.get_last_child().y_align = Clutter.ActorAlign.CENTER;
+    };
+
+    if (!isMain) {
+      const actions = new St.BoxLayout(boxLayoutProps({
+        y_align: Clutter.ActorAlign.CENTER,
+        style: 'spacing: 4px;',
+      }));
+      const up = this._stackPanelIconButton('go-up-symbolic', _('Move up'), theme, {enabled: canUp, size: 28});
+      const down = this._stackPanelIconButton('go-down-symbolic', _('Move down'), theme, {enabled: canDown, size: 28});
+      const del = this._stackPanelIconButton('user-trash-symbolic', _('Delete page'), theme, {danger: true, size: 28});
+      if (canUp)
+        this._stackPanelActivate(up, () => onMove(-1));
+      if (canDown)
+        this._stackPanelActivate(down, () => onMove(1));
+      this._stackPanelActivate(del, onDelete);
+      actions.add_child(up);
+      actions.add_child(down);
+      actions.add_child(del);
+      row.add_child(actions);
+    };
+
+    if (!isActive)
+      this._stackPanelActivate(row, onShow);
+    return row;
+  };
+
+  // ── Stack panel: one centered window ─────────────────────────────────
+  // Header (title, page count, close), the column of pages in flip order —
+  // pages above, the main widget, pages below — with «Add page above» on
+  // top and «Add page below» at the bottom, a how-to-flip hint and Done.
   _openStackPanel(view) {
-    // Widget-in-widget DISABLED - код закоментовано для майбутнього використання.
-    return;
-    
-    /* eslint-disable no-unreachable */
     this._closeStackPanel();
 
     const theme = this._gnomeTheme();
-    const stageSize = global.stage.get_size();
-    const entries = Array.isArray(view.widget.stack)
-      ? view.widget.stack.filter(entry => entry && entry.type)
-      : [];
+    const [stageW, stageH] = global.stage.get_size();
+    // Panel state is re-read on every in-place refresh (move / delete /
+    // show): the list rebuilds its rows, the window itself stays open.
+    const readState = () => {
+      const entries = Array.isArray(view.widget.stack)
+        ? view.widget.stack.filter(entry => entry && entry.type)
+        : [];
+      const above = entries.filter(entry => entry.side === 'above');
+      const below = entries.filter(entry => (entry.side ?? 'below') !== 'above');
+      return {
+        entries,
+        above,
+        below,
+        canAddMore: entries.length < STACK_PAGE_LIMIT,
+        // Visible page → index in the prism (0 = main, then above, then below).
+        activePage: view._stackPrism?.getActivePage?.() ?? 0,
+        pageIndexOf: entry => {
+          const a = above.indexOf(entry);
+          if (a >= 0)
+            return 1 + a;
+          const b = below.indexOf(entry);
+          return b >= 0 ? 1 + above.length + b : -1;
+        },
+      };
+    };
+    let state = readState();
 
-    // Pages added via the TOP «+» hang BEFORE the current page, via the
-    // BOTTOM one — after it. Older stacks carry no side; they keep
-    // presenting as below-pages.
-    const aboveEntries = entries.filter(entry => entry.side === 'above');
-    const belowEntries = entries.filter(entry => (entry.side ?? 'below') !== 'above');
+    const typeName = type => WIDGET_TYPE_LABELS[type] ?? type;
+    const sizeOf = entry => sizeLabel(entry?.size || view.widget.size);
 
-    const canAddMore = (view.widget.stack?.length ?? 0) < STACK_PAGE_LIMIT;
-    const tileCount = 1 + entries.length; // current page + added pages
-
-    // Vertical budget: header, two «+» buttons, hint and Done are fixed
-    // chrome; the remaining height is split evenly over the uniform tiles.
-    const cardHMax = Math.min(stageSize[1] - 80, 760);
-    const chrome = 40 + 24 + 14 + 44 + 30;  // padding + header + hint + Done + spacings
-    const buttonsH = 48 * 2;
-    const flowMax = cardHMax - chrome - buttonsH;
-    const tileH = Math.max(92, Math.min(250, Math.floor((flowMax / (tileCount + 2)) - 10)));
-    const tileW = Math.min(Math.max(280, stageSize[0] - 160), 340);
-
-    // Backdrop swallows clicks outside the card
+    // Backdrop swallows clicks outside the card and closes the panel.
     const overlay = new St.Widget({
       reactive: true,
       can_focus: true,
       x: 0,
       y: 0,
-      width: Math.max(320, stageSize[0]),
-      height: Math.max(240, stageSize[1]),
-      style: 'background-color: rgba(0, 0, 0, 0.55);',
+      width: Math.max(320, stageW),
+      height: Math.max(240, stageH),
+      style: 'background-color: rgba(0, 0, 0, 0.5);',
+      // The layout keeps the card centered at its REAL size: measuring it
+      // before it was on stage (no theme yet) placed it off-center until
+      // the first refresh.
+      layout_manager: new Clutter.BinLayout(),
     });
 
-    const cardW = tileW + 40;
-    const cardH = Math.min(stageSize[1] - 80,
-      chrome + buttonsH + (tileCount + 2) * (tileH + 10));
+    const cardW = Math.min(420, Math.max(320, stageW - 48));
     const card = new St.BoxLayout(boxLayoutProps({
       vertical: true,
+      width: cardW,
+      x_align: Clutter.ActorAlign.CENTER,
+      y_align: Clutter.ActorAlign.CENTER,
       style: `background-color: ${theme.background};`
         + ` border: 1px solid ${theme.border};`
-        + ` border-radius: ${theme.radius + 6}px;`
-        + ` padding: 20px; spacing: 10px;`,
+        + ` border-radius: ${Math.min(30, Math.max(14, theme.radius + 8))}px;`
+        + ' padding: 18px 18px 16px 18px; spacing: 14px;'
+        + ' box-shadow: 0 12px 40px rgba(0,0,0,0.45);',
       reactive: true,
       can_focus: true,
     }));
-    card.set_size(cardW, cardH);
 
-    // Header: title + close (saves too — every edit already persists)
-    const header = new St.BoxLayout(boxLayoutProps({
+    // Header
+    const header = new St.BoxLayout(boxLayoutProps({x_expand: true, style: 'spacing: 10px;'}));
+    const titles = new St.BoxLayout(boxLayoutProps({
+      vertical: true,
       x_expand: true,
       y_align: Clutter.ActorAlign.CENTER,
-      style: 'spacing: 8px;',
+      style: 'spacing: 2px;',
     }));
-    
-    // TEST: Show widget position buttons (current widget number, not total count)
-    const totalWidgets = 1 + entries.length;
-    const aboveCount = aboveEntries.length;
-    
-    // Determine current position based on active page
-    let currentPosition = aboveCount + 1; // Default: main widget position
-    
-    if (view._stackPrism && view._stackPrism.getActivePage) {
-      const activePage = view._stackPrism.getActivePage();
-      if (activePage === 0) {
-        // Showing main widget
-        currentPosition = aboveCount + 1;
-      } else {
-        // Showing a stack page
-        currentPosition = activePage;
-      }
-    }
-    
-    const countBox = new St.BoxLayout({
-      style: 'spacing: 4px;',
-    });
-    for (let i = 1; i <= totalWidgets; i++) {
-      const isActive = i === currentPosition; // Highlight CURRENT position
-      const btn = new St.Button({
-        label: `${i}`,
-        style: `width: 28px; height: 28px; border-radius: 6px; padding: 0;`
-          + ` color: ${isActive ? '#ffffff' : theme.text}; font-size: 13px; font-weight: 700;`
-          + ` background-color: ${isActive ? theme.accent : theme.dark ? '#2a2a2a' : '#e5e2e6'};`
-          + ` border: ${isActive ? 'none' : `1px solid ${theme.border}`};`,
-        reactive: false,
-      });
-      countBox.add_child(btn);
-    }
-    header.add_child(countBox);
-    
-    header.add_child(this._label(_('Widget pages'), 'widget-text',
-      `font-size: 16px; font-weight: 700; color: ${theme.text};`));
-    header.add_child(new St.Widget({x_expand: true}));
-    
-    // Debug label showing position and total count
-    const debugLabel = new St.Label({
-      text: `Pos: ${currentPosition}/${totalWidgets} | Above: ${aboveCount}, Below: ${belowEntries.length}`,
-      style: `font-size: 11px; color: ${theme.muted}; padding-right: 8px;`,
-    });
-    header.add_child(debugLabel);
-    
-    const closeButton = new St.Button({
-      label: '✕',
-      style: `width: 30px; height: 30px; border-radius: 15px; padding: 0;`
-        + ` color: ${theme.text}; font-size: 13px; font-weight: 700;`
-        + ` background-color: ${theme.dark ? '#453f48' : '#e5e2e6'};`,
-      reactive: true,
-      can_focus: true,
-    });
-    closeButton.accessible_name = _('Close');
+    titles.add_child(this._label(_('Widget pages'), 'widget-text',
+      `font-size: 17px; font-weight: 800; color: ${theme.text};`));
+    const countText = () =>
+      `${typeName(view.widget.type)} · ${_('%d of %d pages added').format(state.entries.length, STACK_PAGE_LIMIT)}`;
+    const countLabel = this._label(countText(), 'widget-text', `font-size: 12px; color: ${theme.muted};`);
+    titles.add_child(countLabel);
+    header.add_child(titles);
+    const closeButton = this._stackPanelIconButton('window-close-symbolic', _('Close'), theme);
+    closeButton.y_align = Clutter.ActorAlign.START;
     header.add_child(closeButton);
     card.add_child(header);
 
-    // The centered flow column
-    const flow = new St.BoxLayout(boxLayoutProps({
-      vertical: true,
-      x_align: Clutter.ActorAlign.CENTER,
-      style: 'spacing: 10px;',
-    }));
+    // Pages column
+    const list = new St.BoxLayout(boxLayoutProps({vertical: true, x_expand: true, style: 'spacing: 6px;'}));
 
-    // «+» above the current widget: opens the gallery; the picked page is
-    // staged ABOVE (stack front).
-    const plusButtonStyle = `width: 48px; height: 48px; border-radius: 24px;`
-      + ` font-size: 24px; font-weight: 700;`
-      + ` color: ${canAddMore ? '#ffffff' : theme.muted};`
-      + ` background-color: ${canAddMore ? theme.accent : theme.dark ? '#3d3d3d' : '#e5e2e6'};`;
-    const addAboveButton = new St.Button({
-      label: '+',
-      style: plusButtonStyle,
-      x_align: Clutter.ActorAlign.CENTER,
-      reactive: canAddMore,
-      can_focus: canAddMore,
-      track_hover: canAddMore,
-    });
-    if (canAddMore) {
-      let addAboveArmed = false;
-      addAboveButton.connect('button-press-event', () => {
-        addAboveArmed = true;
-        return Clutter.EVENT_STOP;
+    // Rows are keyed (entry key, or 'main') so an in-place refresh can
+    // slide each surviving row from its old spot to its new one.
+    const rowKey = entry => (entry === null ? '__main__' : (entry.key || entry.type));
+
+    const refresh = () => {
+      if (isActorDestroyed(list))
+        return;
+      // Old row positions, before the rebuild.
+      const oldY = new Map();
+      for (const child of list.get_children()) {
+        if (child._stackRowKey)
+          oldY.set(child._stackRowKey, child.get_allocation_box().y1);
+      };
+      state = readState();
+      countLabel.text = countText();
+      list.destroy_all_children();
+      fillList(oldY); // the overlay's BinLayout re-centers the card
+    };
+
+    // Same flip order the desktop uses, with the main widget in it; moving
+    // a page past the main widget switches its side.
+    const moveEntry = (entry, delta) => {
+      const order = [...state.above, null, ...state.below];
+      const from = order.indexOf(entry);
+      const to = from + delta;
+      if (from < 0 || to < 0 || to >= order.length)
+        return;
+      // Keep showing whatever page is on screen now.
+      const showing = state.activePage === 0
+        ? null
+        : [...state.above, ...state.below][state.activePage - 1] ?? null;
+      [order[from], order[to]] = [order[to], order[from]];
+      const mainAt = order.indexOf(null);
+      const above = order.slice(0, mainAt).map(e => Object.assign(e, {side: 'above'}));
+      const below = order.slice(mainAt + 1).map(e => Object.assign(e, {side: 'below'}));
+      const rest = (view.widget.stack ?? []).filter(e => !e || !e.type);
+      view.widget.stack = [...above, ...below, ...rest];
+      let startPage = 0;
+      if (showing) {
+        const a = above.indexOf(showing);
+        startPage = a >= 0 ? 1 + a : 1 + above.length + below.indexOf(showing);
+      };
+      this._applyStackChange(view, {reopenPanel: false, startPage});
+      refresh();
+    };
+    const deleteEntry = (entry) => {
+      const stack = view.widget.stack ?? [];
+      let index = stack.indexOf(entry);
+      if (index === -1)
+        index = stack.findIndex(e => e && (e.key || '') === (entry.key || ''));
+      if (index === -1)
+        return;
+      const showing = state.activePage === 0
+        ? null
+        : [...state.above, ...state.below][state.activePage - 1] ?? null;
+      stack.splice(index, 1);
+      // Keep showing the visible page unless it was the one deleted.
+      const left = readState();
+      const startPage = showing && showing !== entry ? Math.max(0, left.pageIndexOf(showing)) : 0;
+      this._applyStackChange(view, {reopenPanel: false, startPage});
+      refresh();
+    };
+    const showPage = (pageIndex) => {
+      if (!view._stackPrism?.showPage)
+        return;
+      view._stackPrism.showPage(pageIndex);
+      view._stackStartPage = pageIndex;
+      refresh(); // moves the «Showing» badge
+    };
+
+    const slideFrom = (row, fromY) => {
+      if (fromY === undefined)
+        return;
+      // First allocation of the new row: start it where its old row was
+      // and glide into place (paint-only translation, no relayout).
+      const id = row.connect('notify::allocation', () => {
+        row.disconnect(id);
+        const delta = fromY - row.get_allocation_box().y1;
+        if (Math.abs(delta) < 1)
+          return;
+        row.translation_y = delta;
+        row.ease({
+          translation_y: 0,
+          duration: 220,
+          mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+        });
       });
-      addAboveButton.connect('button-release-event', (_actor, event) => {
-        if (event.get_button() === 1 && addAboveArmed) {
-          addAboveArmed = false;
+    };
 
+    const fillList = (oldY = new Map()) => {
+      const {above, below, canAddMore, activePage, pageIndexOf} = state;
+
+      list.add_child(this._stackPanelAddButton(
+        canAddMore ? _('Add page above') : _('Page limit reached'), theme, canAddMore, () => {
           this._closeStackPanel();
           this._openStackGallery(view, 'above');
+        }));
+
+      const order = [...above, null, ...below];
+      order.forEach((entry, pos) => {
+        let row;
+        if (entry === null) {
+          row = this._createStackPageRow({
+            view, theme,
+            entry: view.widget,
+            title: typeName(view.widget.type),
+            subtitle: `${_('Main widget')} · ${sizeOf(view.widget)}`,
+            isMain: true,
+            isActive: activePage === 0,
+            onShow: () => showPage(0),
+          });
+        } else {
+          const where = entry.side === 'above' ? _('Above') : _('Below');
+          const pageIndex = pageIndexOf(entry);
+          row = this._createStackPageRow({
+            view, theme, entry,
+            title: typeName(entry.type),
+            subtitle: `${where} · ${sizeOf(entry)}`,
+            isMain: false,
+            isActive: activePage === pageIndex,
+            canUp: pos > 0,
+            canDown: pos < order.length - 1,
+            onShow: () => showPage(pageIndex),
+            onMove: delta => moveEntry(entry, delta),
+            onDelete: () => deleteEntry(entry),
+          });
         };
-        return Clutter.EVENT_STOP;
+        row._stackRowKey = rowKey(entry);
+        list.add_child(row);
+        slideFrom(row, oldY.get(row._stackRowKey));
       });
-    };
-    flow.add_child(addAboveButton);
 
-    // Pages staged ABOVE the current one
-    for (const entry of aboveEntries) {
-      flow.add_child(this._createStackPageTile(entry, view, theme, tileW, tileH));
-    };
-
-    // THE current widget — same tile size as the added pages. SVG display
-    // (matching the page tiles and the gallery) instead of a live render.
-    const currentTile = new St.Widget({
-      layout_manager: new Clutter.FixedLayout(),
-      width: tileW,
-      height: tileH,
-      x_align: Clutter.ActorAlign.CENTER,
-      style: `background-color: ${theme.dark ? '#1a1a1a' : '#f5f5f5'};`
-        + ` border: 2px solid ${theme.accent};`
-        + ` border-radius: ${Math.round(theme.radius)}px;`,
-      clip_to_allocation: true,
-    });
-
-    const iconSize = Math.round(Math.min(tileW, tileH) * 0.75);
-    const svgIcon = this._stackWidgetSvgIcon(view.widget.type, iconSize);
-
-    if (svgIcon) {
-      svgIcon.set_position(Math.round((tileW - iconSize) / 2), Math.round((tileH - iconSize) / 2));
-      currentTile.add_child(svgIcon);
-    } else {
-      const fallback = this._label(WIDGET_TYPE_LABELS[view.widget.type] ?? view.widget.type, 'widget-text',
-        `font-size: 15px; font-weight: 600; color: ${theme.muted};`);
-      fallback.set_position(Math.round((tileW - 180) / 2), Math.round(tileH / 2 - 10));
-      currentTile.add_child(fallback);
-    };
-    flow.add_child(currentTile);
-
-    // Pages staged BELOW the current one
-    for (const entry of belowEntries) {
-      flow.add_child(this._createStackPageTile(entry, view, theme, tileW, tileH));
-    };
-
-    // «+» below the current widget
-    const addBelowButton = new St.Button({
-      label: '+',
-      style: plusButtonStyle,
-      x_align: Clutter.ActorAlign.CENTER,
-      reactive: canAddMore,
-      can_focus: canAddMore,
-      track_hover: canAddMore,
-    });
-    if (canAddMore) {
-      let addBelowArmed = false;
-      addBelowButton.connect('button-press-event', () => {
-        addBelowArmed = true;
-        return Clutter.EVENT_STOP;
-      });
-      addBelowButton.connect('button-release-event', (_actor, event) => {
-        if (event.get_button() === 1 && addBelowArmed) {
-          addBelowArmed = false;
-
+      list.add_child(this._stackPanelAddButton(
+        canAddMore ? _('Add page below') : _('Page limit reached'), theme, canAddMore, () => {
           this._closeStackPanel();
           this._openStackGallery(view, 'below');
-        };
-        return Clutter.EVENT_STOP;
-      });
+        }));
     };
-    flow.add_child(addBelowButton);
 
-    card.add_child(flow);
+    fillList();
 
-    // What flipping does once the panel is closed
-    card.add_child(this._label(
-      _('Flip pages: drag UP at the bottom edge or DOWN at the top edge.'),
-      'widget-text',
-      `color: ${theme.muted}; font-size: 11px;`,
-    ));
+    // Many pages on a short screen: the column scrolls.
+    const listMaxH = Math.max(200, stageH - 300);
+    const scroll = new St.ScrollView({
+      x_expand: true,
+      hscrollbar_policy: St.PolicyType.NEVER,
+      vscrollbar_policy: St.PolicyType.AUTOMATIC,
+      overlay_scrollbars: true,
+      style: `max-height: ${listMaxH}px;`,
+    });
+    if (typeof scroll.set_child === 'function')
+      scroll.set_child(list);
+    else
+      scroll.add_actor(list);
+    card.add_child(scroll);
 
+    // How to flip
+    const hint = new St.BoxLayout(boxLayoutProps({
+      x_expand: true,
+      style: `spacing: 10px; padding: 10px 12px; border-radius: 12px;`
+        + ` background-color: ${theme.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'};`,
+    }));
+    hint.add_child(new St.Icon({
+      icon_name: 'input-mouse-symbolic',
+      icon_size: 16,
+      y_align: Clutter.ActorAlign.CENTER,
+      style: `color: ${theme.muted};`,
+    }));
+    const hintLabel = this._label(
+      _('Hold the right mouse button on the widget and drag up or down to flip pages.'),
+      'widget-text', `font-size: 12px; color: ${theme.muted};`);
+    hintLabel.x_expand = true;
+    hintLabel.clutter_text.line_wrap = true;
+    hintLabel.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
+    hintLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+    hint.add_child(hintLabel);
+    card.add_child(hint);
+
+    // Done
     const doneButton = new St.Button({
       label: _('Done'),
-      style: `padding: 10px 26px; border-radius: 10px; font-weight: 700; font-size: 14px;`
-        + ` color: #ffffff;`
-        + ` background-color: ${theme.accent};`,
+      x_expand: true,
       reactive: true,
       can_focus: true,
-      track_hover: true,
-      x_align: Clutter.ActorAlign.CENTER,
     });
-    let doneArmed = false;
-    doneButton.connect('button-press-event', () => {
-      doneArmed = true;
-      return Clutter.EVENT_STOP;
-    });
-    doneButton.connect('button-release-event', (_actor, event) => {
-      if (event.get_button() === 1 && doneArmed) {
-        doneArmed = false;
-
-        this._saveWidgets();
-        this._closeStackPanel();
-      };
-      return Clutter.EVENT_STOP;
-    });
+    const doneShape = 'padding: 10px 26px; border-radius: 12px; font-weight: 700; font-size: 14px; color: #ffffff;';
+    this._stackPanelHover(doneButton,
+      `${doneShape} background-color: ${theme.accent}; border: 1px solid transparent;`,
+      `${doneShape} background-color: ${theme.accent}; border: 1px solid rgba(255,255,255,0.4);`);
+    const finish = () => {
+      this._saveWidgets();
+      this._closeStackPanel();
+    };
+    this._stackPanelActivate(doneButton, finish);
+    this._stackPanelActivate(closeButton, finish);
     card.add_child(doneButton);
-
-    closeButton.connect('button-press-event', () => Clutter.EVENT_STOP);
-    closeButton.connect('button-release-event', (_actor, event) => {
-      if (event.get_button() === 1) {
-        this._saveWidgets();
-        this._closeStackPanel();
-      };
-      return Clutter.EVENT_STOP;
-    });
-
-    // Center card on screen
-    const cardX = Math.max(16, Math.min(stageSize[0] - cardW - 16, (stageSize[0] - cardW) / 2));
-    const cardY = Math.max(16, Math.min(stageSize[1] - cardH - 16, (stageSize[1] - cardH) / 2));
-    card.set_position(Math.round(cardX), Math.round(cardY));
 
     overlay.add_child(card);
 
-    // Card stops event bubbling; backdrop closes panel
+
     card.connect('button-press-event', () => Clutter.EVENT_STOP);
+    card.connect('button-release-event', () => Clutter.EVENT_STOP);
     overlay.connect('button-press-event', (_actor, event) => {
-      if (event.get_button() === 1) {
+      if (event.get_button() === 1)
         this._closeStackPanel();
-        return Clutter.EVENT_STOP;
-      };
       return Clutter.EVENT_STOP;
     });
 
@@ -4262,7 +4655,11 @@ sizeButton.connectObject('destroy', () => {
     view._stackPanel = overlay;
     this._stackPanelView = view;
 
-    // ESC closes panel
+    // Gentle open: fade + slight rise.
+    card.opacity = 0;
+    card.translation_y = 12;
+    card.ease({opacity: 255, translation_y: 0, duration: 160, mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+
     overlay.connect('key-press-event', (_actor, event) => {
       if (event.get_key_symbol() === Clutter.KEY_Escape) {
         this._closeStackPanel();
@@ -4272,23 +4669,18 @@ sizeButton.connectObject('destroy', () => {
     });
 
     // Capture-phase backstop: Escape is stopped on the stage before any
-    // child (tile ✕…) sees it, even after internal focus changes.
+    // child sees it, even after internal focus changes.
     global.stage.connectObject('captured-event', (_stage, event) => {
       if (event.type() === Clutter.EventType.KEY_PRESS
         && event.get_key_symbol() === Clutter.KEY_Escape) {
         this._closeStackPanel();
         return Clutter.EVENT_STOP;
       };
-
       return Clutter.EVENT_PROPAGATE;
     }, overlay);
 
-    // Real modal grab (Wayland): without it key events go to the focused
-    // application window and the stage never sees Escape. pushModal routes
-    // every input to the shell and gives the overlay key focus.
+    // Real modal grab (Wayland): routes keys to the shell so Escape works.
     overlay.modalGrab = Main.pushModal(overlay, {actionMode: Shell.ActionMode.NORMAL});
-
-
   };
 
   _closeStackPanel() {
@@ -4313,11 +4705,7 @@ sizeButton.connectObject('destroy', () => {
   // prism from the fresh widget.stack, the save persists it, and the panel
   // reopens on the new tiles. Reopening is unconditional: after deleting
   // the last page the panel shows just the current widget and the two «+».
-  _applyStackChange(view) {
-    // Widget-in-widget DISABLED - код закоментовано для майбутнього використання.
-    return;
-    
-    /* eslint-disable no-unreachable */
+  _applyStackChange(view, {reopenPanel = true, startPage = 0} = {}) {
     // Guard: view must still be valid
     if (!view || !this._views.has(view.widget.id)) {
       console.warn('[stack-change] View no longer valid, aborting');
@@ -4327,7 +4715,7 @@ sizeButton.connectObject('destroy', () => {
     const stackLength = view.widget.stack?.length ?? 0;
 
     
-    this._closeStackGallery();
+    this._closeStackGallery({animate: false});
     this._saveWidgets();
     
     // Recreate edit controls ONLY if stack size changed enough to affect visibility
@@ -4359,50 +4747,20 @@ sizeButton.connectObject('destroy', () => {
       }
     }
     
-    // Rebuild the stack prism if it exists
-    if (view._stackPrism && stackLength > 0) {
-      // After deletion, always start at page 0 (main widget) to avoid
-      // stale/invalid page indices causing the widget to not update.
-      view._stackPrism.dispose();
-      view._stackPrism = null;
-      
-      try {
-        view._stackPrism = attachWidgetStack({
-          paneRoot: view.actor,
-          baseActor: view.box,
-          widget: view.widget,
-          theme: this._gnomeTheme(),
-          styleForEntry: entry => this._styleForStackPage(entry, view.widget.type),
-          wantsGlassEntry: entry => this._wantsGlassForStackPage(entry),
-          glassParams: () => this._glassParamsFor(),
-          startPage: 0,
-          pageSizeFor: sizeKey => widgetSizesFor(this._widgetGap ?? WIDGET_GAP)[sizeKey] ?? null,
-          renderPage: (record, pageBody, pageRoot) => this._fillWidgetBody(record, pageBody, pageRoot),
-          isEditMode: () => this._editMode,
-          onStateSaved: () => this._saveWidgets(),
-          onPageChange: () => {
-            if (this._editMode && view) {
-              GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
-                this._syncEditControls(view.widget, false);
-                return GLib.SOURCE_REMOVE;
-              });
-            };
-          },
-        });
-      } catch (error) {
-        warn('stack-attach-failed', `Stack rebuild failed: ${error.message}`);
-      };
-    } else if (stackLength === 0 && view._stackPrism) {
-      // No more stack, remove prism
-      view._stackPrism.dispose();
-      view._stackPrism = null;
-      
-      // Re-render the main widget
+    // Rebuild the stacked pages from the edited list. The first added
+    // page used to be ignored (the rebuild ran only for an existing stack).
+    // After an edit the stack opens on the primary page.
+    this._disposeStack(view);
+    view._stackStartPage = stackLength > 0 ? startPage : 0;
+    if (stackLength > 0)
+      this._ensureStack(view, view._stackStartPage);
+    else
       this._safeFillWidgetBody(view.widget, view.body);
-    }
-    
-    // Reopen the panel to show updated state
-    this._openStackPanel(view);
+
+    // The panel refreshes itself in place on move / delete; other callers
+    // (the gallery adding a page) reopen it.
+    if (reopenPanel)
+      this._openStackPanel(view);
   };
 
 
@@ -4490,96 +4848,99 @@ sizeButton.connectObject('destroy', () => {
   };
 
 
-  // ── Widget-pages gallery drawer ──────────────────────────────────────
-  // Ported visual language of the reference widget gallery (widgets-github
-  // fork): a bottom drawer on the widget's own monitor, header + close, a
-  // search entry, REAL rendered previews (scaled like the reference's
-  // createPreview) and per-card size chips — only sizes that fit within
-  // the host's slot: the added page is equal to or smaller than the
-  // primary widget, never larger.
-  // ── Gallery: centered modal window with widget grid ────────────────────
-  // Changed from bottom drawer to centered card matching the panel UX.
+  // ── Widget-pages gallery ─────────────────────────────────────────────
+  // Same look as the pages panel: a centered rounded window with a header
+  // (back, title, where the page goes, close), a search field and a grid
+  // of tiles — preview, name and a one-line hint. A click adds the page;
+  // back (or Escape) returns to the pages panel.
   _openStackGallery(view, slot = 'below') {
-    // From which «+» the gallery was opened: 'above' stages the picked
-    // page ABOVE the current widget (stack front), 'below' — after it.
+    // From which «Add page» the gallery was opened: 'above' stages the
+    // picked page ABOVE the main widget, 'below' — after it.
     this._stackGallerySlot = slot;
-    if (this._galleryPart) {
-      this._closeStackGallery();
-    };
+    if (this._galleryPart)
+      this._closeStackGallery({animate: false});
 
     const theme = this._gnomeTheme();
-    const stageSize = global.stage.get_size();
+    const [stageW, stageH] = global.stage.get_size();
+    const subtle = theme.dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.035)';
+    const subtleHover = theme.dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)';
+    const hostSize = view.widget.size ?? 'small';
+    const typeName = type => WIDGET_TYPE_LABELS[type] ?? type;
 
-    // Backdrop swallows clicks outside
     const overlay = new St.Widget({
       reactive: true,
       can_focus: true,
       x: 0,
       y: 0,
-      width: Math.max(320, stageSize[0]),
-      height: Math.max(240, stageSize[1]),
-      style: 'background-color: rgba(0, 0, 0, 0.55);',
+      width: Math.max(320, stageW),
+      height: Math.max(240, stageH),
+      style: 'background-color: rgba(0, 0, 0, 0.5);',
     });
 
-    // Centered card — wide for grid
-    const cardW = Math.min(1100, stageSize[0] - 100);
-    const cardH = Math.min(720, stageSize[1] - 100);
+    const cardW = Math.min(900, Math.max(340, stageW - 80));
+    const cardH = Math.min(660, Math.max(320, stageH - 80));
     const card = new St.BoxLayout(boxLayoutProps({
       vertical: true,
       style: `background-color: ${theme.background};`
         + ` border: 1px solid ${theme.border};`
-        + ` border-radius: ${theme.radius + 6}px;`
-        + ` padding: 20px; spacing: 16px;`,
+        + ` border-radius: ${Math.min(30, Math.max(14, theme.radius + 8))}px;`
+        + ' padding: 18px; spacing: 14px;'
+        + ' box-shadow: 0 12px 40px rgba(0,0,0,0.45);',
       reactive: true,
       can_focus: true,
     }));
     card.set_size(cardW, cardH);
 
-    // Header: title + search + close
-    const header = new St.BoxLayout(boxLayoutProps({x_expand: true, y_align: Clutter.ActorAlign.CENTER, style: 'spacing: 12px;'}));
-    header.add_child(this._label(_('Choose a widget'), 'widget-text', `font-size: 18px; font-weight: bold; color: ${theme.text};`));
+    const backToPanel = () => {
+      this._closeStackGallery({animate: false});
+      this._openStackPanel(view);
+    };
+    const closeAll = () => this._closeStackGallery();
 
-    const search = new St.Entry({
+    // Header: back · title + where the page goes · close
+    const header = new St.BoxLayout(boxLayoutProps({x_expand: true, style: 'spacing: 10px;'}));
+    const backButton = this._stackPanelIconButton('go-previous-symbolic', _('Back'), theme);
+    backButton.y_align = Clutter.ActorAlign.CENTER;
+    this._stackPanelActivate(backButton, backToPanel);
+    header.add_child(backButton);
+
+    const titles = new St.BoxLayout(boxLayoutProps({
+      vertical: true,
       x_expand: true,
-      can_focus: true,
-      style: `background-color: rgba(255,255,255,0.09);`
-        + ` border: 1px solid rgba(255,255,255,0.10);`
-        + ` border-radius: 14px; padding: 8px 12px;`
-        + ` color: ${theme.text};`,
-      hint_text: _('Search widgets'),
-      primary_icon: new St.Icon({icon_name: 'system-search-symbolic', icon_size: 16}),
-    });
-    header.add_child(search);
+      y_align: Clutter.ActorAlign.CENTER,
+      style: 'spacing: 2px;',
+    }));
+    titles.add_child(this._label(_('Add a page'), 'widget-text',
+      `font-size: 17px; font-weight: 800; color: ${theme.text};`));
+    const where = slot === 'above' ? _('Above %s').format(typeName(view.widget.type))
+      : _('Below %s').format(typeName(view.widget.type));
+    titles.add_child(this._label(`${where} · ${sizeLabel(hostSize)}`, 'widget-text',
+      `font-size: 12px; color: ${theme.muted};`));
+    header.add_child(titles);
 
-    const closeButton = new St.Button({
-      child: new St.Icon({icon_name: 'window-close-symbolic', icon_size: 16,
-        x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER}),
-      width: 34,
-      height: 34,
-      style: `padding: 0; border-radius: 10px; background-color: rgba(255,255,255,0.10); color: ${theme.text};`,
-      track_hover: true,
-      reactive: true,
-      can_focus: true,
-    });
-    closeButton.accessible_name = _('Close');
-    let closePressY = null;
-    closeButton.connect('button-press-event', (_actor, event) => {
-      if (event.get_button() === 1) {
-        closePressY = event.get_coords()[1];
-      };
-      return Clutter.EVENT_STOP;
-    });
-    closeButton.connect('button-release-event', (_actor, event) => {
-      if (event.get_button() === 1 && closePressY !== null) {
-
-        this._closeStackGallery();
-      };
-      closePressY = null;
-      return Clutter.EVENT_STOP;
-    });
+    const closeButton = this._stackPanelIconButton('window-close-symbolic', _('Close'), theme);
+    closeButton.y_align = Clutter.ActorAlign.CENTER;
+    this._stackPanelActivate(closeButton, closeAll);
     header.add_child(closeButton);
     card.add_child(header);
 
+    // Search
+    const search = new St.Entry({
+      x_expand: true,
+      can_focus: true,
+      style: `background-color: ${subtle};`
+        + ` border: 1px solid ${theme.dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'};`
+        + ` border-radius: 12px; padding: 8px 12px; color: ${theme.text};`,
+      hint_text: _('Search widgets'),
+      primary_icon: new St.Icon({
+        icon_name: 'system-search-symbolic',
+        icon_size: 16,
+        style: `color: ${theme.muted};`,
+      }),
+    });
+    card.add_child(search);
+
+    // Grid
     const scroll = new St.ScrollView({
       x_expand: true,
       y_expand: true,
@@ -4588,201 +4949,154 @@ sizeButton.connectObject('destroy', () => {
       vscrollbar_policy: St.PolicyType.AUTOMATIC,
       enable_mouse_scrolling: true,
     });
-
-    const sectionsBox = new St.BoxLayout(boxLayoutProps({vertical: true, x_expand: true, style: 'spacing: 18px; padding: 4px;'}));
-    scroll.set_child(sectionsBox);
+    const gridBox = new St.BoxLayout(boxLayoutProps({vertical: true, x_expand: true}));
+    if (typeof scroll.set_child === 'function')
+      scroll.set_child(gridBox);
+    else
+      scroll.add_actor(gridBox);
     card.add_child(scroll);
 
     const records = this._stackGalleryCatalog(view.widget);
-    // Cards share the grid width evenly, so the row uses the full card
-    // width with no dead space on the right (was fixed 430px columns).
-    const MIN_CARD_W = 360;
-    const columns = Math.max(1, Math.min(3, Math.floor((cardW - 48 + 16) / (MIN_CARD_W + 16))));
-    const colW = Math.floor((cardW - 48 - 16 * (columns - 1)) / columns);
-    let cards = [];
+    const GAP = 12;
+    const MIN_TILE_W = 200;
+    const innerW = cardW - 36 - 8; // padding + scrollbar room
+    const columns = Math.max(1, Math.min(4, Math.floor((innerW + GAP) / (MIN_TILE_W + GAP))));
+    const tileW = Math.floor((innerW - GAP * (columns - 1)) / columns);
+    const previewH = Math.round(Math.min(150, Math.max(110, tileW * 0.6)));
+    const canAdd = (view.widget.stack?.length ?? 0) < STACK_PAGE_LIMIT;
 
+    const addPage = (record) => {
+      if (!Array.isArray(view.widget.stack))
+        view.widget.stack = [];
+      if (view.widget.stack.length >= STACK_PAGE_LIMIT)
+        return;
+      const entry = makeStackEntry(record.type, record.defaultSize);
+      entry.side = this._stackGallerySlot === 'above' ? 'above' : 'below';
+      if (entry.side === 'above')
+        view.widget.stack.unshift(entry);
+      else
+        view.widget.stack.push(entry);
+      this._applyStackChange(view); // closes the gallery, reopens the panel
+    };
+
+    const makeTile = (record) => {
+      const tile = new St.BoxLayout(boxLayoutProps({
+        vertical: true,
+        width: tileW,
+        reactive: canAdd,
+        can_focus: canAdd,
+      }));
+      tile.accessible_name = record.label;
+      const shape = 'border-radius: 16px; padding: 8px 8px 10px 8px; spacing: 8px;';
+      this._stackPanelHover(tile,
+        `${shape} border: 2px solid transparent; background-color: ${subtle};`,
+        `${shape} border: 2px solid ${canAdd ? theme.accent : 'transparent'}; background-color: ${subtleHover};`);
+
+      const preview = new St.Widget({
+        layout_manager: new Clutter.BinLayout(),
+        x_expand: true,
+        height: previewH,
+        style: `border-radius: 11px; background-color: ${theme.dark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.05)'};`,
+      });
+      const iconSize = Math.round(previewH * 0.78);
+      const icon = this._stackWidgetSvgIcon(record.type, iconSize);
+      if (icon) {
+        icon.x_align = Clutter.ActorAlign.CENTER;
+        icon.y_align = Clutter.ActorAlign.CENTER;
+        preview.add_child(icon);
+      } else {
+        preview.add_child(new St.Icon({
+          icon_name: 'application-x-addon-symbolic',
+          icon_size: 40,
+          x_align: Clutter.ActorAlign.CENTER,
+          y_align: Clutter.ActorAlign.CENTER,
+          style: `color: ${theme.muted};`,
+        }));
+      };
+      tile.add_child(preview);
+
+      const text = new St.BoxLayout(boxLayoutProps({vertical: true, style: 'spacing: 2px; padding: 0 4px;'}));
+      const name = this._label(record.label, 'widget-text',
+        `font-size: 14px; font-weight: 700; color: ${theme.text};`);
+      name.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+      text.add_child(name);
+      if (record.description) {
+        const hint = this._label(record.description, 'widget-text',
+          `font-size: 12px; color: ${theme.muted};`);
+        hint.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        text.add_child(hint);
+      };
+      tile.add_child(text);
+
+      if (canAdd)
+        this._stackPanelActivate(tile, () => addPage(record));
+      return tile;
+    };
+
+    let firstMatch = null;
     const rebuildGrid = () => {
-      sectionsBox.destroy_all_children();
-      cards = [];
-
+      gridBox.destroy_all_children();
       const query = (search.get_text() ?? '').trim().toLocaleLowerCase();
       const terms = query.split(/\s+/).filter(Boolean);
       const matching = records.filter(record =>
         terms.every(term => `${record.label} ${record.type} ${record.description}`.toLocaleLowerCase().includes(term)));
+      firstMatch = matching[0] ?? null;
 
       if (matching.length === 0) {
-        const emptyState = new St.BoxLayout(boxLayoutProps({
+        const empty = new St.BoxLayout(boxLayoutProps({
           vertical: true,
           x_expand: true,
-          y_expand: true,
           x_align: Clutter.ActorAlign.CENTER,
-          y_align: Clutter.ActorAlign.CENTER,
-          style: 'padding: 42px;',
+          style: 'padding: 48px; spacing: 10px;',
         }));
-        emptyState.add_child(new St.Icon({icon_name: 'system-search-symbolic', icon_size: 32, style: `color: ${theme.muted};`}));
-        emptyState.add_child(this._label(_('No widgets found'), 'widget-text', `color: ${theme.muted}; padding-top: 10px;`));
-        sectionsBox.add_child(emptyState);
+        empty.add_child(new St.Icon({
+          icon_name: 'system-search-symbolic',
+          icon_size: 32,
+          x_align: Clutter.ActorAlign.CENTER,
+          style: `color: ${theme.muted};`,
+        }));
+        empty.add_child(this._label(_('No widgets found'), 'widget-text',
+          `font-size: 13px; color: ${theme.muted};`));
+        gridBox.add_child(empty);
         return;
       };
 
-      for (const record of matching) {
-        const cardBox = new St.BoxLayout(boxLayoutProps({
-          vertical: true,
-          width: colW,
-          x_align: Clutter.ActorAlign.CENTER,
-          style: 'spacing: 6px;',
-        }));
-
-        const previewHeight = 200;
-        const previewBox = new St.Widget({
-          layout_manager: new Clutter.FixedLayout(),
-          width: colW,
-          height: previewHeight,
-          x_align: Clutter.ActorAlign.CENTER,
-          reactive: true,
-          track_hover: true,
-          style: `background-color: ${theme.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'};`
-            + ` border: 1px solid rgba(255,255,255,0.10);`
-            + ` border-radius: 16px;`,
-          clip_to_allocation: true,
-        });
-
-        let selectedSize = record.defaultSize;
-
-        // SVG display instead of the live render: icons/widgets/<name>.svg
-        // centered inside the preview pane — scaled with the card width so
-        // wide cards show noticeably larger icons.
-        const iconSize = Math.max(120, Math.min(200, Math.round(colW * 0.38)));
-        const svgIcon = this._stackWidgetSvgIcon(record.type, iconSize);
-
-        if (svgIcon) {
-          svgIcon.set_position(Math.round((colW - iconSize) / 2),
-            Math.round((previewHeight - iconSize) / 2));
-          previewBox.add_child(svgIcon);
-        } else {
-          const fallback = this._label(record.label, 'widget-text',
-            `font-size: 15px; font-weight: 600; color: ${theme.muted};`);
-          fallback.set_position(Math.round((colW - 200) / 2),
-            Math.round((previewHeight - 20) / 2));
-          previewBox.add_child(fallback);
-        };
-
-        // Pickup = release click on preview
-        let pressPoint = null;
-        previewBox.connect('button-press-event', (_actor, event) => {
-          const [, py] = event.get_coords();
-          pressPoint = Number.isFinite(py) ? py : null;
-          return Clutter.EVENT_STOP;
-        });
-        previewBox.connect('button-release-event', (_actor, event) => {
-          if (event.get_button() === 1 && pressPoint !== null) {
-            if (!Array.isArray(view.widget.stack)) {
-              view.widget.stack = [];
-            };
-            if (view.widget.stack.length < STACK_PAGE_LIMIT) {
-              // Which «+» opened the gallery decides where the page shows
-              // in the panel column (and where it sits in the flip order).
-              const entry = makeStackEntry(record.type, selectedSize);
-              entry.side = this._stackGallerySlot === 'above' ? 'above' : 'below';
-              if (entry.side === 'above') {
-                view.widget.stack.unshift(entry);
-              } else {
-                view.widget.stack.push(entry);
-              };
-              GLib.timeout_add(GLib.PRIORITY_DEFAULT, 0, () => {
-                this._applyStackChange(view);
-                return GLib.SOURCE_REMOVE;
-              });
-            };
-          };
-          pressPoint = null;
-          return Clutter.EVENT_STOP;
-        });
-        cardBox.add_child(previewBox);
-
-        const titleRow = new St.BoxLayout(boxLayoutProps({width: colW, x_align: Clutter.ActorAlign.CENTER}));
-        titleRow.add_child(new St.Widget({x_expand: true}));
-        titleRow.add_child(this._label(record.label, 'widget-text', `font-size: 14px; font-weight: 600; color: ${theme.text};`));
-        titleRow.add_child(new St.Widget({x_expand: true}));
-        cardBox.add_child(titleRow);
-
-        const chipsRow = new St.BoxLayout(boxLayoutProps({width: colW, x_align: Clutter.ActorAlign.CENTER, style: 'spacing: 4px;'}));
-        chipsRow.add_child(new St.Widget({x_expand: true}));
-        for (const sizeKey of record.sizes) {
-          const chip = new St.Button({
-            label: widgetSizeLabel(sizeKey),
-            style: `border-radius: 9px; padding: 4px 7px; font-size: 10px;`
-              + ` border: 1px solid rgba(255,255,255,0.12); color: ${theme.text};`
-              + ` background-color: ${sizeKey === selectedSize ? theme.accent : 'rgba(255,255,255,0.10)'};`,
-          });
-          chip.connect('button-press-event', () => Clutter.EVENT_STOP);
-          chip.connect('button-release-event', (_actor, event) => {
-            if (event.get_button() === 1) {
-              selectedSize = sizeKey;
-              for (const child of chipsRow.get_children()) {
-                if (child instanceof St.Button) {
-                  child.style = child.style.replace(`background-color: ${theme.accent};`, 'background-color: rgba(255,255,255,0.10);');
-                };
-              };
-              chip.style = chip.style.replace(/background-color:\s*[^;]+;/, `background-color: ${theme.accent};`);
-            };
-            return Clutter.EVENT_STOP;
-          });
-          chipsRow.add_child(chip);
-        };
-        chipsRow.add_child(new St.Widget({x_expand: true}));
-        cardBox.add_child(chipsRow);
-
-        cards.push(cardBox);
-      };
-
-      const layout = new Clutter.GridLayout({
-        column_spacing: 16,
-        row_spacing: 16,
-        column_homogeneous: false,
+      const layout = new Clutter.GridLayout({column_spacing: GAP, row_spacing: GAP});
+      const grid = new St.Widget({layout_manager: layout, x_expand: true, style: 'padding: 2px;'});
+      matching.forEach((record, index) => {
+        layout.attach(makeTile(record), index % columns, Math.floor(index / columns), 1, 1);
       });
-      const gridWidget = new St.Widget({
-        layout_manager: layout,
-        x_expand: true,
-      });
-      cards.forEach((card, index) => {
-        layout.attach(card, index % columns, Math.floor(index / columns), 1, 1);
-      });
-      sectionsBox.add_child(gridWidget);
+      gridBox.add_child(grid);
     };
-
     search.clutter_text.connectObject('text-changed', () => rebuildGrid(), search);
+    // Enter adds the first match.
+    search.clutter_text.connectObject('activate', () => {
+      if (firstMatch && canAdd)
+        addPage(firstMatch);
+    }, search);
     rebuildGrid();
 
-    // Card stops bubbling; backdrop closes
     card.connect('button-press-event', () => Clutter.EVENT_STOP);
-    overlay.connect('button-press-event', (_actor, event) => {
-      this._closeStackGallery();
+    card.connect('button-release-event', () => Clutter.EVENT_STOP);
+    overlay.connect('button-press-event', () => {
+      backToPanel();
       return Clutter.EVENT_STOP;
     });
 
-    // Center card on screen
-    const cardX = Math.max(16, (stageSize[0] - cardW) / 2);
-    const cardY = Math.max(16, (stageSize[1] - cardH) / 2);
-    card.set_position(Math.round(cardX), Math.round(cardY));
-
+    card.set_position(
+      Math.round(Math.max(16, (stageW - cardW) / 2)),
+      Math.round(Math.max(16, (stageH - cardH) / 2)));
     overlay.add_child(card);
     Main.uiGroup.add_child(overlay);
     this._galleryPart = overlay;
-    
-    // ESC closes gallery
-    overlay.connect('key-press-event', (_actor, event) => {
-      if (event.get_key_symbol() === Clutter.KEY_Escape) {
-        this._closeStackGallery();
-        return Clutter.EVENT_STOP;
-      };
-      return Clutter.EVENT_PROPAGATE;
-    });
-    // Typing works straight away: as soon as the overlay is realy mapped,
-    // hand key focus to the search entry (pushModal initially focused the
-    // overlay itself). IMPORTANT: St.Widget has no 'map' signal — connectObject
-    // would throw and SKIP the grab wiring below (that is exactly how the
-    // gallery once lost its ESC handling).
+
+    card.opacity = 0;
+    card.translation_y = 12;
+    card.ease({opacity: 255, translation_y: 0, duration: 160, mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+
+    // Typing works straight away: once mapped, the search entry takes key
+    // focus (pushModal focuses the overlay itself). St.Widget has no 'map'
+    // signal — notify::mapped is the one to use.
     overlay.connectObject('notify::mapped', () => {
       if (overlay.mapped && !overlay.searchFocused) {
         overlay.searchFocused = true;
@@ -4790,70 +5104,58 @@ sizeButton.connectObject('destroy', () => {
       };
     }, overlay);
 
-    // Capture-phase backstop: Escape is stopped on the stage before any
-    // child (search entry…) sees it, even after internal focus changes.
+    // Escape: back to the pages panel. Caught in the capture phase so the
+    // search entry cannot swallow it.
     global.stage.connectObject('captured-event', (_stage, event) => {
       if (event.type() === Clutter.EventType.KEY_PRESS
         && event.get_key_symbol() === Clutter.KEY_Escape) {
-        this._closeStackGallery();
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+          if (this._galleryPart === overlay)
+            backToPanel();
+          return GLib.SOURCE_REMOVE;
+        });
         return Clutter.EVENT_STOP;
       };
-
       return Clutter.EVENT_PROPAGATE;
     }, overlay);
 
-    // Real modal grab (Wayland): without it key events go to the focused
-    // application window and the stage never sees Escape. pushModal routes
-    // every input to the shell and gives the overlay key focus.
-    // ActionMode NORMAL keeps system keybindings alive while the modal is
-    // open — screenshots (Print) must still work inside these windows.
+    // Real modal grab (Wayland): routes keys to the shell. ActionMode NORMAL
+    // keeps system keybindings (screenshots) alive.
     overlay.modalGrab = Main.pushModal(overlay, {actionMode: Shell.ActionMode.NORMAL});
-    
   };
 
-  _closeStackGallery() {
+  _closeStackGallery({animate = true} = {}) {
     const overlay = this._galleryPart;
-
-    if (!overlay) {
+    if (!overlay)
       return;
-    };
     this._galleryPart = null;
-    // Release the modal grab BEFORE destroying (or animating out) the overlay.
+    // Release the modal grab BEFORE destroying (or fading) the overlay.
     if (overlay.modalGrab && !isActorDestroyed(overlay)) {
       Main.popModal(overlay.modalGrab);
       overlay.modalGrab = null;
     };
-
-
-    if (isActorDestroyed(overlay)) {
+    if (isActorDestroyed(overlay))
       return;
-    };
+    global.stage.disconnectObject(overlay);
 
-    const drawer = overlay.get_child_at_index(0);
-
-    if (!drawer) {
+    const card = overlay.get_child_at_index(0);
+    if (!animate || !card) {
       overlay.destroy();
       return;
     };
-
-    // The drawer slides down first; the backing dies once the flight ends —
-    // previews stop breathing while invisible.
-    drawer.remove_all_transitions();
-    drawer.ease({
-      translation_y: drawer.height,
-      duration: 200,
+    overlay.reactive = false;
+    card.remove_all_transitions();
+    card.ease({
+      opacity: 0,
+      translation_y: 12,
+      duration: 140,
       mode: Clutter.AnimationMode.EASE_IN_QUAD,
-      onComplete: () => {
-        // Calling destroy() on an already-finalized actor raises; the
-        // try/get_stage-based helper is the one check that actually catches
-        // actor destruction in GJS (is_finalized/is_destroyed do not exist).
-        if (!isActorDestroyed(overlay)) {
+      onStopped: () => {
+        if (!isActorDestroyed(overlay))
           overlay.destroy();
-        };
       },
     });
   };
-
 
 
   // Runs (and disconnects) the 'destroy' handlers the previous render hung
@@ -4938,13 +5240,11 @@ sizeButton.connectObject('destroy', () => {
           this._suppressAppClickUntil = Date.now() + 400;
         },
       });
-    // The stacked-pages prism is intentionally not mounted (widget-in-widget
-    // disabled); dispose any stale one so a re-enable starts clean.
-    const prismView = this._views.get(widget.id);
-    if (prismView && prismView._stackPrism) {
-      prismView._stackPrism.dispose();
-      prismView._stackPrism = null;
-    };
+    // Widget-in-widget: a primary with added pages gets its stack mounted
+    // (kept across plain refills; rebuilt when the host's size changed).
+    const hostView = paneRootOverride ? null : this._views.get(widget.id);
+    if (hostView && hostView.body === body)
+      this._ensureStack(hostView);
 
   };
 

@@ -1118,13 +1118,9 @@ export function render({body, widget, createLabel, theme, weather, weatherLocati
 				finishDrag(false);
 			if (event.get_button() !== 3 || settling)
 				return Clutter.EVENT_PROPAGATE;
-			const [x] = event.get_coords();
+			const [x, y0] = event.get_coords();
 			const now = GLib.get_monotonic_time() / 1000;
-			drag = {startX: x, lastX: x, lastTime: now, velocity: 0, dx: 0, entering: null, grab: null, hold: createHoldWatch(BUTTON3_MASK)};
-			// Keep receiving motion/release even outside the card.
-			try {
-				drag.grab = global.stage.grab(pageStack);
-			} catch (_e) {}
+			drag = {startX: x, startY: y0, claimed: false, lastX: x, lastTime: now, velocity: 0, dx: 0, entering: null, grab: null, hold: createHoldWatch(BUTTON3_MASK)};
 			return Clutter.EVENT_PROPAGATE;
 		});
 
@@ -1134,6 +1130,24 @@ export function render({body, widget, createLabel, theme, weather, weatherLocati
 			if (!drag.hold.held(event)) {
 				finishDrag(false);
 				return Clutter.EVENT_PROPAGATE;
+			}
+			if (!drag.claimed) {
+				const [cx, cy] = event.get_coords();
+				const ax = Math.abs(cx - drag.startX);
+				const ay = Math.abs(cy - drag.startY);
+				if (ax < 8 && ay < 8)
+					return Clutter.EVENT_PROPAGATE;
+				if (ay >= ax) {
+					// Vertical: left to the widget-in-widget stack.
+					drag = null;
+					return Clutter.EVENT_PROPAGATE;
+				}
+				drag.claimed = true;
+				drag.startX = cx;
+				drag.lastX = cx;
+				try {
+					drag.grab = global.stage.grab(pageStack);
+				} catch (_e) {}
 			}
 			const [x] = event.get_coords();
 			const now = GLib.get_monotonic_time() / 1000;

@@ -3,6 +3,7 @@ import GdkPixbuf from 'gi://GdkPixbuf?version=2.0';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Pango from 'gi://Pango';
+import PangoCairo from 'gi://PangoCairo';
 import St from 'gi://St';
 
 import { warn } from '../../logger.js';
@@ -10,6 +11,7 @@ import { widgetResourcePath } from '../../paths.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { boxLayoutProps } from '../../utils/gnomeCompat.js';
 import { SeekBar } from '../../lib/seekBar.js';
+import { createMarquee } from '../../lib/marquee.js';
 import { bounceButton, bindHoverShrink } from '../../lib/buttonBounce.js';
 import { getDataDir, parseCssColor } from '../../utils/ported.js';
 import { isActorDestroyed } from '../../utils/actorLifecycle.js';
@@ -21,6 +23,22 @@ export const defaultSize = 'medium';
 export const supportedSizes = ['mini', 'medium'];
 export const appIds = ['org.gnome.Music', 'io.bassi.Amberol', 'org.videolan.VLC'];
 export const customAppKey = 'music-custom-app';
+
+
+// Is a color emoji font (Noto Color Emoji, Twemoji, JoyPixels…) installed?
+// Checked once: without one, emoji render as white boxes in the shell.
+let colorEmojiFont = null;
+function hasColorEmojiFont() {
+	if (colorEmojiFont !== null)
+		return colorEmojiFont;
+	try {
+		colorEmojiFont = PangoCairo.FontMap.get_default().list_families()
+			.some(family => /emoji/i.test(family.get_name()));
+	} catch (_e) {
+		colorEmojiFont = false;
+	}
+	return colorEmojiFont;
+};
 
 const PLAYER_IFACE = 'org.mpris.MediaPlayer2.Player';
 const PLAYER_PATH = '/org/mpris/MediaPlayer2';
@@ -1393,7 +1411,9 @@ function createCard(theme, createLabel, widgetWidth, widgetHeight) {
 	card.titleRow = new St.BoxLayout(boxLayoutProps({
 		x_expand: true,
 	}));
-	card.titleRow.add_child(card.title);
+	// Long titles/artists scroll like Apple Music instead of ending in "…".
+	card.titleMarquee = createMarquee(card.title, {expand: false});
+	card.titleRow.add_child(card.titleMarquee.actor);
 	card.titleRow.add_child(card.titlePaw);
 
 	card.artist = createLabel('', 'widget-music-artist', `font-size: ${artistFont}px; color: ${theme.muted};`);
@@ -1499,7 +1519,8 @@ function createCard(theme, createLabel, widgetWidth, widgetHeight) {
 		card.column.add_child(card.statusIcon);
 	};
 	card.column.add_child(card.titleRow);
-	card.column.add_child(card.artist);
+	card.artistMarquee = createMarquee(card.artist);
+	card.column.add_child(card.artistMarquee.actor);
 	card.column.add_child(card.slider);
 	card.column.add_child(card.controls);
 	card.container.add_child(card.coverBox);
@@ -1535,10 +1556,13 @@ function createCard(theme, createLabel, widgetWidth, widgetHeight) {
 
 			card.showArt(artUrl);
 		} else {
-			// The msgid keeps the emoji so the compiled translations still
-			// match; it is stripped here and drawn as an icon instead.
-			card.title.text = _("I'm waiting 🐾").replace(/\s*\u{1F43E}\s*/gu, '');
-			card.titlePaw.visible = true;
+			// The real 🐾 emoji when a color emoji font is installed; without
+			// one the shell draws a white box ("tofu"), so the emoji is then
+			// stripped and the bundled paw picture stands in for it.
+			const waiting = _("I'm waiting 🐾");
+			const emoji = hasColorEmojiFont();
+			card.title.text = emoji ? waiting : waiting.replace(/\s*\u{1F43E}\s*/gu, '');
+			card.titlePaw.visible = !emoji;
 			card.artist.text = _('Play something to get going');
 
 			if (gifPath) {

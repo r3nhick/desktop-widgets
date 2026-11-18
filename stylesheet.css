@@ -237,3 +237,30 @@
 .button.widget-gallery-size-chip-selected {
 	color: white;
 }
+
+/* Context menu: «Remove widget» reads as destructive — red text and icon,
+   a solid red row when hovered / focused. */
+.popup-menu-item.desktop-widgets-destructive-item,
+.popup-menu-item.desktop-widgets-destructive-item .popup-menu-icon {
+  color: #ff7b72;
+}
+
+.popup-menu-item.desktop-widgets-destructive-item-light,
+.popup-menu-item.desktop-widgets-destructive-item-light .popup-menu-icon {
+  color: #c01c28;
+}
+
+.popup-menu-item.desktop-widgets-destructive-item:hover,
+.popup-menu-item.desktop-widgets-destructive-item:focus,
+.popup-menu-item.desktop-widgets-destructive-item:selected,
+.popup-menu-item.desktop-widgets-destructive-item:active {
+  background-color: #e01b24;
+  color: #ffffff;
+}
+
+.popup-menu-item.desktop-widgets-destructive-item:hover .popup-menu-icon,
+.popup-menu-item.desktop-widgets-destructive-item:focus .popup-menu-icon,
+.popup-menu-item.desktop-widgets-destructive-item:selected .popup-menu-icon,
+.popup-menu-item.desktop-widgets-destructive-item:active .popup-menu-icon {
+  color: #ffffff;
+}

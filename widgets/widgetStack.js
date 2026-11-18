@@ -1,35 +1,32 @@
-// Widget-in-widget: vertical pages under a primary widget.
+// Widget-in-widget: extra pages stacked above / below a primary widget.
 //
-// The primary widget stays page 0. Added pages (widget.stack, up to
-// MAX_STACK_PAGES) hang BELOW it; opening the next one is a downward flip
-// — the system monitor's 2x1 cross rotated to vertical: pages live one
-// baseDistance apart (pageH + pageH/16), travel in lockstep by their own
-// translation_y, EASE_OUT_CUBIC over 500 ms, nothing fades, nothing
-// overlaps, and crossBusy serializes the flights.
+// The primary widget is the home page. Pages added "above" sit over it,
+// pages added "below" under it — the same top-to-bottom order as the edit
+// panel's column (above pages in stack order, the primary, below pages).
 //
-// The drag lives on the bottom rail AND the top rail (thin strips pinned
-// to the pane's edges): dragging UP on the bottom rail opens the page
-// below, dragging DOWN walks back toward page 0; the top rail mirrors it
-// — dragging DOWN there reveals the previous page from above, dragging UP
-// pushes toward the next one. Small ▲/▼ buttons on the right edge are the
-// button-based second way (both options per the feature spec). Stacked
-// pages are fully interactive: their content is rendered by
-// the very same fill path as primary widgets and stays mounted across
-// flights; only the active page is visibly in the slot.
+// Paging is the Apple-style follow pager of the 1x1 calendar, turned
+// vertical: hold the RIGHT mouse button and drag up/down anywhere on the
+// widget — the current page follows the pointer and the neighbouring page
+// rides right beside it, both in the same frame. Releasing past 30px (or a
+// quick flick) settles on the neighbour, otherwise the strip springs back.
+// The gesture is read in the CAPTURE phase and only claimed when the drag
+// is mostly vertical, so the widgets' own horizontal right-button pagers
+// (weather/calendar/system monitor) keep working inside a stack.
 
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
 
 import { boxLayoutProps } from '../utils/gnomeCompat.js';
 import { MAX_STACK_PAGES } from '../lib/widgetTypes.js';
-import { LiquidGlass } from '../lib/glass.js';
+import { LiquidGlass, RoundedClipEffect } from '../lib/glass.js';
+import { createHoldWatch, BUTTON3_MASK, PAGER_THRESHOLD } from '../lib/pager.js';
 
-// The same constants the music widget's cross uses (2x1 system monitor's).
-const SWIPE_THRESHOLD = 12;  // Reduced from 36 for easier swipe triggering
-const ANIMATION_DURATION = 250;
-const CROSS_DURATION = Math.round(ANIMATION_DURATION * 2); // 500ms
-
-const RAIL_HEIGHT = 48;  // Increased from 24 for easier swipe zone targeting
+const CLAIM_PX = 8;            // vertical travel before the stack claims a drag
+const FLICK_VELOCITY = 0.5;    // px/ms
+const MIN_SETTLE_MS = 200;
+const MAX_SETTLE_MS = 380;
+const RUBBER = 0.3;            // resistance past the first/last page
 
 function newPageKey() {
 	return Math.random().toString(36).slice(2, 9);
@@ -45,6 +42,7 @@ export function makeStackEntry(type, size = null) {
 export function attachWidgetStack({
 	paneRoot,
 	baseActor,
+	baseGlass = null,
 	widget,
 	theme,
 	styleForEntry = null,
@@ -57,181 +55,120 @@ export function attachWidgetStack({
 	onStateSaved = () => {},
 	onPageChange = () => {},
 }) {
-	console.log(`[ATTACH-STACK] Called for widget=${widget.type} id=${widget.id} hasStack=${!!widget.stack} stackLength=${widget.stack?.length ?? 0}`);
-	const entries = Array.isArray(widget.stack)
+	const all = Array.isArray(widget.stack)
 		? widget.stack.filter(entry => entry && entry.type).slice(0, MAX_STACK_PAGES)
 		: [];
-	console.log(`[ATTACH-STACK] Filtered entries: ${entries.length}`);
+	// pages[] index order (kept for callers: 0 = primary, then the above
+	// pages, then the below pages — _getActiveStackEntry maps it back).
+	const above = all.filter(e => e.side === 'above');
+	const below = all.filter(e => e.side !== 'above');
+	const entries = [...above, ...below];
 
-	// Sort entries by side: 'above' pages first, then 'below' pages, so the
-	// pages array order matches the visual top-to-bottom stack layout (page
-	// indices increase downward). This makes crossTo's direction logic work:
-	// flipping from page 0 to page 1 should show the FIRST above page coming
-	// down from above, not a below page rising from below.
-	entries.sort((a, b) => {
-		const aSide = a.side === 'above' ? 0 : 1;
-		const bSide = b.side === 'above' ? 0 : 1;
-		return aSide - bSide;
-	});
-
-	// No stack — the widget stays a plain widget: no rail, nothing mounted.
-	if (entries.length === 0) {
-		console.log(`[ATTACH-STACK] No entries, returning empty prism`);
-		return {dispose() {}, refresh() {}, restyle() {}, updateGlassGeometry() {}};
-	};
-	console.log(`[ATTACH-STACK] Building pages for ${entries.length} entries...`);
+	const empty = {dispose() {}, refresh() {}, restyle() {}, updateGlassGeometry() {}, refill() {}, getActivePage: () => 0};
+	if (entries.length === 0)
+		return empty;
 
 	const pageW = Math.max(1, Math.floor(baseActor.get_width()) || 200);
 	const pageH = Math.max(1, Math.floor(baseActor.get_height()) || 200);
-	const baseDistance = () => pageH + Math.round(pageH / 16);
+	const distance = () => pageH + Math.max(6, Math.round(pageH / 24)); // page + gap
 
 	let disposed = false;
-	let crossBusy = false;
-	// A re-fill (theme change, glass switch, panel edit) rebuilds the prism;
-	// the caller passes the previously visible page back in startPage so a
-	// skin change does not visually flip the widget back to page 0.
+	let settling = false;
 	let active = Math.max(0, startPage);
 
-	// ── Pages ────────────────────────────────────────────────────────────
-	// Page 0 is the widget's own styled box (never cloned, never moved).
-	// Added pages mount as paneRoot children at (0,0) — CLIP paneRoot so
-	// cross animations stay INSIDE the widget's visual bounds, never
-	// travel outside.
+	// Keep page flights inside the widget's own bounds.
 	paneRoot.clip_to_allocation = true;
-	paneRoot.set_clip(0, 0, pageW, pageH);
-	
-	const pages = [{actor: baseActor, entry: null}];
 
-	// Glass-follow helpers ────────────────────────────────────────────────
-	// A page's card style and glass pane are derived from the SAME style
-	// engine as primary widgets (styleForEntry / wantsGlassEntry callbacks),
-	// so a stacked page reacts to the Glass switch and to dark/light theme
-	// changes exactly like a standalone widget does.
+	const pages = [{actor: baseActor, extra: baseGlass ? [baseGlass] : [], entry: null, body: null}];
 
-	// Stage rect of one page's card: the LiquidGlass pane needs the card's
-	// stage coordinates (and size) to align its wallpaper backdrop.
+	// Strip position (top → bottom): above pages, the primary, below pages.
+	const A = above.length;
+	const stripPos = i => (i === 0 ? A : (i <= A ? i - 1 : i));
+	const pageAtStrip = pos => {
+		for (let i = 0; i < pages.length; i++) {
+			if (stripPos(i) === pos)
+				return i;
+		}
+		return -1;
+	};
+
+	// ── Glass per added page ─────────────────────────────────────────────
+	const alive = a => a && !a.is_finalized?.();
 	const updatePageGlassGeometry = (page) => {
 		const glass = page.glass;
-
-		if (!glass || glass.is_finalized?.()) {
-			return;
-		};
-
 		const card = page.cardActor;
-
-		if (!card || card.is_finalized?.()) {
+		if (!alive(glass) || !alive(card))
 			return;
-		};
-
 		const [x, y] = card.get_transformed_position();
 		const [w, h] = card.get_size();
-
-		if (!Number.isFinite(x) || !Number.isFinite(y) || w <= 0 || h <= 0) {
+		if (!Number.isFinite(x) || !Number.isFinite(y) || w <= 0 || h <= 0)
 			return;
-		};
-
 		glass.setGeometry(x, y, w, h);
 	};
 
 	const attachPageGlass = (page) => {
-		// Photos carries its own paint (and skips glass on primaries too);
-		// wantsGlassEntry covers that plus the current style mode.
 		const want = wantsGlassEntry ? wantsGlassEntry(page.entry) : false;
-
 		if (want && !page.glass) {
 			const glass = new LiquidGlass();
-			const card = page.cardActor;
-			const [w, h] = card.get_size();
-
+			const [w, h] = page.cardActor.get_size();
 			glass.set_size(w, h);
+			glass.set_position(page.cardActor.x, page.cardActor.y);
 			page.actor.insert_child_at_index(glass, 0);
 			page.glass = glass;
-
-			if (glassParams) {
+			if (glassParams)
 				glass.setParams(glassParams());
-			};
-
-			updatePageGlassGeometry(page);
 		} else if (!want && page.glass) {
 			const glass = page.glass;
-
 			page.glass = null;
-
-			if (!glass.is_finalized?.()) {
+			if (alive(glass))
 				glass.destroy();
-			};
-		};
-
-		// A fresh pane may have been created before the first allocation.
-		if (page.glass) {
+		}
+		if (page.glass)
 			updatePageGlassGeometry(page);
-		};
 	};
 
 	const updateGlassGeometry = () => {
-		for (let i = 1; i < pages.length; i += 1) {
+		for (let i = 1; i < pages.length; i++)
 			updatePageGlassGeometry(pages[i]);
-		};
 	};
 
-	// Live re-style without re-rendering: card style follows the theme /
-	// glass mode pipeline, and glass params follow slider changes. Used on
-	// appearance changes so pages keep pace with their host widget.
 	const restyle = () => {
-		for (let i = 1; i < pages.length; i += 1) {
+		for (let i = 1; i < pages.length; i++) {
 			const page = pages[i];
-
-			if (page.actor.is_finalized?.()) {
+			if (!alive(page.actor))
 				continue;
-			};
-
 			if (styleForEntry) {
 				const style = styleForEntry(page.entry);
-
-				if (style) {
+				if (style)
 					page.cardActor.set_style(style);
-				};
-			};
-
+			}
 			attachPageGlass(page);
-
-			if (page.glass && glassParams) {
+			if (page.glass && glassParams)
 				page.glass.setParams(glassParams());
-			};
-		};
-
+		}
 		updateGlassGeometry();
 	};
 
 	const buildPage = (entry) => {
-		// The page card may be smaller than the host's slot (a 1x1 page on
-		// a 2x2 host) — it floats centered on a transparent page container.
-		const [cardW, cardH] = (pageSizeFor?.(entry.size || widget.size))
-			?? [pageW, pageH];
+		// A page may be smaller than the host's slot (a 1x1 page on a 2x2
+		// host): its card floats centered on a transparent page container.
+		const [cardW, cardH] = (pageSizeFor?.(entry.size || widget.size)) ?? [pageW, pageH];
 
 		const pageActor = new St.Widget({
 			layout_manager: new Clutter.FixedLayout(),
 			reactive: true,
 			width: pageW,
 			height: pageH,
-			style: `border-radius: ${theme?.radius ?? 16}px; overflow: hidden;`,
 		});
 
-		// A stacked page carries the SAME skin as its host widget: the card
-		// style is produced by the caller's styleForEntry pipeline, so the
-		// Glass switch and theme (dark/light) changes apply to added pages
-		// too. The legacy inline style below is only the fallback for callers
-		// that did not opt into the pipeline.
 		const cardSize = entry.size || widget.size || 'default';
 		const cardActor = new St.BoxLayout(boxLayoutProps({
 			vertical: true,
 			style_class: `widget widget-${entry.type} widget-${entry.type}-${cardSize}`,
 			style: styleForEntry
 				? (styleForEntry(entry) ?? '')
-				: `background-color: ${theme.background};`
-					+ ` border-style: solid;`
-					+ ` border-width: ${theme.borderWidth}px;`
-					+ ` border-color: ${theme.border};`
+				: `background-color: ${theme.background}; border-style: solid;`
+					+ ` border-width: ${theme.borderWidth}px; border-color: ${theme.border};`
 					+ ` border-radius: ${theme.radius}px;`,
 			reactive: true,
 			can_focus: true,
@@ -241,27 +178,16 @@ export function attachWidgetStack({
 		cardActor.set_position(Math.round((pageW - cardW) / 2), Math.round((pageH - cardH) / 2));
 		pageActor.add_child(cardActor);
 
-		// The page record travels into the fill path whole — its data object
-		// is the entry's own slice, so module-side writes persist with the
-		// parent record. A stable per-entry id keys its own state files.
 		const record = {
 			id: `${widget.id}-s-${entry.key}`,
 			type: entry.type,
-			// The page may render its own smaller size inside the host's slot
-			// (a 1x1 page on a 2x2 host); null falls back to the host size.
 			size: entry.size || widget.size,
 			data: entry.data && typeof entry.data === 'object' ? entry.data : (entry.data = {}),
 			pinned: true,
 		};
 
-		// Glass pane under the card (style mode = Glass): one LiquidGlass per
-		// page, matching the host widget's silhouette and parameters. The
-		// pane tracks the card's stage geometry (see updatePageGlassGeometry).
-		const page = {actor: pageActor, cardActor, record, entry, glass: null};
+		const page = {actor: pageActor, extra: [], cardActor, record, entry, glass: null, body: null};
 		attachPageGlass(page);
-
-		// Realign the wallpaper pane when the page gets allocated (first map
-		// after attach) — before that, transformed coordinates may be stale.
 		pageActor.connectObject('notify::allocation', () => updatePageGlassGeometry(page), pageActor);
 
 		const body = new St.BoxLayout(boxLayoutProps({
@@ -272,390 +198,422 @@ export function attachWidgetStack({
 			clip_to_allocation: true,
 		}));
 		cardActor.add_child(body);
+		page.body = body;
 
-		console.log(`[STACK-RENDER] Rendering page: type=${entry.type} recordId=${record.id} body=${!!body} cardActor=${!!cardActor}`);
 		try {
 			renderPage(record, body, cardActor);
-			console.log(`[STACK-RENDER] Success: type=${entry.type} bodyChildren=${body.get_n_children()}`);
 		} catch (error) {
-			console.error('[STACK-RENDER] Failed:', error);
-		};
+			console.error(`[desktop-widgets] stacked ${entry.type} page failed to render: ${error}`);
+		}
 
 		paneRoot.add_child(pageActor);
 		pageActor.set_position(0, 0);
 		return page;
 	};
 
-	for (const entry of entries) {
-		console.log(`[ATTACH-STACK] Building page for entry type=${entry.type} side=${entry.side}`);
+	for (const entry of entries)
 		pages.push(buildPage(entry));
+
+	// ── Placement ────────────────────────────────────────────────────────
+	// Translations are whole pixels: the glass shader maps its texture by
+	// the actor's stage position, and a fractional offset smears its edges.
+	const setY = (page, y) => {
+		y = Math.round(y);
+		page.actor.translation_y = y;
+		for (const a of page.extra)
+			if (alive(a))
+				a.translation_y = y;
 	};
-	console.log(`[ATTACH-STACK] Total pages built: ${pages.length} (including primary)`);
+	const setVisible = (page, v) => {
+		page.actor.visible = v;
+		for (const a of page.extra)
+			if (alive(a))
+				a.visible = v;
+	};
+
+	// Glass samples the wallpaper under its stage rect, so a moving page
+	// must tell its glass where it is now — otherwise the wallpaper rides
+	// along with the card and the edges tear.
+	const syncPageGlass = (page) => {
+		if (page === pages[0]) {
+			if (!alive(baseGlass) || !alive(paneRoot))
+				return;
+			const [x, y] = paneRoot.get_transformed_position();
+			const [w, h] = paneRoot.get_size();
+			if (Number.isFinite(x) && Number.isFinite(y) && w > 0 && h > 0)
+				baseGlass.setGeometry(x, y + (page.actor.translation_y || 0), w, h);
+			return;
+		}
+		updatePageGlassGeometry(page);
+	};
 
 	const placeIdle = () => {
-		// startPage may outnumber the built pages (a sibling was deleted
-		// before a refill); clamp before the first placement.
-		active = Math.min(active, pages.length - 1);
-
-		for (let i = 1; i < pages.length; i += 1) {
-			const {actor} = pages[i];
-			// Translation is valid before visible (sysmon precondition) and
-			// keeps the page exactly one baseDistance from the active slot.
-			actor.translation_y = (i - active) * baseDistance();
-			actor.visible = i === active;
-		};
-
-		// The slot moved pages around; the glass wallpaper panes must re-align.
+		active = Math.min(Math.max(0, active), pages.length - 1);
+		const d = distance();
+		pages.forEach((page, i) => {
+			if (!alive(page.actor))
+				return;
+			page.actor.remove_all_transitions();
+			setY(page, (stripPos(i) - stripPos(active)) * d);
+			setVisible(page, i === active);
+		});
 		updateGlassGeometry();
 	};
 	placeIdle();
 
-	// ── The cross (vertical rotation of the system monitor's 2x1) ────────
-	// Direction-aware: pages with side='above' enter from ABOVE (negative
-	// translation), pages with side='below' enter from BELOW (positive).
-	const crossTo = (target) => {
-		if (disposed || crossBusy || target === active
-			|| target < 0 || target >= pages.length) {
+	// ── Flight look ──────────────────────────────────────────────────────
+	// While pages fly, the widget is a rounded window onto them: the
+	// wrapper's rectangular clip gets a rounded mask, and its solid-mode
+	// background (it fills the rounded corners at rest) goes transparent so
+	// the gap between two cards shows the desktop, not a dark band.
+	let clipEffect = null;
+	let savedStyle = null;
+	let flying = false;
+
+	const beginFlight = () => {
+		if (flying || disposed)
 			return;
-		};
-
-		const leaving = pages[active];
-		const entering = pages[target];
-		const oldActive = active;
-		active = target;
-
-		// Entry direction follows the travel direction, not the page's side:
-		// moving to a higher index (forward) makes the entering page come
-		// from below (travels up); moving to a lower index (back) makes it
-		// come from above (travels down). This matches the desired feel:
-		// 1->2 enters from below (goes up), 3->2 enters from above (comes
-		// from top).
-		const entryDir = target > oldActive ? 1 : -1;
-
-		// Both pages travel in lockstep by their own translation_y; nothing
-		// fades, the seam between them is the only thing crossing the slot.
-		entering.actor.translation_y = entryDir * baseDistance();
-		entering.actor.visible = true;
-		leaving.actor.translation_y = 0;
-
-		crossBusy = true;
-
-		// Glass panes sample the wallpaper from stored stage rects; snap them
-		// to the pre-flight positions so the blur is at least correct for the
-		// whole flight.
-		updatePageGlassGeometry(entering);
-		updatePageGlassGeometry(leaving);
-
-		leaving.actor.ease({
-			translation_y: -entryDir * baseDistance(),
-			duration: CROSS_DURATION,
-			mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
-			onComplete: () => {
-				if (disposed || leaving.actor.is_finalized?.()) {
-					return;
-				};
-				// The page left over goes to its idle slot (hidden), ready
-				// for the next flight in either direction. The idle position
-				// depends on the page's side: above pages sit above (negative
-				// translation), below pages sit below (positive translation),
-				// relative to the currently active page at translation_y=0.
-				const index = pages.indexOf(leaving);
-				// PRIMARY page (index 0, entry=null) stays at translation_y=0
-				// as the base reference point. Only ADDED pages move to idle.
-				if (index === 0) {
-					leaving.actor.translation_y = 0;
-					leaving.actor.visible = false;
-					updatePageGlassGeometry(leaving);
-					return;
-				};
-				const leavingSide = leaving.entry?.side ?? 'below';
-				// Pages with side='above' have lower indices (sorted first);
-				// their idle position is ABOVE active (negative). Pages with
-				// side='below' have higher indices; idle position is BELOW.
-				const idleDir = leavingSide === 'above' ? -1 : 1;
-				leaving.actor.translation_y = idleDir * Math.abs(index - active) * baseDistance();
-				leaving.actor.visible = false;
-				updatePageGlassGeometry(leaving);
-			},
-		});
-		entering.actor.ease({
-			translation_y: 0,
-			duration: CROSS_DURATION,
-			mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
-			onComplete: () => {
-				crossBusy = false;
-				updatePageGlassGeometry(entering);
-				onPageChange();
-			},
-		});
-	};
-
-	// ── Rails: swipe zones at BOTH edges ─────────────────────────────────
-	// The bottom rail keeps the original gesture: dragging UP opens the
-	// page below (content follows the finger), dragging DOWN walks back
-	// toward page 0 — on page 0 a downward drag has no page above, so
-	// nothing happens. The top rail mirrors it spatially: dragging DOWN
-	// reveals the previous page from above, dragging UP pushes toward the
-	// next one — so pages added above AND below are reachable by dragging
-	// at either edge. Rails are paneRoot-level, so they serve every page
-	// id. They must be NON-reactive in edit mode so panel/gallery overlays
-	// catch clicks.
-	const railReactive = !isEditMode();
-
-	const makeRail = (edge) => {
-		const rail = new St.Widget({
-			reactive: railReactive,
-			x: 0,
-			y: edge === 'bottom' ? Math.max(0, pageH - RAIL_HEIGHT) : 0,
-			width: pageW,
-			height: RAIL_HEIGHT,
-			opacity: 0,
-		});
-
-		let dragStartY = null;
-
-		rail.connect('button-press-event', (_actor, event) => {
-			if (crossBusy) {
-				return Clutter.EVENT_PROPAGATE;
-			};
-			const [stageX, stageY] = event.get_coords();
-			if (!Number.isFinite(stageY)) {
-				return Clutter.EVENT_PROPAGATE;
-			};
-			dragStartY = stageY;
-			return Clutter.EVENT_STOP;
-		});
-
-		rail.connect('button-release-event', (_actor, event) => {
-			if (dragStartY === null) {
-				return Clutter.EVENT_PROPAGATE;
-			};
-			const startY = dragStartY;
-			dragStartY = null;
-
-			const [stageX, stageY] = event.get_coords();
-			if (!Number.isFinite(stageY)) {
-				return Clutter.EVENT_STOP;
-			};
-
-			const delta = stageY - startY;
-			
-			if (Math.abs(delta) <= SWIPE_THRESHOLD) {
-				return Clutter.EVENT_STOP;
-			};
-
-			// Improved navigation: seamless flow through pages of the same side
-			// without forcing return to primary between each step.
-			let target = -1;
-			
-			if (edge === 'bottom') {
-				// BOTTOM rail: swipe UP opens below pages, swipe DOWN navigates back
-				if (delta < 0) {
-					// Swipe UP: advance through below pages
-					if (active === 0) {
-						// From primary: jump to first below page
-						const firstBelow = pages.findIndex((p, i) => i > 0 && p.entry?.side !== 'above');
-						target = firstBelow !== -1 ? firstBelow : -1;
-					} else {
-						const currentSide = pages[active]?.entry?.side ?? 'below';
-						if (currentSide === 'below') {
-							// From below page: try next below page (sequential flow)
-							const nextBelow = pages.findIndex((p, i) => i > active && p.entry?.side !== 'above');
-							target = nextBelow !== -1 ? nextBelow : -1;
-						} else {
-							// From above page: return to primary first
-							target = 0;
-						}
-					}
-				} else {
-					// Swipe DOWN: navigate backward (toward primary)
-					if (active > 0 && pages[active]?.entry?.side !== 'above') {
-						// From below page: go to previous below or primary
-						for (let i = active - 1; i >= 0; i--) {
-							if (i === 0 || pages[i]?.entry?.side !== 'above') {
-								target = i;
-								break;
-							}
-						}
-					}
-				}
-			} else {
-				// TOP rail: swipe DOWN opens above pages, swipe UP navigates back
-				if (delta > 0) {
-					// Swipe DOWN: advance through above pages
-					if (active === 0) {
-						// From primary: jump to first above page
-						const firstAbove = pages.findIndex((p, i) => i > 0 && p.entry?.side === 'above');
-						target = firstAbove !== -1 ? firstAbove : -1;
-					} else {
-						const currentSide = pages[active]?.entry?.side ?? 'below';
-						if (currentSide === 'above') {
-							// From above page: try next above page (sequential flow)
-							const nextAbove = pages.findIndex((p, i) => i > active && p.entry?.side === 'above');
-							target = nextAbove !== -1 ? nextAbove : -1;
-						}
-					}
-				} else {
-					// Swipe UP: navigate backward (toward primary)
-					if (active > 0 && pages[active]?.entry?.side === 'above') {
-						// From above page: go to previous above or primary
-						for (let i = active - 1; i >= 0; i--) {
-							if (i === 0 || pages[i]?.entry?.side === 'above') {
-								target = i;
-								break;
-							}
-						}
-					}
-				}
-			}
-
-			if (target >= 0 && target < pages.length) {
-				crossTo(target);
-			};
-			return Clutter.EVENT_STOP;
-		});
-
-		paneRoot.add_child(rail);
-		return rail;
-	};
-
-	const bottomRail = makeRail('bottom');
-	const topRail = makeRail('top');
-	const rails = [bottomRail, topRail];
-
-	// ── Whole-widget right-button swipe (system monitor style) ────────────
-	// The thin rails above are hard to discover; mirror the music widget's
-	// nice gesture on the ENTIRE pane so a right-button vertical drag
-	// anywhere flips pages. Left button stays free for content clicks.
-	// Only active in normal mode (rails handle edit mode by hiding).
-	let swipeStartY = null;
-	paneRoot.connect('button-press-event', (_actor, event) => {
-		if (isEditMode() || crossBusy) {
-			return Clutter.EVENT_PROPAGATE;
-		};
-		if (event.get_button() !== 3) {
-			return Clutter.EVENT_PROPAGATE;
-		};
-		const coords = event.get_coords();
-		if (!Number.isFinite(coords?.[1])) {
-			return Clutter.EVENT_PROPAGATE;
-		};
-		swipeStartY = coords[1];
-		return Clutter.EVENT_PROPAGATE;
-	});
-
-	paneRoot.connect('button-release-event', (_actor, event) => {
-		if (swipeStartY === null) {
-			return Clutter.EVENT_PROPAGATE;
-		};
-		const startY = swipeStartY;
-		swipeStartY = null;
-		if (isEditMode() || crossBusy) {
-			return Clutter.EVENT_PROPAGATE;
-		};
-		if (event.get_button() !== 3) {
-			return Clutter.EVENT_PROPAGATE;
-		};
-		const coords = event.get_coords();
-		if (!Number.isFinite(coords?.[1])) {
-			return Clutter.EVENT_STOP;
-		};
-		const delta = coords[1] - startY;
-		if (Math.abs(delta) < SWIPE_THRESHOLD) {
-			return Clutter.EVENT_STOP;
-		};
-		if (crossBusy) {
-			return Clutter.EVENT_STOP;
-		};
-
-		const curSide = active === 0 ? null : (pages[active]?.entry?.side ?? 'below');
-		let target = -1;
-		if (delta < 0) {
-			// swipe up -> go up (toward above pages / back)
-			if (active === 0) {
-				target = pages.findIndex((p, i) => i > 0 && p.entry?.side === 'above');
-			} else if (curSide === 'above') {
-				for (let i = active - 1; i >= 0; i--) {
-					if (i === 0 || pages[i]?.entry?.side === 'above') {
-						target = i;
-						break;
-					}
-				}
-			} else {
-				target = 0;
-			}
-		} else {
-			// swipe down -> go down (toward below pages / back)
-			if (active === 0) {
-				target = pages.findIndex((p, i) => i > 0 && p.entry?.side !== 'above');
-			} else if (curSide === 'below') {
-				target = pages.findIndex((p, i) => i > active && p.entry?.side !== 'above');
-			} else {
-				target = 0;
+		flying = true;
+		const style = paneRoot.get_style?.() ?? null;
+		if (style && /background-color\s*:/.test(style)) {
+			savedStyle = style;
+			paneRoot.set_style(style.replace(/background-color\s*:[^;]*;?/g, 'background-color: rgba(0,0,0,0);'));
+		}
+		if (RoundedClipEffect) {
+			try {
+				clipEffect = new RoundedClipEffect();
+				const [x, y] = paneRoot.get_transformed_position();
+				const [w, h] = paneRoot.get_size();
+				clipEffect.setRect(x, y, w, h, theme?.radius ?? 16);
+				paneRoot.add_effect_with_name('desktop-widgets-stack-clip', clipEffect);
+			} catch (error) {
+				console.warn(`[desktop-widgets] stack rounded clip failed: ${error}`);
+				clipEffect = null;
 			}
 		}
-
-		if (target >= 0 && target < pages.length && target !== active) {
-			crossTo(target);
-		};
-		return Clutter.EVENT_STOP;
-	});
-
-	// Update rail reactivity when edit mode toggles: panel buttons need
-	// to catch clicks, and the rails must yield to them.
-	const updateRailReactive = () => {
-		if (rails.some(rail => rail.is_finalized?.())) {
-			return;
-		};
-		const reactive = !isEditMode();
-		for (const rail of rails) {
-			rail.reactive = reactive;
-			// Hide rails entirely in edit mode so they cannot block
-			// the widget drag or panel button clicks.
-			rail.visible = reactive;
-		};
 	};
 
-	return {
-		// Full teardown on re-fill: the fill path destroys the body children
-		// of the base page; added pages, the rails and the flip buttons die
-		// with the attach.
-		dispose() {
-			disposed = true;
-			for (const rail of rails) {
-				rail.remove_all_transitions();
-				rail.destroy();
+	const endFlight = () => {
+		if (!flying)
+			return;
+		flying = false;
+		if (clipEffect) {
+			try {
+				if (alive(paneRoot))
+					paneRoot.remove_effect(clipEffect);
+			} catch (_e) {}
+			clipEffect = null;
+		}
+		if (savedStyle !== null) {
+			if (alive(paneRoot))
+				paneRoot.set_style(savedStyle);
+			savedStyle = null;
+		}
+	};
+
+	// ── Follow pager (vertical, right button, capture phase) ─────────────
+	let drag = null;
+	let timeline = null;
+	let timelineIds = [];
+
+	const endGrab = () => {
+		if (drag?.grab) {
+			try {
+				drag.grab.dismiss();
+			} catch (_e) {}
+			drag.grab = null;
+		}
+	};
+
+	const neighbour = (dir) => {
+		const target = pageAtStrip(stripPos(active) + dir);
+		return target >= 0 ? target : -1;
+	};
+
+	// Both pages in one frame: the current one at `dy`, the neighbour one
+	// page (plus gap) beside it.
+	const applyOffset = (dy, target, dir) => {
+		const leaving = pages[active];
+		setY(leaving, dy);
+		syncPageGlass(leaving);
+		if (target >= 0) {
+			const entering = pages[target];
+			setY(entering, dy + dir * distance());
+			syncPageGlass(entering);
+		}
+	};
+
+	const parkPage = (index) => {
+		if (index < 0 || index >= pages.length || index === active)
+			return;
+		setVisible(pages[index], false);
+		setY(pages[index], (stripPos(index) - stripPos(active)) * distance());
+	};
+
+	const stopTimeline = () => {
+		if (!timeline)
+			return;
+		const t = timeline;
+		timeline = null;
+		for (const id of timelineIds) {
+			try {
+				t.disconnect(id);
+			} catch (_e) {}
+		}
+		timelineIds = [];
+		try {
+			t.stop();
+		} catch (_e) {}
+	};
+
+	// A settle that is still running when a new press arrives (or on
+	// dispose) jumps to its end state right away.
+	let finishSettle = null;
+
+	const settle = (allowCommit) => {
+		if (!drag)
+			return;
+		const {dy, velocity, target, dir, claimed} = drag;
+		endGrab();
+		drag = null;
+		if (disposed || !claimed)
+			return;
+
+		const d = distance();
+		const flick = Math.abs(velocity) > FLICK_VELOCITY && Math.sign(velocity) === Math.sign(dy);
+		const commit = allowCommit && target >= 0 && (Math.abs(dy) > PAGER_THRESHOLD || flick);
+		const to = commit ? -dir * d : 0;
+		const remaining = Math.abs(to - dy);
+		const duration = Math.round(Math.min(MAX_SETTLE_MS, Math.max(MIN_SETTLE_MS, remaining * 1.1)));
+		const from = dy;
+
+		settling = true;
+		finishSettle = () => {
+			finishSettle = null;
+			stopTimeline();
+			settling = false;
+			if (disposed)
+				return;
+			const leavingIndex = active;
+			if (commit) {
+				active = target;
+				setY(pages[active], 0);
+				syncPageGlass(pages[active]);
+				parkPage(leavingIndex);
+			} else {
+				setY(pages[active], 0);
+				syncPageGlass(pages[active]);
+				parkPage(target);
+			}
+			endFlight();
+			updateGlassGeometry();
+			if (commit)
+				onPageChange(active);
+		};
+
+		if (remaining < 1) {
+			finishSettle();
+			return;
+		}
+
+		const mode = Clutter.AnimationMode.EASE_OUT_CUBIC;
+		try {
+			timeline = new Clutter.Timeline({actor: paneRoot, duration, progress_mode: mode});
+		} catch (_e) {
+			timeline = null;
+		}
+		if (!timeline) {
+			finishSettle();
+			return;
+		}
+		timelineIds.push(timeline.connect('new-frame', () => {
+			if (disposed || !timeline)
+				return;
+			const p = timeline.get_progress();
+			applyOffset(from + (to - from) * p, target, dir);
+		}));
+		timelineIds.push(timeline.connect('completed', () => finishSettle?.()));
+		timeline.start();
+	};
+
+	const onCaptured = (_actor, event) => {
+		if (disposed)
+			return Clutter.EVENT_PROPAGATE;
+		const type = event.type();
+
+		if (type === Clutter.EventType.BUTTON_PRESS) {
+			if (drag)
+				settle(false); // its release was lost: close it first
+			finishSettle?.(); // a running settle jumps to its end
+			if (event.get_button() !== 3 || isEditMode() || settling)
+				return Clutter.EVENT_PROPAGATE;
+			const [x, y] = event.get_coords();
+			drag = {
+				startX: x, startY: y, lastY: y,
+				lastTime: GLib.get_monotonic_time() / 1000,
+				velocity: 0, dy: 0, claimed: false,
+				target: -1, dir: 0, grab: null,
+				hold: createHoldWatch(BUTTON3_MASK),
 			};
-			for (let i = 1; i < pages.length; i += 1) {
+			return Clutter.EVENT_PROPAGATE; // not claimed yet
+		}
+
+		if (!drag)
+			return Clutter.EVENT_PROPAGATE;
+
+		if (type === Clutter.EventType.MOTION) {
+			if (!drag.hold.held(event)) {
+				const claimed = drag.claimed;
+				settle(false);
+				return claimed ? Clutter.EVENT_STOP : Clutter.EVENT_PROPAGATE;
+			}
+			const [x, y] = event.get_coords();
+			const dx = x - drag.startX;
+			const dyRaw = y - drag.startY;
+
+			if (!drag.claimed) {
+				if (Math.abs(dyRaw) < CLAIM_PX && Math.abs(dx) < CLAIM_PX)
+					return Clutter.EVENT_PROPAGATE;
+				if (Math.abs(dyRaw) <= Math.abs(dx)) {
+					drag = null; // horizontal: the page's own pager owns it
+					return Clutter.EVENT_PROPAGATE;
+				}
+				drag.claimed = true;
+				drag.startY = y; // start following from here (no jump)
+				try {
+					drag.grab = global.stage.grab(paneRoot);
+				} catch (_e) {}
+				beginFlight();
+			}
+
+			const now = GLib.get_monotonic_time() / 1000;
+			drag.velocity = (y - drag.lastY) / Math.max(1, now - drag.lastTime);
+			drag.lastY = y;
+			drag.lastTime = now;
+			let dy = y - drag.startY;
+
+			// Drag UP (dy < 0) brings the page BELOW; drag DOWN the one above.
+			const dir = dy < 0 ? 1 : -1;
+			if (dir !== drag.dir) {
+				// Direction changed: park the previous neighbour.
+				parkPage(drag.target);
+				drag.dir = dir;
+				drag.target = neighbour(dir);
+				if (drag.target >= 0)
+					setVisible(pages[drag.target], true);
+			}
+
+			const d = distance();
+			if (drag.target < 0)
+				dy *= RUBBER; // nothing that way: resist
+			dy = Math.max(-d, Math.min(d, dy));
+			drag.dy = dy;
+			applyOffset(dy, drag.target, dir);
+			return Clutter.EVENT_STOP;
+		}
+
+		if (type === Clutter.EventType.BUTTON_RELEASE && event.get_button() === 3) {
+			const claimed = drag.claimed;
+			if (claimed)
+				settle(true);
+			else
+				drag = null;
+			return claimed ? Clutter.EVENT_STOP : Clutter.EVENT_PROPAGATE;
+		}
+
+		if (type === Clutter.EventType.KEY_PRESS && event.get_key_symbol() === Clutter.KEY_Escape && drag.claimed) {
+			settle(false);
+			return Clutter.EVENT_STOP;
+		}
+		return Clutter.EVENT_PROPAGATE;
+	};
+	const capturedId = paneRoot.connect('captured-event', onCaptured);
+	const mappedId = paneRoot.connect('notify::mapped', () => {
+		if (paneRoot.mapped)
+			return;
+		if (drag)
+			settle(false);
+		finishSettle?.(); // an unmapped actor gets no frames to finish on
+	});
+
+	return {
+		// Full teardown: added pages die; the primary is put back in its
+		// slot (visible, untranslated) whatever page was showing.
+		dispose() {
+			if (disposed)
+				return;
+			endGrab();
+			drag = null;
+			finishSettle?.();
+			stopTimeline();
+			endFlight();
+			disposed = true;
+			try {
+				paneRoot.disconnect(capturedId);
+				paneRoot.disconnect(mappedId);
+			} catch (_e) {}
+			for (let i = 1; i < pages.length; i++) {
 				const {actor} = pages[i];
-				if (!actor.is_finalized?.()) {
+				if (alive(actor)) {
 					actor.remove_all_transitions();
 					actor.destroy();
-				};
-			};
+				}
+			}
+			const primary = pages[0];
+			for (const a of [primary.actor, ...primary.extra]) {
+				if (alive(a)) {
+					a.remove_all_transitions();
+					a.translation_y = 0;
+					a.visible = true;
+				}
+			}
 			pages.length = 1;
 		},
 
-		// Called after the parent's stack array changes (panel edit): rebuild
-		// every added page from the (new) widget.stack — the caller destroys
-		// the previous prism first. Also refresh rail reactivity when edit
-		// mode toggles.
-		refresh() {
-			updateRailReactive();
-		},
+		// Edit mode toggles: nothing to re-arm (the gesture reads the mode
+		// live); kept for the caller's API.
+		refresh() {},
 
-		// Keeps added pages in step with the host's skin: the card style and
-		// glass panes are re-derived from the caller's callbacks (theme and
-		// style mode) without re-rendering the page content.
 		restyle,
 
-		// The currently visible page index (0 = primary); the next attach
-		// uses it as startPage so refills do not flip back to page 0.
+		// The visible page index (0 = primary).
 		getActivePage() {
 			return active;
 		},
 
-		// Re-aligns every page's glass backdrop with its card's stage rect.
+		// Jump straight to a page (the edit panel's rows), no flight.
+		showPage(index) {
+			if (disposed || index < 0 || index >= pages.length || index === active)
+				return;
+			if (drag)
+				settle(false);
+			finishSettle?.();
+			active = index;
+			placeIdle();
+			syncPageGlass(pages[active]);
+			onPageChange(active);
+		},
+
+		// Strip position of the visible page (0 = top of the column).
+		getStripPosition() {
+			return stripPos(active);
+		},
+
 		updateGlassGeometry,
+
+		// Re-render added pages whose type passes `predicate` (data
+		// refreshes: weather, calendar, system…), in place.
+		refill(predicate = () => true) {
+			for (let i = 1; i < pages.length; i++) {
+				const page = pages[i];
+				if (!alive(page.body) || !predicate(page.entry.type))
+					continue;
+				try {
+					renderPage(page.record, page.body, page.cardActor);
+				} catch (error) {
+					console.error(`[desktop-widgets] stacked ${page.entry.type} refresh failed: ${error}`);
+				}
+			}
+		},
 	};
 };

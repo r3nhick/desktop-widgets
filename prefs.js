@@ -626,6 +626,14 @@ export default class WidgetsPrefs extends ExtensionPreferences {
         });
         widgetsGroup.add(gapRow);
 
+        const placementGridRow = new Adw.SwitchRow({
+            title: _('Show placement grid'),
+            subtitle: _('While dragging a widget in edit mode, show the free 1×1 cells and drop it onto the highlighted ones'),
+        });
+        placementGridRow.set_active(settings.get_boolean('show-placement-grid'));
+        settings.bind('show-placement-grid', placementGridRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        widgetsGroup.add(placementGridRow);
+
         const pauseAnimationsRow = new Adw.SwitchRow({
             title: _('Pause animations in fullscreen'),
             subtitle: _('Automatically pause widget animations when a window is fullscreen to save resources'),
