@@ -3673,6 +3673,18 @@ export default class WidgetsPrefs extends ExtensionPreferences {
                     sync();
                     return;
                 }
+                // git succeeded but the files on disk are still not newer
+                // (already at GitHub's commit, or a local edit of
+                // metadata.json): say so instead of silently falling back
+                // to «is out» as if nothing had happened.
+                if (!isNewer(installedVersion(), version)) {
+                    updating = false;
+                    failure = /up to date/i.test(out)
+                        ? _('This copy already matches GitHub; nothing new was downloaded. Check metadata.json for local edits')
+                        : _('git finished, but the version on disk didn’t change');
+                    sync();
+                    return;
+                }
                 // New keys may come with the update: compile the schema.
                 run(['glib-compile-schemas', GLib.build_filenamev([dir, 'schemas'])], () => {
                     updating = false;
