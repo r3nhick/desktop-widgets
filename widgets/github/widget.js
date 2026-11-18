@@ -148,6 +148,14 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
                 avatar: 28, username: 14, badge: 12, label: 12, entryWidth: 150,
                 footer: 12, month: 14, spacing: 3, gap: 2, daysW: 28,
                 footerFont: 11, dayRows: translateDayRows(DAY_LABEL_ROWS), maxWeeks: 60, cellMax: 11, monthLabels: 6,
+                // Month names spread evenly over the whole grid width: equal
+                // distance between their CENTERS, first near the left edge,
+                // last near the right one. Unset = each name sits over the
+                // middle of its own month (2×2).
+                monthLabelSpread: true,
+                // Inset (px) of the spread row from both grid edges: bigger =
+                // names closer together. 0 → ~25px between names; 15 → ~20px.
+                monthLabelInset: 15,
             };
 
     const avatarSize = layout.avatar;
@@ -545,6 +553,29 @@ export function render({ body, widget, theme, sizeForWidget, settings }) {
         const limit = Number.isFinite(layout.monthLabels) ? layout.monthLabels : placed.length;
         for (const {lbl} of placed.splice(0, Math.max(0, placed.length - limit)))
             lbl.destroy();
+
+        if (layout.monthLabelSpread) {
+            // N names over the grid width: name i is centered at
+            // (i + 0.5) / N of the grid. Real widths only exist once the
+            // labels are laid out, so the row is re-placed whenever any of
+            // them changes width.
+            const n = placed.length;
+            const placeRow = () => {
+                placed.forEach(({lbl}, i) => {
+                    const w = lbl.width;
+                    const inset = Math.max(0, layout.monthLabelInset ?? 0);
+                    const span = Math.max(1, gridEndX - inset * 2);
+                    const center = inset + span * (i + 0.5) / n;
+                    lbl.translation_x = Math.max(0, Math.min(gridEndX - w, Math.round(center - w / 2)));
+                });
+            };
+            for (const {lbl} of placed) {
+                monthLabelsRow.add_child(lbl);
+                lbl.connect('notify::width', placeRow);
+            }
+            placeRow();
+            return;
+        }
 
         for (const {lbl, centerX} of placed) {
             // Centered over the month's visible column block, using the
