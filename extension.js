@@ -623,6 +623,7 @@ class WidgetController {
     };
 
     this._refreshWeather(true);
+    this._startWeatherTimer();
     this._registerEditModeBinding();
     this._workspaceIntegration.enable(this._layer);
     global.stage.connectObject(
@@ -682,11 +683,51 @@ class WidgetController {
       this
     );
 
-    // No need for aggressive retries - glass is now a child actor and gets allocation automatically
+    // Glass after login: the extension is enabled while the shell is still
+    // starting up (wallpapers loading, the layer not yet in its final
+    // place), and the glass panes built then could stay empty — the widgets
+    // showed as plain transparent cards until Glass was toggled. Rebuild
+    // once the startup has finished (the same path the toggle takes), and
+    // re-sync every pane a few seconds later as a backstop.
+    if (Main.layoutManager._startingUp) {
+      this._startupCompleteId = Main.layoutManager.connect('startup-complete', () => {
+        Main.layoutManager.disconnect(this._startupCompleteId);
+        this._startupCompleteId = 0;
+        if (this._layoutSettings?.get_int('style-mode') === 0)
+          this._rebuildWidgets();
+      });
+    };
+    this._glassResyncId = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 4, () => {
+      this._glassResyncId = 0;
+      this._resyncAllGlass();
+      return GLib.SOURCE_REMOVE;
+    });
+  };
+
+  // Re-aligns every glass pane with its widget's stage rect and makes it
+  // re-attach its wallpaper (monitor list, layer position may have changed).
+  _resyncAllGlass() {
+    for (const view of this._views?.values?.() ?? []) {
+      if (view.glass) {
+        view.glass._monitorIndex = -1; // forces a fresh wallpaper copy
+        this._updateGlassParamsForView(view);
+        this._updateGlassGeometryForView(view);
+      };
+      view._stackPrism?.restyle?.();
+      view._stackPrism?.updateGlassGeometry?.();
+    };
   };
 
   destroy() {
     // Glass is now destroyed automatically with widget actors
+    if (this._startupCompleteId) {
+      Main.layoutManager.disconnect(this._startupCompleteId);
+      this._startupCompleteId = 0;
+    };
+    if (this._glassResyncId) {
+      GLib.source_remove(this._glassResyncId);
+      this._glassResyncId = 0;
+    };
     
     this._eventsClient?.destroy();
     this._eventsClient = null;
@@ -758,6 +799,7 @@ class WidgetController {
     this._indicator = null;
     this._editModeMenuItem = null;
 
+    this._stopWeatherTimer();
     this._clearWeatherInfo();
 
     this._destroyLayer();
@@ -1281,6 +1323,10 @@ class WidgetController {
 
     this._resolveLayout(null, false, true);
 
+    // The layer moved: every glass pane's stage rect (and the wallpaper
+    // slice it shows) moved with it.
+    this._resyncAllGlass();
+
     this._workspaceIntegration.queueSync();
   };
 
@@ -1500,6 +1546,13 @@ class WidgetController {
   _refreshWeather(force = false) {
     const now = Date.now();
 
+    // A fetch that never reported back (stalled request) must not block
+    // every later refresh until the next login.
+    if (this._weatherUpdating && now - (this._weatherFetchStartedAt ?? 0) > WeatherWidget.fetchTimeoutMs) {
+      this._clearWeatherInfo();
+      this._weatherUpdateTime = now - WeatherWidget.cacheTtlMs; // due now
+    };
+
     if (this._weatherUpdating && !force) {
       return;
     };
@@ -1512,10 +1565,15 @@ class WidgetController {
     const displayName = WeatherWidget.locationNameFromSettings(this._weatherSettings);
     this._weatherLocation = displayName;
 
+    // Retry soon after a failure instead of waiting out the whole TTL.
+    const retrySoon = () => {
+      this._weatherUpdateTime = Date.now() - WeatherWidget.cacheTtlMs + WeatherWidget.retryMs;
+    };
+
     if (!location) {
       this._clearWeatherInfo();
       this._weather = null;
-      this._weatherUpdateTime = now;
+      retrySoon();
       return;
     };
 
@@ -1523,6 +1581,7 @@ class WidgetController {
     const info = WeatherWidget.infoForLocation(location);
     this._weatherInfo = info;
     this._weatherUpdating = true;
+    this._weatherFetchStartedAt = now;
 
     info.connectObject('updated', () => {
       if (info !== this._weatherInfo) {
@@ -1533,9 +1592,16 @@ class WidgetController {
       this._weatherUpdateTime = Date.now();
 
       if (info.is_valid()) {
-        this._weather = WeatherWidget.weatherFromInfo(info, location, displayName);
+        try {
+          this._weather = WeatherWidget.weatherFromInfo(info, location, displayName);
+        } catch (error) {
+          warn('weather-parse', `Could not read the weather report: ${error.message}`);
+          retrySoon();
+        };
       } else {
-        this._weather = null;
+        // Keep the last good report on screen; try again in a minute
+        // (network not up yet at login, provider hiccup…).
+        retrySoon();
       };
 
       this._refreshWeatherViews();
@@ -1544,20 +1610,65 @@ class WidgetController {
     info.update();
   };
 
-  _refreshWeatherViews() {
+  // Weather used to be fetched only at login and on a location change: if
+  // the network was not up yet at login (or a fetch failed), the widget
+  // stayed «unavailable» until the next login. A cheap once-a-minute check
+  // refreshes when the report is due (10 min) or a retry is due (1 min),
+  // and a network change fetches right away when there is no report.
+  _startWeatherTimer() {
+    this._stopWeatherTimer();
+    this._weatherTimerId = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 60, () => {
+      try {
+        this._refreshWeather(false);
+      } catch (error) {
+        warn('weather-timer', `Weather refresh failed: ${error.message}`);
+      };
+      return GLib.SOURCE_CONTINUE;
+    });
+    try {
+      this._networkMonitor = Gio.NetworkMonitor.get_default();
+      this._networkMonitorId = this._networkMonitor.connect('network-changed', (_monitor, available) => {
+        if (available && !this._weather)
+          this._debounce('weather-network', () => this._refreshWeather(true), 3000);
+      });
+    } catch (_e) {
+      this._networkMonitor = null;
+    };
+  };
+
+  _stopWeatherTimer() {
+    if (this._weatherTimerId) {
+      GLib.source_remove(this._weatherTimerId);
+      this._weatherTimerId = 0;
+    };
+    if (this._networkMonitor && this._networkMonitorId)
+      this._networkMonitor.disconnect(this._networkMonitorId);
+    this._networkMonitor = null;
+    this._networkMonitorId = 0;
+  };
+
+  // Re-renders every widget of `type` — primaries AND pages stacked inside
+  // other widgets (widget-in-widget). Stacked pages used to be skipped, so
+  // a weather page built at login (before the first report arrived) kept
+  // showing «GNOME Weather / unavailable» forever.
+  _refreshViewsOfType(type) {
     for (const view of this._views.values()) {
-      if (view.widget.type === 'weather') {
-        this._fillWidgetBody(view.widget, view.body);
+      if (view.widget.type === type && view.body)
+        this._safeFillWidgetBody(view.widget, view.body);
+      try {
+        view._stackPrism?.refill?.(pageType => pageType === type);
+      } catch (error) {
+        warn('stack-refill', `Stacked ${type} pages failed to refresh: ${error.message}`);
       };
     };
   };
 
+  _refreshWeatherViews() {
+    this._refreshViewsOfType('weather');
+  };
+
   _refreshBatteryViews() {
-    for (const view of this._views.values()) {
-      if (view.widget.type === 'battery') {
-        this._safeFillWidgetBody(view.widget, view.body);
-      };
-    };
+    this._refreshViewsOfType('battery');
   };
 
   _watchBatteryChanges() {
@@ -5249,17 +5360,7 @@ sizeButton.connectObject('destroy', () => {
   };
 
   _refreshCalendarWeekdays() {
-    for (const [id, view] of this._views) {
-      if (view.widget.type !== 'calendar' || !view.body) {
-        continue;
-      };
-
-      try {
-        this._fillWidgetBody(view.widget, view.body);
-      } catch (error) {
-        warn('calendar-weekday-refresh', `refresh failed: ${error}`);
-      };
-    };
+    this._refreshViewsOfType('calendar');
   };
 
   _setWidgetPhoto(widget, body, path) {

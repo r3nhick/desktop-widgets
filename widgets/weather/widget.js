@@ -19,6 +19,11 @@ export const stylesheet = 'widgets/weather/stylesheet.css';
 export const appIds = ['org.gnome.Weather.desktop'];
 export const settingsSchema = 'org.gnome.Weather';
 export const cacheTtlMs = 10 * 60 * 1000;
+// After a failed fetch (no location yet, network not up at login, GWeather
+// error) the next attempt comes after a minute, not the full cache TTL.
+export const retryMs = 60 * 1000;
+// A fetch that never reports back (stalled request) is given up after this.
+export const fetchTimeoutMs = 45 * 1000;
 export const defaultSize = 'medium';
 export const supportedSizes = ['small', 'medium', 'large', 'wide'];
 
@@ -37,39 +42,69 @@ export function style(theme) {
 	return `background-color: ${theme.background}; border-color: ${theme.border}; color: ${theme.text}; border-radius: 16px; padding: 18px 18px 4px 18px;`;
 };
 
-export function locationNameFromSettings(settings) {
-	const strings = locationStringsFromSettings(settings);
+// The saved city. GNOME Weather keeps it in dconf (org.gnome.Weather), but
+// the Flatpak build of the app writes its own keyfile instead, and GNOME
+// Shell has a list of its own (org.gnome.shell.weather). The first source
+// that has a city wins, so the widget keeps working whichever way the
+// Weather app is installed or was last used.
+const FLATPAK_KEYFILE = GLib.build_filenamev([GLib.get_home_dir(),
+	'.var', 'app', 'org.gnome.Weather', 'config', 'glib-2.0', 'settings', 'keyfile']);
 
+let shellWeatherSettings;
+function shellWeatherLocations() {
+	if (shellWeatherSettings === undefined) {
+		shellWeatherSettings = null;
+		try {
+			const schema = Gio.SettingsSchemaSource.get_default()?.lookup('org.gnome.shell.weather', true);
+			if (schema?.has_key('locations'))
+				shellWeatherSettings = new Gio.Settings({settings_schema: schema});
+		} catch (_e) {}
+	};
+	return shellWeatherSettings?.get_value('locations') ?? null;
+};
+
+function flatpakLocations() {
+	try {
+		const keyfile = new GLib.KeyFile();
+		keyfile.load_from_file(FLATPAK_KEYFILE, GLib.KeyFileFlags.NONE);
+		const text = keyfile.get_value('org/gnome/Weather', 'locations');
+		return GLib.Variant.parse(new GLib.VariantType('av'), text, null, null);
+	} catch (_e) {
+		return null; // no Flatpak app, or it never saved a city
+	};
+};
+
+// The first saved location as the 'v' child of a locations list, or null.
+function firstLocationVariant(settings) {
+	const sources = [
+		() => settings?.get_value('locations') ?? null,
+		() => flatpakLocations(),
+		() => shellWeatherLocations(),
+	];
+	for (const source of sources) {
+		try {
+			const list = source();
+			if (list && list.n_children() > 0)
+				return list.get_child_value(0);
+		} catch (_e) {}
+	};
+	return null;
+};
+
+export function locationNameFromSettings(settings) {
+	const first = firstLocationVariant(settings);
+	if (!first)
+		return null;
+	const strings = [...first.print(true).matchAll(/'([^']*)'/g)].map(match => match[1]);
 	return strings[0] || null;
 };
 
-function locationStringsFromSettings(settings) {
-	if (!settings) {
-		return [];
-	};
-
-	const locations = settings.get_value('locations');
-
-	if (locations.n_children() === 0) {
-		return [];
-	};
-
-	const serialized = locations.get_child_value(0).print(true);
-
-	return [...serialized.matchAll(/'([^']*)'/g)].map(match => match[1]);
-};
-
 export function locationFromSettings(settings) {
-	if (!settings) {
+	const first = firstLocationVariant(settings);
+	if (!first)
 		return null;
-	};
-
 	try {
-		const locations = settings.get_value('locations');
-
-		return locations.n_children() > 0
-			? GWeather.Location.get_world()?.deserialize(locations.get_child_value(0).deep_unpack()) ?? null
-			: null;
+		return GWeather.Location.get_world()?.deserialize(first.deep_unpack()) ?? null;
 	} catch (error) {
 		warn('weather-location-deserialize', `Could not deserialize Weather app location: ${error.message}`);
 		return null;
