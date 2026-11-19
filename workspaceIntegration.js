@@ -323,6 +323,17 @@ export class WorkspaceIntegration {
 
     container.add_child(clone);
 
+    // Widgets belong to the desktop, not the app grid: fade the clone out as
+    // the overview moves from the window picker (1) to the app grid (2),
+    // otherwise an empty glass card can stay painted over the app grid.
+    const stateAdjustment = Main.overview._overview?.controls?._stateAdjustment;
+
+    if (stateAdjustment) {
+      stateAdjustment.connectObject('notify::value', () => this._syncOverviewCloneOpacity(clone), clone);
+    };
+
+    this._syncOverviewCloneOpacity(clone);
+
     container.connectObject('child-added', (_actor, child) => {
       if (child !== clone) {
         this._restackOverviewClone(container, clone, record.aboveSiblings);
@@ -337,6 +348,14 @@ export class WorkspaceIntegration {
 
     this._overviewClones.set(container, record);
     this._restackOverviewClone(container, clone, record.aboveSiblings);
+  };
+
+  _syncOverviewCloneOpacity(clone) {
+    const stateAdjustment = Main.overview._overview?.controls?._stateAdjustment;
+    const value = stateAdjustment ? stateAdjustment.value : 1;
+    const visibility = Math.min(1, Math.max(0, 2 - value));
+
+    clone.opacity = Math.round(255 * visibility);
   };
 
   _syncOverviewPreviews() {
@@ -357,6 +376,7 @@ export class WorkspaceIntegration {
       };
 
       record.aboveSiblings = target.aboveSiblings;
+      this._syncOverviewCloneOpacity(record.clone);
 
       if (target.fillContainer) {
         record.clone.set_size(0, 0);

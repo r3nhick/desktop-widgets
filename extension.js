@@ -1245,21 +1245,24 @@ class WidgetController {
       };
     };
 
-    if (topDing) {
-      if (layer.get_parent() !== windowGroup) {
-        layer.get_parent()?.remove_child(layer);
-        windowGroup.add_child(layer);
-      };
+    const target = topDing ? windowGroup : backgroundGroup;
+    const reparented = layer.get_parent() !== target;
 
-      windowGroup.set_child_above_sibling(layer, topDing);
-    } else {
-      if (layer.get_parent() !== backgroundGroup) {
-        layer.get_parent()?.remove_child(layer);
-        backgroundGroup.add_child(layer);
-      };
-
-      backgroundGroup.set_child_above_sibling(layer, null);
+    if (reparented) {
+      layer.get_parent()?.remove_child(layer);
+      target.add_child(layer);
     };
+
+    target.set_child_above_sibling(layer, topDing);
+
+    // Moving the layer between the background group and the window group
+    // (a desktop-icons or live-wallpaper window such as DING or Hanabi
+    // showing up a few seconds after login) leaves the glass panes built
+    // before the move painting nothing: the widgets turn into bare
+    // transparent cards until Glass is toggled. Rebuild them in their new
+    // parent — the same path the Glass toggle takes.
+    if (reparented && this._layoutSettings?.get_int('style-mode') === 0)
+      this._scheduleAppearance('rebuild');
   };
 
   _keepLayerAboveDesktopIcons(_backgroundGroup) {
